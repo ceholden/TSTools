@@ -36,30 +36,24 @@ from ccdc_binary_reader import CCDCBinaryReader
 
 
 class CCDCTimeSeries:
-    def __init__(self, location, pattern):
-        self.location = location
-        self.pattern = pattern
-        # Try to find stacks
-        self.stacks = []
-        self.images = []
-        for root, dirnames, filenames in os.walk(self.location):
-            for filename in fnmatch.filter(filenames, self.pattern):
-                self.stacks.append(os.path.join(root, filename))
-                self.images.append(filename)
-
-        # Check if found anything
-        self.length = len(self.stacks)
-        if self.length == 0:
-            raise CCDCLengthError(self.length)
+    def __init__(self, location, image_pattern, stack_pattern):
+		# Keep location of stacks	
+		self.location = location
+        
+		# Try to find stacks
+		self.images = []
+		self.stacks = []
+		self._find_stacks(image_pattern, stack_pattern)
 
         # Gather geo-attributes
-        self.__get_attributes()
+        self._get_attributes()
         # Get stack dates (i.e. handle different formats)
-        self.__get_stack_dates()
+        self.dates = []
+		self._get_stack_dates()
         # Get stack time series information
 		self.has_reccg = True
 		self.reccg = {}
-        self.__get_record_changes()
+		self.has_reccg = self._get_record_changes()
 
         # Initialize data
         self.data = np.zeros([self.n_band, self.length])
@@ -69,8 +63,31 @@ class CCDCTimeSeries:
 
         # TODO: store some number of last fetches... don't re-retrieve if x-y
         # in this list for tradeoff of more memory but better performance?
+	
+	def _find_stacks(self, image_pattern, stack_pattern):
+		""" 
+		Finds & sets names for Landsat image directories & stacks
+		"""
+		for root, dnames, fnames in os.walk(self.location):
+			for dname in fnmatch.filter(dnames, image_pattern):
+				self.images.append(dname)
+			for fname in fnmatch.filter(fnames, stack_pattern):
+				self.stacks.append(os.path.join(root, fname))
+		# TODO: handle this error more intelligently
+		if len(self.images) > len(self.stacks):
+			print 'Error: one or more stacks missing/not found'
+			return
+		elif len(self.images) < len(self.stacks):
+			print 'Error: more than one stack found for a directory'
+			return
+		self.length = len(self.stacks)
+		if self.length == 0:
+			raise CCDCLengthError(self.length)
+		# Sort both by image name (i.e. Landsat ID)
+		self.images, self.stacks = (list(t) for t in 
+			zip(*sorted(zip(self.images, self.stacks))))
 
-    def __get_attributes(self):
+    def _get_attributes(self):
         # Check out the first stack in series
         stack = self.stacks[0]
         # Open and gather info from GDAL
@@ -78,14 +95,17 @@ class CCDCTimeSeries:
         ds = gdal.Open(stack, GA_ReadOnly)
         if ds is None:
             print 'Could not open %s dataset' % stack
-        # Raster size
+        
+		# Raster size
         self.x_size = ds.RasterXSize
         self.y_size = ds.RasterYSize
         self.n_band = ds.RasterCount
-        # Geographic transform & info
+        
+		# Geographic transform & info
         self.geo_transform = ds.GetGeoTransform()
         self.projection = ds.GetProjection()
-        # File type & format
+       
+		 # File type & format
         self.fformat = ds.GetDriver().ShortName
         if self.fformat == 'ENVI':
             interleave = ds.GetMetadata('IMAGE_STRUCTURE')['INTERLEAVE']
@@ -93,12 +113,14 @@ class CCDCTimeSeries:
                 self.fformat = 'BIP'
             elif interleave == 'BAND':
                 self.fformat = 'BSQ'
-        # Data type
+        
+		# Data type
         band = ds.GetRasterBand(1)
         self.datatype = gdal.GetDataTypeName(band.DataType)
         if self.datatype == 'Byte':
             self.datatype = 'uint8'
         self.datatype = np.dtype(self.datatype)
+		
 		# Band names
 		self.band_names = []
 		for iBand in range(ds.RasterCount):
@@ -108,35 +130,24 @@ class CCDCTimeSeries:
 				self.band_names.append(band.GetDescription())
 			else:
 				self.band_names.append('Band %s' + str(iBand + 1))
+		
 		# Close band & dataset
         band = None
         ds = None
 
-    def __get_stack_dates(self):
-        self.dates = []
-        for image in self.images:
-            # Check if old pattern (L5, L4)
-            if image[0:3] in ['L50', 'L40']:
-                year = image[12:16]
-                month = image[16:18]
-                day = image[18:20]
-                self.dates.append(year + month + day)
-            elif image[0:3] in ['L71']:
-                year = image[13:17]
-                month = image[17:19]
-                day = image[19:21]
-                self.dates.append(year + month + day)
-            # New pattern (LE7, LT5, LT4)
-            elif image[0:3] in ['LE7', 'LT5', 'LT4']:
-                year = int(image[9:13])
-                doy = int(image[13:16])
-                d = dt.date(year, 1, 1) + dt.timedelta(doy - 1)
-                self.dates.append(d.strftime('%Y%m%d'))
-            else:
-                print image
-                break
+	def _get_stack_dates(self):
+		"""
+		Use the image IDs to retrieve the date as Python datetime
 
-    def __get_record_changes(self, basename='record_change'):
+		Note:	Because we're trying to use YEARDOY, we have to first get the
+				year and DOY seperately to create the date using:
+				datetime(year, 1, 1) and then timedelta(doy - 1)
+		"""
+		for image in self.images:
+			self.dates.append(dt.datetime(int(image[9:13]), 1, 1) + 
+				dt.timedelta(int(image[13:16]) - 1))
+
+    def _get_record_changes(self, basename='record_change'):
 		"""
 		Opens the output from MATLAB "record_changeXXXX.mat" files to retrieve
 		the output of CCDC. Stores names in self.reccg dictionary as 
@@ -147,15 +158,18 @@ class CCDCTimeSeries:
 		"""
         # Check for TSFitMap
         if not os.path.isdir(self.location + '/TSFitMap'):
-			self.has_reccg = False
-			return
-		self.has_reccg = True
+			return False
 
 		files = os.listdir(self.location + '/TSFitMap')
 		for filename in fnmatch.filter(files, basename + '*'):
 			# Row = filename row - 1 since we start on 0
 			row = int(filename.replace(basename, '').replace('.mat', '')) - 1
 			self.reccg[row] = self.location + '/TSFitMap/' + filename
+		
+		if len(self.reccg) == 0:
+			print 'Could not find recorded changes...'
+			return False
+		return True
 
 	def open_ts(self):
         """ 

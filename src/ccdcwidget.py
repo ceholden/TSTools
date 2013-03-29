@@ -34,6 +34,7 @@ from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg
 
 import numpy as np
 
+import datetime
 import fnmatch
 import os
 
@@ -48,6 +49,7 @@ class CCDCWidget(QWidget, Ui_Widget):
         stack_dir = '/home/ceholden/Dropbox/Work/Research/pyCCDC/Dataset/p012r031/images'
 		# stack_dir = '/net/casfsc/fs/scratch24/ceholden/p013r031/images'
 		#stack_dir = '/net/caseq/lcscratch/ceholden/p012r030/images'
+		image_pattern = 'LND*'
         stack_pattern = '*stack'
 
 		### Default options
@@ -62,7 +64,7 @@ class CCDCWidget(QWidget, Ui_Widget):
 
 		### Data
         # Load the time series object
-        self.ts = CCDCTimeSeries(stack_dir, stack_pattern)
+        self.ts = CCDCTimeSeries(stack_dir, image_pattern, stack_pattern)
         # Initialize dataset to plot
         self.y = self.ts.data
         self.x = np.arange(self.ts.length)
@@ -195,7 +197,6 @@ class CCDCWidget(QWidget, Ui_Widget):
 		# TODO: a lot...
 		if len(self.reccg) > 0:
 			mx = np.linspace(self.reccg[0]['t_start'], self.reccg[-1]['t_end'],
-#				self.reccg[-1]['t_end'] - self.reccg[0]['t_start'])
 				len(self.x))
 			rec = self.reccg[0]
 			coef = rec['coefs'][:, self.band_select]
