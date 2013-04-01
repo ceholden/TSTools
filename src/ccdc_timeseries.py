@@ -88,6 +88,10 @@ class CCDCTimeSeries:
             zip(*sorted(zip(self.images, self.stacks))))
 
     def _get_attributes(self):
+		"""
+		Fetches image stack attributes including rows, columns, bands,
+		geographic transform, projection, file format, data type, band names
+		"""
         # Check out the first stack in series
         stack = self.stacks[0]
         # Open and gather info from GDAL

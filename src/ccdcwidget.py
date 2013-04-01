@@ -30,11 +30,11 @@ from qgis.gui import QgsMapToolEmitPoint
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
-from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg
+from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 
 import numpy as np
 
-import datetime
+import datetime as dt
 import fnmatch
 import os
 
@@ -111,6 +111,7 @@ class CCDCWidget(QWidget, Ui_Widget):
 			SIGNAL('currentIndexChanged(int)'), self.set_band_select)
  
     def setup_plots(self):
+		layout = QVBoxLayout()
         # matplotlib
         self.mplFig = plt.Figure(facecolor = 'w', edgecolor = 'w')
         self.mplPlt = self.mplFig.add_subplot(111)
@@ -118,21 +119,22 @@ class CCDCWidget(QWidget, Ui_Widget):
         self.mplPlt.tick_params(axis = 'y', which = 'major', labelsize=10)
         self.mplPlt.set_ylim([0, 10000])
         # Setup matplotlib to add to Qt element
-        self.pltCanvas = FigureCanvasQTAgg(self.mplFig)
+        self.pltCanvas = FigureCanvas(self.mplFig)
         self.pltCanvas.setParent(self.stackedWidget)
         self.pltCanvas.setAutoFillBackground(False)
         self.pltCanvas.setObjectName('mplPlot')
         self.mplPlot = self.pltCanvas
         self.mplPlot.setVisible(True)
         # Configure aspect resizing policy
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding,
-            QtGui.QSizePolicy.Expanding)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(
-            self.mplPlot.sizePolicy().hasHeightForWidth())
-        self.mplPlot.setSizePolicy(sizePolicy)
-        self.mplPlot.updateGeometry()
+#        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding,
+#            QtGui.QSizePolicy.Expanding)
+#        sizePolicy.setHorizontalStretch(0)
+#        sizePolicy.setVerticalStretch(0)
+#        sizePolicy.setHeightForWidth(
+#            self.mplPlot.sizePolicy().hasHeightForWidth())
+#        self.mplPlot.setSizePolicy(sizePolicy)
+#        self.mplPlot.updateGeometry()
+		self.mplPlot.setLayout(layout)
         self.stackedWidget.addWidget(self.mplPlot)
         
         self.stackedWidget.setCurrentIndex(0)
@@ -182,40 +184,31 @@ class CCDCWidget(QWidget, Ui_Widget):
 			
  
     def plot(self):
-        # The actual plotting...
         self.mplPlt.clear()
-#       self.mplPlt.set_ylim([0, 10000])
-#		self.mplPlt.set_ylim([np.min(self.y[self.band_select, ]),
-#			np.max(self.y[self.band_select, ])])
-        self.mplPlt.plot(self.x, self.y[self.band_select, ], 
+        self.mplPlt.plot(self.ts.dates, self.y[self.band_select, ], 
             marker='o', ls='', color='r')
-#        self.mplPlt.set_xticks(range(len(self.x)))
-#        self.mplPlt.set_xticklabels(self.x)
-#        self.mplFig.canvas.draw()
-
+		
 		# CCDC time series fit...
 		# TODO: a lot...
 		if len(self.reccg) > 0:
-			mx = np.linspace(self.reccg[0]['t_start'], self.reccg[-1]['t_end'],
-				len(self.x))
-			rec = self.reccg[0]
-			coef = rec['coefs'][:, self.band_select]
-			my = (coef[0] +
-				coef[1] * mx +
-				coef[2] * np.cos(2 * np.pi / 365 * mx) +
-				coef[3] * np.sin(2 * np.pi / 365 * mx))
-			self.mplPlt.plot(self.x, my)
-
-
-#		for rec in self.reccg:
-#			mx = np.linspace(rec['t_start'], rec['t_end'], 
-#				rec['t_end'] - rec['t_start'])
-#			coef = rec['coefs'][:, self.band_select]
-#			my = (coef[0] + 
-#				coef[1] * mx + 
-#				coef[2] * np.cos(2 * np.pi / 365 * mx) +
-#				coef[3] * np.sin(2 * np.pi / 365 * mx))
-#			self.mplPlt.plot
+			for rec in self.reccg:
+				# Get a time series of x dates
+				mx = np.linspace(rec['t_start'],
+					rec['t_end'],
+					rec['t_end'] - rec['t_start'])
+				# Get coefficients for band
+				coef = rec['coefs'][:, self.band_select]
+				# Calculate modeled reflectance
+				my = (coef[0] +
+					coef[1] * mx +
+					coef[2] * np.cos(2 * np.pi / 365 * mx) +
+					coef[3] * np.sin(2 * np.pi / 365 * mx))
+				# Transform MATLAB x into Python date
+				mx = [dt.datetime.fromordinal(int(m)) - 
+					dt.timedelta(days = 366) 
+					for	m in mx]
+				# Plot
+				self.mplPlt.plot(mx, my, linewidth=2)
 
 		self.mplFig.canvas.draw()
     

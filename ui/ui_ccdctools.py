@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'ui/ui_ccdctools.ui'
 #
-# Created: Thu Mar 28 21:03:59 2013
+# Created: Mon Apr  1 13:49:42 2013
 #      by: PyQt4 UI code generator 4.9.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -53,6 +53,11 @@ class Ui_CCDCTools(object):
         self.horizontalLayout_2.addWidget(self.combox_band_select)
         self.stackedWidget = QtGui.QStackedWidget(CCDCTools)
         self.stackedWidget.setGeometry(QtCore.QRect(0, 120, 640, 360))
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.MinimumExpanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.stackedWidget.sizePolicy().hasHeightForWidth())
+        self.stackedWidget.setSizePolicy(sizePolicy)
         self.stackedWidget.setObjectName(_fromUtf8("stackedWidget"))
 
         self.retranslateUi(CCDCTools)
