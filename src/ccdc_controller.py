@@ -45,7 +45,7 @@ class Controller(object):
         self.opt['band'] = 0
         # TODO: turn these into specifics for each band
         self.opt['scale'] = True
-        self.opt['scale_factor'] = 0.1
+        self.opt['scale_factor'] = 0.25
         self.opt['min'] = np.zeros(1, dtype=np.int)
         self.opt['max'] = np.ones(1, dtype=np.int) * 10000
         self.opt['fmask'] = True
@@ -74,7 +74,7 @@ class Controller(object):
         """
         if self.opt['scale']:
             self.calculate_scale()
-        self.ctrl.update_controls(self.ts, self.opt)
+        self.ctrl.update_options(self.ts, self.opt)
         self.plt.update_plot(self.ts, self.opt)
 
     def add_signals(self):
@@ -98,8 +98,12 @@ class Controller(object):
         self.ctrl.edit_max.returnPressed.connect(partial(
             self.set_max, self.ctrl.edit_max, validator))
 
-        # Show or hide Fmask checkbox
+        # Show or hide Fmask masked values
         self.ctrl.cbox_fmask.stateChanged.connect(self.set_fmask)
+        # Show or hide fitted time series
+        self.ctrl.cbox_ccdcfit.stateChanged.connect(self.set_fit)
+        # Show or hide break points
+        self.ctrl.cbox_ccdcbreak.stateChanged.connect(self.set_break)
 
     def calculate_scale(self):
         """
@@ -116,7 +120,7 @@ class Controller(object):
         Update the band selected & replot
         """
         self.opt['band'] = index
-        self.ctrl.update_controls(self.ts, self.opt)
+        self.ctrl.update_options(self.ts, self.opt)
         self.plt.update_plot(self.ts, self.opt)
 
     def set_scale(self, state):
@@ -137,7 +141,7 @@ class Controller(object):
         state, pos = validator.validate(edit.text(), 0)
 
         if state == QValidator.Acceptable:
-            self.opt['min'] = int(edit.text())
+            self.opt['min'][self.opt['band']] = int(edit.text())
         self.plt.update_plot(self.ts, self.opt)
     
     def set_max(self, edit, validator):
@@ -147,7 +151,7 @@ class Controller(object):
         state, pos = validator.validate(edit.text(), 0)
 
         if state == QValidator.Acceptable:
-            self.opt['max'] = int(edit.text())
+            self.opt['max'][self.opt['band']] = int(edit.text())
         self.plt.update_plot(self.ts, self.opt)
 
     def set_fmask(self, state):
@@ -160,6 +164,26 @@ class Controller(object):
             self.opt['fmask'] = False
         # Update the data for without the masks
         self.ts.get_ts_pixel(self.ts.x, self.ts.y, self.opt['fmask'])
+        self.plt.update_plot(self.ts, self.opt)
+
+    def set_fit(self, state):
+        """
+        Turn on or off the CCDC fit lines & replot
+        """
+        if (state == Qt.Checked):
+            self.opt['fit'] = True
+        elif (state == Qt.Unchecked):
+            self.opt['fit'] = False
+        self.plt.update_plot(self.ts, self.opt)
+
+    def set_break(self, state):
+        """
+        Turn on or off the CCDC break indicator & replot
+        """
+        if (state == Qt.Checked):
+            self.opt['break'] = True
+        elif (state == Qt.Unchecked):
+            self.opt['break'] = False
         self.plt.update_plot(self.ts, self.opt)
 
     def fetch_data(self, pos):

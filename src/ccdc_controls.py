@@ -44,7 +44,7 @@ class CCDCControls(QWidget, Ui_Widget):
         QWidget.__init__(self)
         self.setupUi(self)
 
-    def update_controls(self, ts, opt):
+    def update_options(self, ts, opt):
         print 'Ctrl updates...'
         ### Raster band select
         print 'Len combox_band %s' % str(self.combox_band.count())
@@ -61,7 +61,11 @@ class CCDCControls(QWidget, Ui_Widget):
         self.cbox_fmask.setChecked(opt['fmask'])
         self.cbox_ccdcfit.setChecked(opt['fit'])
         self.cbox_ccdcbreak.setChecked(opt['break'])
-        # TODO
+
+    def update_table(self, ts, opt):
+        print 'Table updates...'
+
 
     def disconnect(self):
+        # TODO
         pass

@@ -88,6 +88,8 @@ class CCDCPlot(FigureCanvas):
         if options['fit'] == True and self.reccg != None:
             if len(self.reccg) > 0:
                 for rec in self.reccg:
+                    if options['band'] >= rec['coefs'].shape[1]:
+                        break
                     # Create sequence of MATLAB ordinal dates
                     mx = np.linspace(rec['t_start'],
                                      rec['t_end'],
@@ -103,8 +105,26 @@ class CCDCPlot(FigureCanvas):
                                                   dt.timedelta(days = 366)
                                                   for m in mx]
                     self.axes.plot(mx, my, linewidth=2)
+        # Plot break points
+        if options['break'] == True and self.reccg != None:
+            if len(self.reccg) > 1:
+                for rec in self.reccg[0:-1]:
+                    mx = (dt.datetime.fromordinal(int(rec['t_break'])) -
+                                                 dt.timedelta(days = 366))
+                    print 'Break:'
+                    print mx
+                    index = [i for i, date in 
+                             enumerate(self.x) if date == mx][0]
+                    print 'Index:'
+                    print index
+                    if index < len(self.y) and index >= 0:
+                        my = self.y[index]
+                        print 'Y break:'
+                        print my
+                        self.axes.plot(mx, my, 'ro', mec='r', 
+                                       mfc='none', ms=10, mew=5)
+        self.fig.canvas.draw()
 
-        self.fig.canvas.draw() 
- 
+
     def disconnect(self):
         pass

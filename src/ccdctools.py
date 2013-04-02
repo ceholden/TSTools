@@ -94,8 +94,8 @@ class CCDCTools:
                                         self.image_pattern,
                                         self.stack_pattern)
         QObject.connect(self.click_tool,
-                    SIGNAL('canvasClicked(const QgsPoint &, Qt::MouseButton)'),
-                    self.plot_request)
+                SIGNAL('canvasClicked(const QgsPoint &, Qt::MouseButton)'),
+                self.plot_request)
     
     def plot_request(self, pos, button=None):
         print 'Trying to fetch...'

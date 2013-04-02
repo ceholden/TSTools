@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'ui/ui_ccdctools.ui'
 #
-# Created: Tue Apr  2 16:24:31 2013
+# Created: Tue Apr  2 18:45:41 2013
 #      by: PyQt4 UI code generator 4.9.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -27,6 +27,11 @@ class Ui_CCDCTools(object):
         self.verticalLayout_2 = QtGui.QVBoxLayout(CCDCTools)
         self.verticalLayout_2.setObjectName(_fromUtf8("verticalLayout_2"))
         self.tabWidget = QtGui.QTabWidget(CCDCTools)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.MinimumExpanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.tabWidget.sizePolicy().hasHeightForWidth())
+        self.tabWidget.setSizePolicy(sizePolicy)
         self.tabWidget.setObjectName(_fromUtf8("tabWidget"))
         self.tab_options = QtGui.QWidget()
         self.tab_options.setObjectName(_fromUtf8("tab_options"))
@@ -85,9 +90,37 @@ class Ui_CCDCTools(object):
         self.tabWidget.addTab(self.tab_options, _fromUtf8(""))
         self.tab_images = QtGui.QWidget()
         self.tab_images.setObjectName(_fromUtf8("tab_images"))
+        self.horizontalLayout = QtGui.QHBoxLayout(self.tab_images)
+        self.horizontalLayout.setObjectName(_fromUtf8("horizontalLayout"))
+        self.image_table = QtGui.QTableWidget(self.tab_images)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.MinimumExpanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.image_table.sizePolicy().hasHeightForWidth())
+        self.image_table.setSizePolicy(sizePolicy)
+        self.image_table.setFrameShadow(QtGui.QFrame.Sunken)
+        self.image_table.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
+        self.image_table.setEditTriggers(QtGui.QAbstractItemView.DoubleClicked)
+        self.image_table.setProperty("showDropIndicator", False)
+        self.image_table.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
+        self.image_table.setRowCount(0)
+        self.image_table.setColumnCount(3)
+        self.image_table.setObjectName(_fromUtf8("image_table"))
+        self.image_table.horizontalHeader().setCascadingSectionResizes(True)
+        self.image_table.horizontalHeader().setStretchLastSection(True)
+        self.image_table.verticalHeader().setVisible(False)
+        self.image_table.verticalHeader().setHighlightSections(False)
+        self.image_table.verticalHeader().setSortIndicatorShown(False)
+        self.image_table.verticalHeader().setStretchLastSection(False)
+        self.horizontalLayout.addWidget(self.image_table)
         self.tabWidget.addTab(self.tab_images, _fromUtf8(""))
         self.tab_save = QtGui.QWidget()
         self.tab_save.setObjectName(_fromUtf8("tab_save"))
+        self.verticalLayout_3 = QtGui.QVBoxLayout(self.tab_save)
+        self.verticalLayout_3.setObjectName(_fromUtf8("verticalLayout_3"))
+        self.label = QtGui.QLabel(self.tab_save)
+        self.label.setObjectName(_fromUtf8("label"))
+        self.verticalLayout_3.addWidget(self.label)
         self.tabWidget.addTab(self.tab_save, _fromUtf8(""))
         self.verticalLayout_2.addWidget(self.tabWidget)
 
@@ -111,6 +144,8 @@ class Ui_CCDCTools(object):
         self.lab_scale.setText(QtGui.QApplication.translate("CCDCTools", "Auto scale", None, QtGui.QApplication.UnicodeUTF8))
         self.cbox_scale.setText(QtGui.QApplication.translate("CCDCTools", "Auto set min/max", None, QtGui.QApplication.UnicodeUTF8))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_options), QtGui.QApplication.translate("CCDCTools", "Options", None, QtGui.QApplication.UnicodeUTF8))
+        self.image_table.setSortingEnabled(False)
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_images), QtGui.QApplication.translate("CCDCTools", "Images", None, QtGui.QApplication.UnicodeUTF8))
+        self.label.setText(QtGui.QApplication.translate("CCDCTools", "Dummy", None, QtGui.QApplication.UnicodeUTF8))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_save), QtGui.QApplication.translate("CCDCTools", "Save", None, QtGui.QApplication.UnicodeUTF8))
 
