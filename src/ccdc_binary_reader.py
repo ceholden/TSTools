@@ -49,6 +49,7 @@ class CCDCBinaryReader:
 
 		# Switch the actual definition of get_pixel by fformat
 		# TODO: reimplement this using class inheritance
+		# https://www.youtube.com/watch?v=miGolgp9xq8
 		if fformat == 'BIP':
 			self.get_pixel = self.__BIP_get_pixel
 

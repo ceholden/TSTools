@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# vim: set expandtab:ts=4
 """
 /***************************************************************************
  CCDCTools
@@ -23,45 +24,116 @@
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from qgis.core import *
+from qgis.gui import QgsMapToolEmitPoint
 
 # Initialize Qt resources from file resources.py
 import resources_rc
-# Import the code for the widget
-from ccdcwidget import CCDCWidget
+
+from ccdc_controller import Controller
+from ccdc_controls import CCDCControls
+from ccdc_plot import CCDCPlot
+from ccdc_timeseries import CCDCTimeSeries
 
 class CCDCTools:
 
     def __init__(self, iface):
+        ### Optional stuff to move elsewhere... #TODO
         # Save reference to the QGIS interface
         self.iface = iface
+        self.canvas = self.iface.mapCanvas()
+
+        self.click_tool = QgsMapToolEmitPoint(self.canvas)
+        self.canvas.setMapTool(self.click_tool) #TODO don't have this here
+
+        ### Location info - define these elsewhere
+        self.location = '/home/ceholden/Dropbox/Work/Research/pyCCDC/Dataset/p012r031/images'
+		self.image_pattern = 'LND*'
+        self.stack_pattern = '*stack'
+       
+    def init_controls(self):
+        """
+        Initialize and add signals to the left side control widget
+        """
+        
+        print 'init_controls'
+        
+        # Create widget
+        self.ctrl_widget = CCDCControls(self.iface)
+        # Create dock and add control widget
+        self.ctrl_dock = QDockWidget("CCDC Tools", self.iface.mainWindow())
+        self.ctrl_dock.setObjectName("CCDC Tools")
+        self.ctrl_dock.setWidget(self.ctrl_widget)
+        # Connect signals #TODO
+        # Add to iface
+        self.iface.addDockWidget(Qt.LeftDockWidgetArea, self.ctrl_dock)
+
+    def init_plotter(self):
+        """
+        Initialize and add signals to the bottom area plotting widget
+        """
+        # Create widget
+        self.plot_widget = CCDCPlot(self.iface)
+        # Create dock and add plot widget
+        self.plot_dock = QDockWidget('CCDC Plot', self.iface.mainWindow())
+        self.plot_dock.setObjectName('CCDC Plot')
+        self.plot_dock.setWidget(self.plot_widget)
+        # Connect signals #TODO
+        # Add to iface
+        self.iface.addDockWidget(Qt.BottomDockWidgetArea, self.plot_dock)
 
     def initGui(self):
-        # Create widget
-        self.plotWidget = CCDCWidget(self.iface)
-        # Create DockWidget and add CCDCWidget
-        self.dockWidget = QDockWidget("CCDC Tools", self.iface.mainWindow())
-        self.dockWidget.setObjectName("CCDC Tools")
-        self.dockWidget.setWidget(self.plotWidget)
-        # Connect signal for showing/hiding widget
-        QObject.connect(self.dockWidget,
-			SIGNAL('visibilityChanged ( bool )'),
-			self.showHideDockWidget)
-            
-        # Add dockWidget to iface
-        self.iface.addDockWidget(Qt.LeftDockWidgetArea, self.dockWidget)
+        """
+        Required method for Qt to load components. Also inits signal controller
+        """
+        self.init_controls()
+
+        self.init_plotter()
+        self.controller = Controller(self.ctrl_widget, self.plot_widget)
+        self.controller.get_time_series(self.location, 
+                                        self.image_pattern,
+                                        self.stack_pattern)
+        QObject.connect(self.click_tool,
+                    SIGNAL('canvasClicked(const QgsPoint &, Qt::MouseButton)'),
+                    self.plot_request)
+    
+    def plot_request(self, pos, button=None):
+        print 'Trying to fetch...'
+        if self.canvas.layerCount() == 0 or pos is None:
+            print 'Could not fetch...'
+            return
+        layer = self.canvas.currentLayer()
+        if (layer == None or layer.isValid() == False or 
+            layer.type() != QgsMapLayer.RasterLayer):
+            print 'Invalid layer...'
+            return
+
+        # Check if position needs to be reprojected to layer CRS
+        if QGis.QGIS_VERSION_INT >= 10900:
+            layerCrs = layer.crs()
+            mapCrs = self.canvas.mapRenderer().destinationCrs()
+        else:
+            layerCrs = layer.srs()
+            mapCrs = self.canvas.mapRenderer().destinationSrs()
+
+        if not mapCrs == layerCrs and self.canvas.hasCrsTransformEnabled():
+            crsTransform = QgsCoordinateTransform(mapCrs, layerCrs)
+            try:
+                pos = crsTransform.transform(pos)
+            except QgsCsException, err:
+                print 'Transformation error'
+                pass #TODO handle better?
+
+        # If layer has position, get data
+        if layer and layer.extent().contains(pos):
+            self.controller.fetch_data(pos)
+            self.controller.update_display()
 
     def unload(self):
+        """
+        Handle startup/shutdown/hide/etc behavior
+        """
         # Close dock & disconnect widget
-        self.dockWidget.close()
-        self.plotWidget.disconnect()
-        # Remove dock from interface
-        self.iface.removeDockWidget(self.dockWidget)
-
-    def showHideDockWidget(self):
-        # Enable the widget if visibile & active
-        if (self.dockWidget.isVisible() and 
-			self.plotWidget.cbox_active.isChecked()):
-            state = Qt.Checked
-        else:
-        	state = Qt.Unchecked
-		self.plotWidget.set_active(state)
+        self.ctrl_dock.close()
+        self.plot_widget.disconnect()
+        self.ctrl_dock.close()
+        self.plot_dock.close()

@@ -52,11 +52,14 @@ class CCDCTimeSeries:
         self._get_stack_dates()
         # Get stack time series information
         self.has_reccg = True
-        self.reccg = {}
-        self.has_reccg = self._get_record_changes()
+        self.reccgmat = {}
+        self.has_reccgmat = self._get_record_changes()
 
         # Initialize data
+        self.x = 0
+        self.y = 0
         self.data = np.zeros([self.n_band, self.length])
+        self.reccg = []
         
         # Open the files
         self.open_ts()
@@ -154,7 +157,7 @@ class CCDCTimeSeries:
     def _get_record_changes(self, basename='record_change'):
         """
         Opens the output from MATLAB "record_changeXXXX.mat" files to retrieve
-        the output of CCDC. Stores names in self.reccg dictionary as 
+        the output of CCDC. Stores names in self.reccgmat dictionary as 
         {row: filename}
 
         Args:
@@ -168,9 +171,9 @@ class CCDCTimeSeries:
         for filename in fnmatch.filter(files, basename + '*'):
             # Row = filename row - 1 since we start on 0
             row = int(filename.replace(basename, '').replace('.mat', '')) - 1
-            self.reccg[row] = self.location + '/TSFitMap/' + filename
+            self.reccgmat[row] = self.location + '/TSFitMap/' + filename
         
-        if len(self.reccg) == 0:
+        if len(self.reccgmat) == 0:
             print 'Could not find recorded changes...'
             return False
         return True
@@ -200,6 +203,8 @@ class CCDCTimeSeries:
             data:   NumPy matrix or masked matrix containing all bands for all
                         dates of imagery
         """
+        self.x = x
+        self.y = y
         # TODO: store x & y for quick access if already obtained (@cache)
         if x > self.x_size or x < 0 or y > self.y_size or y < 0:
             return
@@ -209,7 +214,7 @@ class CCDCTimeSeries:
             self.data = ma.MaskedArray(self.data, mask=(
                 np.ones_like(self.data) *
                 self.data[7, :] > 1))
-        return self.data
+#        return self.data
 
     def get_reccg_pixel(self, x, y):
         """
@@ -217,22 +222,20 @@ class CCDCTimeSeries:
         """
         if x > self.x_size or x < 0 or y > self.y_size or y < 0:
             return
-        if not y in self.reccg.keys():
+        if not y in self.reccgmat.keys():
             print 'Could not find row %i in keys...' % y
             return
         # Fetch the position value for given x, y (+1 for offset)
         pos = (y * self.x_size) + x + 1
         # Read mat file as ndarray of scipy.io.matlab.mio5_params.mat_struct
-        mat = scipy.io.loadmat(self.reccg[y], squeeze_me=True,
+        mat = scipy.io.loadmat(self.reccgmat[y], squeeze_me=True,
             struct_as_record=False)['rec_cg']
         # Store the time series fits as dictionary
-        data = []
+        self.reccg = []
         # Loop through (ugh) to find correct x,y
         for i in xrange(mat.shape[0]):
             if mat[i].pos == pos:
-                data.append(self._todict(mat[i]))
-
-        return data
+                self.reccg.append(self._todict(mat[i]))
 
     def _todict(self, matlabobj):
         """
