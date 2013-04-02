@@ -133,6 +133,20 @@
            </property>
           </widget>
          </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="lab_scale">
+           <property name="text">
+            <string>Auto scale</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QCheckBox" name="cbox_scale">
+           <property name="text">
+            <string>Auto set min/max</string>
+           </property>
+          </widget>
+         </item>
         </layout>
        </item>
       </layout>

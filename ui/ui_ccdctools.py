@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'ui/ui_ccdctools.ui'
 #
-# Created: Tue Apr  2 05:40:25 2013
+# Created: Tue Apr  2 16:24:31 2013
 #      by: PyQt4 UI code generator 4.9.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -75,6 +75,12 @@ class Ui_CCDCTools(object):
         self.edit_max.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
         self.edit_max.setObjectName(_fromUtf8("edit_max"))
         self.formLayout.setWidget(3, QtGui.QFormLayout.FieldRole, self.edit_max)
+        self.lab_scale = QtGui.QLabel(self.tab_options)
+        self.lab_scale.setObjectName(_fromUtf8("lab_scale"))
+        self.formLayout.setWidget(1, QtGui.QFormLayout.LabelRole, self.lab_scale)
+        self.cbox_scale = QtGui.QCheckBox(self.tab_options)
+        self.cbox_scale.setObjectName(_fromUtf8("cbox_scale"))
+        self.formLayout.setWidget(1, QtGui.QFormLayout.FieldRole, self.cbox_scale)
         self.verticalLayout.addLayout(self.formLayout)
         self.tabWidget.addTab(self.tab_options, _fromUtf8(""))
         self.tab_images = QtGui.QWidget()
@@ -102,6 +108,8 @@ class Ui_CCDCTools(object):
         self.cbox_ccdcbreak.setText(QtGui.QApplication.translate("CCDCTools", "Show/Hide CCDC Breaks", None, QtGui.QApplication.UnicodeUTF8))
         self.edit_min.setText(QtGui.QApplication.translate("CCDCTools", "0", None, QtGui.QApplication.UnicodeUTF8))
         self.edit_max.setText(QtGui.QApplication.translate("CCDCTools", "10000", None, QtGui.QApplication.UnicodeUTF8))
+        self.lab_scale.setText(QtGui.QApplication.translate("CCDCTools", "Auto scale", None, QtGui.QApplication.UnicodeUTF8))
+        self.cbox_scale.setText(QtGui.QApplication.translate("CCDCTools", "Auto set min/max", None, QtGui.QApplication.UnicodeUTF8))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_options), QtGui.QApplication.translate("CCDCTools", "Options", None, QtGui.QApplication.UnicodeUTF8))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_images), QtGui.QApplication.translate("CCDCTools", "Images", None, QtGui.QApplication.UnicodeUTF8))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_save), QtGui.QApplication.translate("CCDCTools", "Save", None, QtGui.QApplication.UnicodeUTF8))

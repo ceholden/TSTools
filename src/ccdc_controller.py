@@ -25,6 +25,8 @@ from PyQt4.QtGui import *
 
 from functools import partial
 
+import numpy as np
+
 from ccdc_timeseries import CCDCTimeSeries
 
 class Controller(object):
@@ -42,8 +44,10 @@ class Controller(object):
         self.opt['plot'] = False
         self.opt['band'] = 0
         # TODO: turn these into specifics for each band
-        self.opt['min'] = 0
-        self.opt['max'] = 10000
+        self.opt['scale'] = True
+        self.opt['scale_factor'] = 0.1
+        self.opt['min'] = np.zeros(1, dtype=np.int)
+        self.opt['max'] = np.ones(1, dtype=np.int) * 10000
         self.opt['fmask'] = True
         self.opt['fit'] = True
         self.opt['break'] = True
@@ -55,27 +59,36 @@ class Controller(object):
         Loads the time series class when called by ccdctools and feeds
         information to controls & plotter
         """
-        
         self.ts = CCDCTimeSeries(location, image_pattern, stack_pattern)
         if self.ts:
+            # Update plot & controls
             self.update_display()
+            # Update band min/max
+            # self.opt['min'] = np.zeros(self.ts.n_band, dtype=np.int)
+            # self.opt['max'] = np.ones(self.ts.n_band, dtype=np.int) * 10000
 
     def update_display(self):
         """
         Once ts is read, update controls & plot with relevant information
         (i.e. update)
         """
+        if self.opt['scale']:
+            self.calculate_scale()
         self.ctrl.update_controls(self.ts, self.opt)
         self.plt.update_plot(self.ts, self.opt)
 
     def add_signals(self):
-        # Raster band select checkbox
-#        QObject.connect(self.ctrl.combox_band,
-#                    SIGNAL('currentIndexChanged(int)'), self.set_band_select)
+        """
+        Add the signals to the options tab
+        """
+        ### Raster band select checkbox
         self.ctrl.combox_band.currentIndexChanged.connect(partial(
             self.set_band_select))
         
-        # Plot Y min & max
+        ### Plot Y min & max
+        # Auto scale
+        self.ctrl.cbox_scale.stateChanged.connect(self.set_scale)
+        # Manual set of min/max
         validator = QIntValidator(0, 10000, self.ctrl)
         #self.ctrl.edit_min.setValidator(validator)
         self.ctrl.edit_min.returnPressed.connect(partial(
@@ -85,20 +98,42 @@ class Controller(object):
         self.ctrl.edit_max.returnPressed.connect(partial(
             self.set_max, self.ctrl.edit_max, validator))
 
-        # End date #TODO
         # Show or hide Fmask checkbox
-#        QObject.connect(self.ctrl.cbox_fmask,
-#                    SIGNAL('currentIndexChanged(int)'), self.set_fmask)
         self.ctrl.cbox_fmask.stateChanged.connect(self.set_fmask)
 
+    def calculate_scale(self):
+        """
+        Automatically calculate the min/max for time series plotting
+        """
+        self.opt['min'] = [np.min(b) * (1 - self.opt['scale_factor']) 
+                           for b in self.ts.data[:, ]]
+        self.opt['max'] = [np.max(b) * (1 + self.opt['scale_factor'])
+                           for b in self.ts.data[:, ]]
 
     ### Slots
-
     def set_band_select(self, index):
+        """
+        Update the band selected & replot
+        """
         self.opt['band'] = index
+        self.ctrl.update_controls(self.ts, self.opt)
         self.plt.update_plot(self.ts, self.opt)
 
+    def set_scale(self, state):
+        """
+        Automatically set the scale for each band & disable manual set
+        """
+        if (state == Qt.Checked):
+            self.opt['scale'] = True
+        elif (state == Qt.Unchecked):
+            self.opt['scale'] = False
+        self.ctrl.edit_min.setEnabled(not self.opt['scale'])
+        self.ctrl.edit_max.setEnabled(not self.opt['scale'])
+
     def set_min(self, edit, validator):
+        """
+        If valid, update the minimum scale & replot
+        """
         state, pos = validator.validate(edit.text(), 0)
 
         if state == QValidator.Acceptable:
@@ -106,6 +141,9 @@ class Controller(object):
         self.plt.update_plot(self.ts, self.opt)
     
     def set_max(self, edit, validator):
+        """
+        If valid, update the maximum scale & replot
+        """
         state, pos = validator.validate(edit.text(), 0)
 
         if state == QValidator.Acceptable:
@@ -113,6 +151,9 @@ class Controller(object):
         self.plt.update_plot(self.ts, self.opt)
 
     def set_fmask(self, state):
+        """
+        Turn on or off the Fmask masking & replot
+        """
         if (state == Qt.Checked):
             self.opt['fmask'] = True
         elif (state == Qt.Unchecked):
@@ -120,10 +161,6 @@ class Controller(object):
         # Update the data for without the masks
         self.ts.get_ts_pixel(self.ts.x, self.ts.y, self.opt['fmask'])
         self.plt.update_plot(self.ts, self.opt)
-
-#    def plot_request(self, pos, button=None):
-#        print 'Trying to plot...'
-#        self.fetch_data(pos)
 
     def fetch_data(self, pos):
         print 'Pos: %s' % str(pos)

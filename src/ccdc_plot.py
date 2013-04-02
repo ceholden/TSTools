@@ -40,8 +40,8 @@ class CCDCPlot(FigureCanvas):
         # Setup some defaults
         dopts = {}
         dopts['band'] = 0
-        dopts['min'] = 0
-        dopts['max'] = 10000
+        dopts['min'] = np.zeros(1, dtype=np.int)
+        dopts['max'] = np.ones(1, dtype=np.int) * 10000
         dopts['fit'] = True
         dopts['break'] = True
         # Setup datasets
@@ -51,8 +51,7 @@ class CCDCPlot(FigureCanvas):
 
         # Setup plots
         self.setup_plots()
-
-		self.plot(dopts)
+        self.plot(dopts)
 
     def setup_plots(self):
         layout = QHBoxLayout()
@@ -80,7 +79,8 @@ class CCDCPlot(FigureCanvas):
         print 'Plotting...'
         self.axes.clear()
         if options:
-            self.axes.set_ylim([options['min'], options['max']])
+            self.axes.set_ylim([options['min'][options['band']], 
+                                options['max'][options['band']]])
         # Plot time series data
         self.axes.plot(self.x, self.y, 
                        marker='o', ls='', color='k')

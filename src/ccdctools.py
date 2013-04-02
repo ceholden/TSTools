@@ -47,6 +47,7 @@ class CCDCTools:
 
         ### Location info - define these elsewhere
         self.location = '/home/ceholden/Dropbox/Work/Research/pyCCDC/Dataset/p012r031/images'
+        # self.location = '/net/caseq/lcscratch/ceholden/p012r030/images'
 		self.image_pattern = 'LND*'
         self.stack_pattern = '*stack'
        
