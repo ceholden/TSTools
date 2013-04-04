@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'ui/ui_ccdctools.ui'
 #
-# Created: Tue Apr  2 18:45:41 2013
+# Created: Thu Apr  4 14:57:37 2013
 #      by: PyQt4 UI code generator 4.9.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -102,6 +102,7 @@ class Ui_CCDCTools(object):
         self.image_table.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
         self.image_table.setEditTriggers(QtGui.QAbstractItemView.DoubleClicked)
         self.image_table.setProperty("showDropIndicator", False)
+        self.image_table.setAlternatingRowColors(True)
         self.image_table.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
         self.image_table.setRowCount(0)
         self.image_table.setColumnCount(3)
@@ -125,7 +126,7 @@ class Ui_CCDCTools(object):
         self.verticalLayout_2.addWidget(self.tabWidget)
 
         self.retranslateUi(CCDCTools)
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(1)
         QtCore.QMetaObject.connectSlotsByName(CCDCTools)
 
     def retranslateUi(self, CCDCTools):

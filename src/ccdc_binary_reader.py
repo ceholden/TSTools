@@ -26,7 +26,8 @@ from osgeo import gdal
 from osgeo.gdalconst import GA_ReadOnly
 
 class CCDCBinaryReader:
-	""" This class defines the methods for reading pixel values from a raster
+	"""
+    This class defines the methods for reading pixel values from a raster
 	dataset. I've coded this up because certain file formats are more
 	efficiently accessed via fopen than via GDAL (i.e. BIP).
 

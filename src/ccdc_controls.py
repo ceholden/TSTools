@@ -31,6 +31,7 @@ import numpy as np
 
 import datetime as dt
 import fnmatch
+from itertools import izip
 import os
 
 from ui_ccdctools import Ui_CCDCTools as Ui_Widget
@@ -64,7 +65,21 @@ class CCDCControls(QWidget, Ui_Widget):
 
     def update_table(self, ts, opt):
         print 'Table updates...'
+        self.image_table.setRowCount(ts.length)
+        for row, (date, img) in enumerate(izip(ts.dates, ts.images)):
+            cbox = QTableWidgetItem()
+            cbox.setFlags(Qt.ItemIsUserCheckable |
+                          Qt.ItemIsEnabled)
+            cbox.setCheckState(Qt.Unchecked)
+            self.image_table.setItem(row, 0, cbox)
 
+            _date = QTableWidgetItem(date.strftime('%Y-%j'))
+            _date.setFlags(Qt.ItemIsEnabled)
+            self.image_table.setItem(row, 1, _date)
+
+            _img = QTableWidgetItem(img)
+            _img.setFlags(Qt.ItemIsEnabled)
+            self.image_table.setItem(row, 2, _img)
 
     def disconnect(self):
         # TODO

@@ -22,6 +22,7 @@
 """
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
+from qgis.core import QgsRasterLayer, QgsMapLayerRegistry
 
 from functools import partial
 
@@ -31,13 +32,14 @@ from ccdc_timeseries import CCDCTimeSeries
 
 class Controller(object):
 
-    def __init__(self, control, plot):
+    def __init__(self, control, plot, iface):
         """
         Controller stores options specified in control panel & makes them
         available for plotter by handling all signals...
         """
         self.ctrl = control
         self.plt = plot
+        self.iface = iface
         
         ### Options
         self.opt = {}
@@ -63,6 +65,7 @@ class Controller(object):
         if self.ts:
             # Update plot & controls
             self.update_display()
+            self.ctrl.update_table(self.ts, self.opt)
             # Update band min/max
             # self.opt['min'] = np.zeros(self.ts.n_band, dtype=np.int)
             # self.opt['max'] = np.ones(self.ts.n_band, dtype=np.int) * 10000
@@ -97,7 +100,7 @@ class Controller(object):
         # self.ctrl.edit_max.setValidator(validator)
         self.ctrl.edit_max.returnPressed.connect(partial(
             self.set_max, self.ctrl.edit_max, validator))
-
+        ### Time series options
         # Show or hide Fmask masked values
         self.ctrl.cbox_fmask.stateChanged.connect(self.set_fmask)
         # Show or hide fitted time series
@@ -105,14 +108,17 @@ class Controller(object):
         # Show or hide break points
         self.ctrl.cbox_ccdcbreak.stateChanged.connect(self.set_break)
 
+        ### Image tab panel
+        self.ctrl.image_table.itemClicked.connect(self.get_item_clicked)
+
     def calculate_scale(self):
         """
         Automatically calculate the min/max for time series plotting
         """
-        self.opt['min'] = [np.min(b) * (1 - self.opt['scale_factor']) 
-                           for b in self.ts.data[:, ]]
-        self.opt['max'] = [np.max(b) * (1 + self.opt['scale_factor'])
-                           for b in self.ts.data[:, ]]
+        self.opt['min'] = [np.min(band) * (1 - self.opt['scale_factor']) 
+                           for band in self.ts.data[:, ]]
+        self.opt['max'] = [np.max(band) * (1 + self.opt['scale_factor'])
+                           for band in self.ts.data[:, ]]
 
     ### Slots
     def set_band_select(self, index):
@@ -185,6 +191,26 @@ class Controller(object):
         elif (state == Qt.Unchecked):
             self.opt['break'] = False
         self.plt.update_plot(self.ts, self.opt)
+
+    def get_item_clicked(self, item):
+        print '%s row triggered' % str(item.row())
+        # Use the QgsMapLayerRegistery singleton to access/add/remove layers
+        reg = QgsMapLayerRegistry.instance()
+        # Check if added
+        added = [(self.ts.stacks[item.row()] == layer.source(), layer)
+                 for layer in reg.mapLayers().values()]
+        if item.checkState() == Qt.Checked:
+            if any([not add[0] for add in added]):
+                print 'Not added... so I add!'
+                rlayer = QgsRasterLayer(self.ts.stacks[item.row()],
+                                        self.ts.images[item.row()])
+                if rlayer.isValid():
+                    reg.addMapLayer(rlayer)
+        elif item.checkState() == Qt.Unchecked:
+            for (rm, layer) in added:
+                if rm:
+                    reg.removeMapLayer(layer.id())
+                    print 'Added... so I remove!'
 
     def fetch_data(self, pos):
         print 'Pos: %s' % str(pos)

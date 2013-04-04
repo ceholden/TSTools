@@ -89,7 +89,8 @@ class CCDCTools:
         self.init_controls()
 
         self.init_plotter()
-        self.controller = Controller(self.ctrl_widget, self.plot_widget)
+        self.controller = Controller(self.ctrl_widget, self.plot_widget,
+                                     self.iface)
         self.controller.get_time_series(self.location, 
                                         self.image_pattern,
                                         self.stack_pattern)
