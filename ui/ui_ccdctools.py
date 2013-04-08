@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'ui/ui_ccdctools.ui'
 #
-# Created: Mon Apr  8 16:57:33 2013
+# Created: Mon Apr  8 17:56:35 2013
 #      by: PyQt4 UI code generator 4.9.1
 #
 # WARNING! All changes made in this file will be lost!

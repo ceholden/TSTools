@@ -29,6 +29,7 @@ from qgis.gui import QgsMapToolEmitPoint
 # Initialize Qt resources from file resources.py
 import resources_rc
 
+from ccdc_config import CCDCConfig 
 from ccdc_controller import Controller
 from ccdc_controls import CCDCControls
 from ccdc_plot import CCDCPlot
@@ -52,22 +53,30 @@ class CCDCTools:
         self.init_toolbar()
 
     def init_toolbar(self):
+        ### MapTool button
         self.action = QAction(QIcon(':/plugins/ccdctools/icon.png'),
                               'CCDC Tool', self.iface.mainWindow())
         self.action.setCheckable(True)
-        self.action.triggered.connect(self.get_ts)
-
+        self.action.triggered.connect(self.set_tool)
         self.iface.addToolBarIcon(self.action)
 
         self.tool_ts = QgsMapToolEmitPoint(self.canvas)
         self.tool_ts.setAction(self.action)
         self.tool_ts.canvasClicked.connect(self.plot_request)
-#        QObject.connect(self.click_tool,
-#                SIGNAL('canvasClicked(const QgsPoint &, Qt::MouseButton)'),
-#                self.plot_request)
+        
+        ### Configuration button
+        self.action_cfg = QAction(QIcon(':/plugins/ccdctools/icon.png'),
+            'Configure', self.iface.mainWindow())
+        self.action_cfg.triggered.connect(self.handle_show_config)
+        self.iface.addToolBarIcon(self.action_cfg)
 
-    def get_ts(self):
+    def set_tool(self):
         self.canvas.setMapTool(self.tool_ts)
+
+    def handle_show_config(self):
+        print 'Show/hide config'
+        self.config = CCDCConfig(self)
+        self.config.exec_()
 
     def init_controls(self):
         """
