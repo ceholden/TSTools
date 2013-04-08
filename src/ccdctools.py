@@ -42,15 +42,33 @@ class CCDCTools:
         self.iface = iface
         self.canvas = self.iface.mapCanvas()
 
-        self.click_tool = QgsMapToolEmitPoint(self.canvas)
-        self.canvas.setMapTool(self.click_tool) #TODO don't have this here
-
         ### Location info - define these elsewhere
         self.location = '/home/ceholden/Dropbox/Work/Research/pyCCDC/Dataset/p012r031/images'
         # self.location = '/net/caseq/lcscratch/ceholden/p012r030/images'
 		self.image_pattern = 'LND*'
         self.stack_pattern = '*stack'
-       
+
+        ### Toolbar - map tool & config
+        self.init_toolbar()
+
+    def init_toolbar(self):
+        self.action = QAction(QIcon(':/plugins/ccdctools/icon.png'),
+                              'CCDC Tool', self.iface.mainWindow())
+        self.action.setCheckable(True)
+        self.action.triggered.connect(self.get_ts)
+
+        self.iface.addToolBarIcon(self.action)
+
+        self.tool_ts = QgsMapToolEmitPoint(self.canvas)
+        self.tool_ts.setAction(self.action)
+        self.tool_ts.canvasClicked.connect(self.plot_request)
+#        QObject.connect(self.click_tool,
+#                SIGNAL('canvasClicked(const QgsPoint &, Qt::MouseButton)'),
+#                self.plot_request)
+
+    def get_ts(self):
+        self.canvas.setMapTool(self.tool_ts)
+
     def init_controls(self):
         """
         Initialize and add signals to the left side control widget
@@ -94,10 +112,7 @@ class CCDCTools:
         self.controller.get_time_series(self.location, 
                                         self.image_pattern,
                                         self.stack_pattern)
-        QObject.connect(self.click_tool,
-                SIGNAL('canvasClicked(const QgsPoint &, Qt::MouseButton)'),
-                self.plot_request)
-    
+            
     def plot_request(self, pos, button=None):
         print 'Trying to fetch...'
         if self.canvas.layerCount() == 0 or pos is None:
@@ -134,8 +149,11 @@ class CCDCTools:
         """
         Handle startup/shutdown/hide/etc behavior
         """
+        # Close toolbars
+        self.iface.removeToolBarIcon(self.action)
+        self.iface.removePluginMenu("", self.action)
         # Close dock & disconnect widget
-        self.ctrl_dock.close()
+        self.ctrl_widget.disconnect()
         self.plot_widget.disconnect()
         self.ctrl_dock.close()
         self.plot_dock.close()

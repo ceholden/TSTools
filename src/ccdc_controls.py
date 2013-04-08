@@ -66,9 +66,8 @@ class CCDCControls(QWidget, Ui_Widget):
     def update_table(self, ts, opt):
         print 'Table updates...'
         # Set header labels
-        self.image_table.setHorizontalHeaderLabels(['Add/Remove',
-                                                    'Date',
-                                                    'ID'])
+        self.image_table.setHorizontalHeaderLabels(
+            ['Add/Remove', 'Date', 'ID'])
         
         # Propagate table
         self.image_table.setRowCount(ts.length)
