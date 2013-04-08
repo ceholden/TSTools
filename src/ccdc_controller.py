@@ -25,6 +25,7 @@ from PyQt4.QtGui import *
 from qgis.core import QgsRasterLayer, QgsMapLayerRegistry
 
 from functools import partial
+import itertools
 
 import numpy as np
 
@@ -54,8 +55,6 @@ class Controller(object):
         self.opt['fit'] = True
         self.opt['break'] = True
         
-        self.add_signals() #TODO
-        
     def get_time_series(self, location, image_pattern, stack_pattern):
         """
         Loads the time series class when called by ccdctools and feeds
@@ -66,9 +65,7 @@ class Controller(object):
             # Update plot & controls
             self.update_display()
             self.ctrl.update_table(self.ts, self.opt)
-            # Update band min/max
-            # self.opt['min'] = np.zeros(self.ts.n_band, dtype=np.int)
-            # self.opt['max'] = np.ones(self.ts.n_band, dtype=np.int) * 10000
+            self.add_signals()
 
     def update_display(self):
         """
@@ -88,18 +85,17 @@ class Controller(object):
         self.ctrl.combox_band.currentIndexChanged.connect(partial(
             self.set_band_select))
         
-        ### Plot Y min & max
+        ### Plotting scale options
         # Auto scale
         self.ctrl.cbox_scale.stateChanged.connect(self.set_scale)
         # Manual set of min/max
         validator = QIntValidator(0, 10000, self.ctrl)
-        #self.ctrl.edit_min.setValidator(validator)
         self.ctrl.edit_min.returnPressed.connect(partial(
             self.set_min, self.ctrl.edit_min, validator))
         # Plot Y max
-        # self.ctrl.edit_max.setValidator(validator)
         self.ctrl.edit_max.returnPressed.connect(partial(
             self.set_max, self.ctrl.edit_max, validator))
+
         ### Time series options
         # Show or hide Fmask masked values
         self.ctrl.cbox_fmask.stateChanged.connect(self.set_fmask)
@@ -108,8 +104,24 @@ class Controller(object):
         # Show or hide break points
         self.ctrl.cbox_ccdcbreak.stateChanged.connect(self.set_break)
 
+        ### Image tab panel helpers for add/remove layers
+        # NOTE: QGIS added "layersAdded" in 1.8(?) to replace some older
+        #       signals. It looks like they intended on adding layersRemoved
+        #       to replace layersWillBeRemoved/etc, but haven't gotten around
+        #       to it... so we keep with the old signal for now
+        #       http://www.qgis.org/api/classQgsMapLayerRegistry.html
+        QgsMapLayerRegistry.instance().layersAdded.connect(
+            self.map_layers_added)
+        QgsMapLayerRegistry.instance().layersWillBeRemoved.connect(
+            self.map_layers_removed)
+
         ### Image tab panel
         self.ctrl.image_table.itemClicked.connect(self.get_item_clicked)
+
+    def get_item_clicked(self, item):
+        print 'ITEM CLICKED:'
+        print 'Row: %s' % str(item.row())
+
 
     def calculate_scale(self):
         """
@@ -193,24 +205,69 @@ class Controller(object):
         self.plt.update_plot(self.ts, self.opt)
 
     def get_item_clicked(self, item):
-        print '%s row triggered' % str(item.row())
+        print '%s,%s row,col triggered' % (str(item.row()), str(item.column()))
+        if item.column() != 0:
+            return
+
         # Use the QgsMapLayerRegistery singleton to access/add/remove layers
         reg = QgsMapLayerRegistry.instance()
         # Check if added
         added = [(self.ts.stacks[item.row()] == layer.source(), layer)
                  for layer in reg.mapLayers().values()]
+        print added
         if item.checkState() == Qt.Checked:
-            if any([not add[0] for add in added]):
+            if all(not add[0] for add in added) or len(added) == 0:
                 print 'Not added... so I add!'
                 rlayer = QgsRasterLayer(self.ts.stacks[item.row()],
-                                        self.ts.images[item.row()])
+                                        self.ts.image_ids[item.row()])
                 if rlayer.isValid():
                     reg.addMapLayer(rlayer)
         elif item.checkState() == Qt.Unchecked:
             for (rm, layer) in added:
                 if rm:
+                    print added
+                    print layer
+                    print 'Removing unchecked layer...'
                     reg.removeMapLayer(layer.id())
-                    print 'Added... so I remove!'
+
+    def map_layers_added(self, layers):
+        """
+        Check if newly added layer is part of stacks; if so, make sure image
+        checkbox is clicked in the images tab
+        """
+        print 'MAP_LAYERS_ADDED_________________________'
+        print 'Added a map layer'
+        print layers
+        for layer in layers:
+            rows_added = [row for (row, stack) in enumerate(self.ts.stacks)
+                          if layer.source() == stack]
+            print 'Added these rows: %s' % str(rows_added)
+            for row in rows_added:
+                item = self.ctrl.image_table.item(row, 0)
+                print 'Checked? %s' % str(item.checkState() == Qt.Checked)
+                if item.checkState() == Qt.Unchecked:
+                    item.setCheckState(Qt.Checked)
+
+    def map_layers_removed(self, layer_ids):
+        """
+        Unchecks image tab checkbox for layers removed.
+        
+        Note that layers is a QStringList of layer IDs. A layer ID contains
+        the layer name appended by the datetime added
+        """
+
+        print 'Removed a map layer'
+
+        for layer_id in layer_ids:
+            rows_removed = [row for row, (image_id, fname) in 
+                enumerate(itertools.izip(self.ts.image_ids, self.ts.files))
+                if image_id in layer_id or fname in layer_id]
+            print 'Removed these rows %s' % str(rows_removed)
+            for row in rows_removed:
+                item = self.ctrl.image_table.item(row, 0)
+                print 'Unchecked? %s' % str(item.checkState() == Qt.Unchecked)
+                if item.checkState() == Qt.Checked:
+                    item.setCheckState(Qt.Unchecked)
 
     def fetch_data(self, pos):
         print 'Pos: %s' % str(pos)

@@ -65,21 +65,35 @@ class CCDCControls(QWidget, Ui_Widget):
 
     def update_table(self, ts, opt):
         print 'Table updates...'
+        # Set header labels
+        self.image_table.setHorizontalHeaderLabels(['Add/Remove',
+                                                    'Date',
+                                                    'ID'])
+        
+        # Propagate table
         self.image_table.setRowCount(ts.length)
-        for row, (date, img) in enumerate(izip(ts.dates, ts.images)):
+        for row, (date, img) in enumerate(izip(ts.dates, ts.image_ids)):
             cbox = QTableWidgetItem()
             cbox.setFlags(Qt.ItemIsUserCheckable |
                           Qt.ItemIsEnabled)
             cbox.setCheckState(Qt.Unchecked)
+            cbox.setTextAlignment(Qt.AlignHCenter)
             self.image_table.setItem(row, 0, cbox)
 
             _date = QTableWidgetItem(date.strftime('%Y-%j'))
             _date.setFlags(Qt.ItemIsEnabled)
+            _date.setTextAlignment(Qt.AlignHCenter)
+            _date.setTextAlignment(Qt.AlignVCenter)
             self.image_table.setItem(row, 1, _date)
 
             _img = QTableWidgetItem(img)
             _img.setFlags(Qt.ItemIsEnabled)
+            _img.setTextAlignment(Qt.AlignHCenter)
+            _img.setTextAlignment(Qt.AlignVCenter)
             self.image_table.setItem(row, 2, _img)
+
+        cbox = self.image_table.cellWidget(0, 0)
+        print 'Checkbox(0,0)?: %s ' % str(cbox)
 
     def disconnect(self):
         # TODO

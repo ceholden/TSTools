@@ -40,8 +40,12 @@ class CCDCTimeSeries:
         # Keep location of stacks   
         self.location = location
         
-        # Try to find stacks
-        self.images = []
+        ### Try to find stacks
+        # image_ids -> Landsat IDs i.e. directory names
+        self.image_ids = []
+        # files -> basenames of stacks
+        self.files = []
+        # stacks -> full filenames
         self.stacks = []
         self._find_stacks(image_pattern, stack_pattern)
 
@@ -67,28 +71,33 @@ class CCDCTimeSeries:
         # TODO: store some number of last fetches... don't re-retrieve if x-y
         # in this list for tradeoff of more memory but better performance?
     
+    def __repr__(self):
+        return 'A CCDC Time Series of %s images' % str(self.length)
+
     def _find_stacks(self, image_pattern, stack_pattern):
         """ 
         Finds & sets names for Landsat image directories & stacks
         """
         for root, dnames, fnames in os.walk(self.location):
             for dname in fnmatch.filter(dnames, image_pattern):
-                self.images.append(dname)
+                self.image_ids.append(dname)
             for fname in fnmatch.filter(fnames, stack_pattern):
+                self.files.append(fname)
                 self.stacks.append(os.path.join(root, fname))
+
         # TODO: handle this error more intelligently
-        if len(self.images) > len(self.stacks):
+        if len(self.image_ids) > len(self.stacks):
             print 'Error: one or more stacks missing/not found'
             return
-        elif len(self.images) < len(self.stacks):
+        elif len(self.image_ids) < len(self.stacks):
             print 'Error: more than one stack found for a directory'
             return
         self.length = len(self.stacks)
         if self.length == 0:
             raise CCDCLengthError(self.length)
         # Sort both by image name (i.e. Landsat ID)
-        self.images, self.stacks = (list(t) for t in 
-            zip(*sorted(zip(self.images, self.stacks))))
+        self.image_ids, self.files, self.stacks = (list(t) for t in 
+            zip(*sorted(zip(self.image_ids, self.files, self.stacks))))
 
     def _get_attributes(self):
 		"""
@@ -150,9 +159,9 @@ class CCDCTimeSeries:
                 year and DOY seperately to create the date using:
                 datetime(year, 1, 1) and then timedelta(doy - 1)
         """
-        for image in self.images:
-            self.dates.append(dt.datetime(int(image[9:13]), 1, 1) + 
-                dt.timedelta(int(image[13:16]) - 1))
+        for image_id in self.image_ids:
+            self.dates.append(dt.datetime(int(image_id[9:13]), 1, 1) + 
+                dt.timedelta(int(image_id[13:16]) - 1))
 
     def _get_record_changes(self, basename='record_change'):
         """
