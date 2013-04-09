@@ -50,16 +50,21 @@ class CCDCControls(QWidget, Ui_Widget):
         if self.combox_band.count() == 0:
             self.combox_band.addItems(ts.band_names)
         self.combox_band.setCurrentIndex(opt['band'])
+        
         ### Ylim min and max
         # Auto scale
         self.cbox_scale.setChecked(opt['scale'])
         # Manual scale & auto-scale display
         self.edit_min.setText(str(opt['min'][opt['band']]))
         self.edit_max.setText(str(opt['max'][opt['band']]))
+        
         ### Fmask, fit & breaks on/off
         self.cbox_fmask.setChecked(opt['fmask'])
         self.cbox_ccdcfit.setChecked(opt['fit'])
         self.cbox_ccdcbreak.setChecked(opt['break'])
+        
+        ### Click a point, add the layer
+        self.cbox_plotlayer.setChecked(opt['plotlayer'])
 
     def update_table(self, ts, opt):
         print 'Table updates...'

@@ -54,7 +54,9 @@ class Controller(object):
         self.opt['fmask'] = True
         self.opt['fit'] = True
         self.opt['break'] = True
-        
+        self.opt['plotlayer'] = True
+        self.opt['picker_tol'] = 2
+
     def get_time_series(self, location, image_pattern, stack_pattern):
         """
         Loads the time series class when called by ccdctools and feeds
@@ -104,6 +106,12 @@ class Controller(object):
         # Show or hide break points
         self.ctrl.cbox_ccdcbreak.stateChanged.connect(self.set_break)
 
+        ### Add layer from time series plot points
+        # Turn on default for checkbox
+        self.ctrl.cbox_plotlayer.stateChanged.connect(self.set_plotlayer)
+        # Connect/disconnect matplotlib event signal based on checkbox default
+        self.set_plotlayer(self.ctrl.cbox_plotlayer.checkState())
+
         ### Image tab panel helpers for add/remove layers
         # NOTE: QGIS added "layersAdded" in 1.8(?) to replace some older
         #       signals. It looks like they intended on adding layersRemoved
@@ -116,12 +124,7 @@ class Controller(object):
             self.map_layers_removed)
 
         ### Image tab panel
-        self.ctrl.image_table.itemClicked.connect(self.get_item_clicked)
-
-    def get_item_clicked(self, item):
-        print 'ITEM CLICKED:'
-        print 'Row: %s' % str(item.row())
-
+        self.ctrl.image_table.itemClicked.connect(self.get_tablerow_clicked)
 
     def calculate_scale(self):
         """
@@ -132,7 +135,7 @@ class Controller(object):
         self.opt['max'] = [np.max(band) * (1 + self.opt['scale_factor'])
                            for band in self.ts.data[:, ]]
 
-    ### Slots
+    ### Slots for options tab
     def set_band_select(self, index):
         """
         Update the band selected & replot
@@ -145,9 +148,9 @@ class Controller(object):
         """
         Automatically set the scale for each band & disable manual set
         """
-        if (state == Qt.Checked):
+        if state == Qt.Checked:
             self.opt['scale'] = True
-        elif (state == Qt.Unchecked):
+        elif state == Qt.Unchecked:
             self.opt['scale'] = False
         self.ctrl.edit_min.setEnabled(not self.opt['scale'])
         self.ctrl.edit_max.setEnabled(not self.opt['scale'])
@@ -176,9 +179,9 @@ class Controller(object):
         """
         Turn on or off the Fmask masking & replot
         """
-        if (state == Qt.Checked):
+        if state == Qt.Checked:
             self.opt['fmask'] = True
-        elif (state == Qt.Unchecked):
+        elif state == Qt.Unchecked:
             self.opt['fmask'] = False
         # Update the data for without the masks
         self.ts.get_ts_pixel(self.ts.x, self.ts.y, self.opt['fmask'])
@@ -188,9 +191,9 @@ class Controller(object):
         """
         Turn on or off the CCDC fit lines & replot
         """
-        if (state == Qt.Checked):
+        if state == Qt.Checked:
             self.opt['fit'] = True
-        elif (state == Qt.Unchecked):
+        elif state == Qt.Unchecked:
             self.opt['fit'] = False
         self.plt.update_plot(self.ts, self.opt)
 
@@ -198,78 +201,62 @@ class Controller(object):
         """
         Turn on or off the CCDC break indicator & replot
         """
-        if (state == Qt.Checked):
+        if state == Qt.Checked:
             self.opt['break'] = True
-        elif (state == Qt.Unchecked):
+        elif state == Qt.Unchecked:
             self.opt['break'] = False
         self.plt.update_plot(self.ts, self.opt)
 
-    def get_item_clicked(self, item):
-        print '%s,%s row,col triggered' % (str(item.row()), str(item.column()))
-        if item.column() != 0:
-            return
+    def set_plotlayer(self, state):
+        """
+        Turns on or off the adding of map layers for a data point on plot
+        """
+        if state == Qt.Checked:
+            self.opt['plotlayer'] = True
+            self.cid = self.plt.fig.canvas.mpl_connect('pick_event',
+                                                       self.plot_add_layer)
+        elif state == Qt.Unchecked:
+            self.opt['plotlayer'] = False
+            self.plt.fig.canvas.mpl_disconnect(self.cid)
+
+    ### Slots for plot window
+    def plot_add_layer(self, event):
+        """
+        Receives matplotlib event and adds layer for data point picked
+
+        Reference:
+            http://matplotlib.org/users/event_handling.html
+        """
+        line = event.artist
+        index = event.ind
+
+        print 'Number selected: %s' % str(len(index))
+        if len(index) > 1:
+            print 'Error, selected more than one item...'
+            print 'Defaulting to the first'
+            index = index[0]
+
+        print 'Selected date %s' % str(line.get_xdata()[index])
 
         # Use the QgsMapLayerRegistery singleton to access/add/remove layers
         reg = QgsMapLayerRegistry.instance()
-        # Check if added
-        added = [(self.ts.stacks[item.row()] == layer.source(), layer)
+        # Check if added #TODO refactor this code out?
+        added = [(self.ts.stacks[index] == layer.source(), layer)
                  for layer in reg.mapLayers().values()]
-        print added
-        if item.checkState() == Qt.Checked:
-            if all(not add[0] for add in added) or len(added) == 0:
-                print 'Not added... so I add!'
-                rlayer = QgsRasterLayer(self.ts.stacks[item.row()],
-                                        self.ts.image_ids[item.row()])
-                if rlayer.isValid():
-                    reg.addMapLayer(rlayer)
-        elif item.checkState() == Qt.Unchecked:
-            for (rm, layer) in added:
-                if rm:
-                    print added
-                    print layer
-                    print 'Removing unchecked layer...'
-                    reg.removeMapLayer(layer.id())
+        # We haven't already added it
+        if all(not add[0] for add in added) or len(added) == 0:
+            print 'Adding new raster layer for plot point'
+            rlayer = QgsRasterLayer(self.ts.stacks[index],
+                                    self.ts.image_ids[index])
+            if rlayer.isValid():
+                reg.addMapLayer(rlayer)
 
-    def map_layers_added(self, layers):
-        """
-        Check if newly added layer is part of stacks; if so, make sure image
-        checkbox is clicked in the images tab
-        """
-        print 'MAP_LAYERS_ADDED_________________________'
-        print 'Added a map layer'
-        print layers
-        for layer in layers:
-            rows_added = [row for (row, stack) in enumerate(self.ts.stacks)
-                          if layer.source() == stack]
-            print 'Added these rows: %s' % str(rows_added)
-            for row in rows_added:
-                item = self.ctrl.image_table.item(row, 0)
-                print 'Checked? %s' % str(item.checkState() == Qt.Checked)
-                if item.checkState() == Qt.Unchecked:
-                    item.setCheckState(Qt.Checked)
-
-    def map_layers_removed(self, layer_ids):
-        """
-        Unchecks image tab checkbox for layers removed.
-        
-        Note that layers is a QStringList of layer IDs. A layer ID contains
-        the layer name appended by the datetime added
-        """
-
-        print 'Removed a map layer'
-
-        for layer_id in layer_ids:
-            rows_removed = [row for row, (image_id, fname) in 
-                enumerate(itertools.izip(self.ts.image_ids, self.ts.files))
-                if image_id in layer_id or fname in layer_id]
-            print 'Removed these rows %s' % str(rows_removed)
-            for row in rows_removed:
-                item = self.ctrl.image_table.item(row, 0)
-                print 'Unchecked? %s' % str(item.checkState() == Qt.Unchecked)
-                if item.checkState() == Qt.Checked:
-                    item.setCheckState(Qt.Unchecked)
-
+    ### Function helper for MapTool slot
     def fetch_data(self, pos):
+        """
+        Receives QgsPoint, transforms into pixel coordinates, retrieves data
+        and updates plot
+        """
         print 'Pos: %s' % str(pos)
         px = int((pos[0] - self.ts.geo_transform[0]) / 
                  self.ts.geo_transform[1])
@@ -281,3 +268,73 @@ class Controller(object):
         print 'Pixel x/y %s/%s' % (px, py)
         print 'nBreaks = %s' % len(self.ts.reccg)
         self.plt.update_plot(self.ts, self.opt)
+    
+    ### Image table slots
+    def get_tablerow_clicked(self, item):
+        """
+        If user clicks checkbox for image in image table, will add/remove
+        image layer from map layers.
+        """
+        print '%s,%s row,col triggered' % (str(item.row()), str(item.column()))
+        if item.column() != 0:
+            return
+
+        # Use the QgsMapLayerRegistery singleton to access/add/remove layers
+        reg = QgsMapLayerRegistry.instance()
+        # Check if added
+        added = [(self.ts.stacks[item.row()] == layer.source(), layer)
+                 for layer in reg.mapLayers().values()]
+        if item.checkState() == Qt.Checked:
+            # If current layers do not include checked image, add
+            if all(not add[0] for add in added) or len(added) == 0:
+                rlayer = QgsRasterLayer(self.ts.stacks[item.row()],
+                                        self.ts.image_ids[item.row()])
+                if rlayer.isValid():
+                    reg.addMapLayer(rlayer)
+        elif item.checkState() == Qt.Unchecked:
+            # If added is true and we now have unchecked, remove
+            for (rm, layer) in added:
+                if rm:
+                    print 'Removing unchecked layer...'
+                    reg.removeMapLayer(layer.id())
+
+    def map_layers_added(self, layers):
+        """
+        Check if newly added layer is part of stacks; if so, make sure image
+        checkbox is clicked in the images tab
+        """
+        print 'Added a map layer'
+        for layer in layers:
+            rows_added = [row for (row, stack) in enumerate(self.ts.stacks)
+                          if layer.source() == stack]
+            print 'Added these rows: %s' % str(rows_added)
+            for row in rows_added:
+                item = self.ctrl.image_table.item(row, 0)
+                if item:
+                    if item.checkState() == Qt.Unchecked:
+                        item.setCheckState(Qt.Checked)
+
+    def map_layers_removed(self, layer_ids):
+        """
+        Unchecks image tab checkbox for layers removed.
+        
+        Note that layers is a QStringList of layer IDs. A layer ID contains
+        the layer name appended by the datetime added
+        """
+        print 'Removed a map layer'
+        for layer_id in layer_ids:
+            rows_removed = [row for row, (image_id, fname) in 
+                enumerate(itertools.izip(self.ts.image_ids, self.ts.files))
+                if image_id in layer_id or fname in layer_id]
+            print 'Removed these rows %s' % str(rows_removed)
+            for row in rows_removed:
+                item = self.ctrl.image_table.item(row, 0)
+                if item:
+                    if item.checkState() == Qt.Checked:
+                        item.setCheckState(Qt.Unchecked)
+
+    def disconnect(self):
+        """
+        Disconnect all signals added to various components
+        """
+        print 'TODO'

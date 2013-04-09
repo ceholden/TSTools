@@ -161,7 +161,12 @@ class CCDCTools:
         # Close toolbars
         self.iface.removeToolBarIcon(self.action)
         self.iface.removePluginMenu("", self.action)
-        # Close dock & disconnect widget
+        self.iface.removeToolBarIcon(self.action_cfg)
+        # Disconnect controller signals
+        self.controller.disconnect()
+        # Close and remove dock, disconnect widget
+        self.iface.removeDockWidget(self.ctrl_dock)
+        self.iface.removeDockWidget(self.plot_dock)
         self.ctrl_widget.disconnect()
         self.plot_widget.disconnect()
         self.ctrl_dock.close()

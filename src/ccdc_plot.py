@@ -44,6 +44,8 @@ class CCDCPlot(FigureCanvas):
         dopts['max'] = np.ones(1, dtype=np.int) * 10000
         dopts['fit'] = True
         dopts['break'] = True
+        dopts['picker_tol'] = 2
+
         # Setup datasets
         self.x = np.zeros(0)
         self.y = np.zeros(0)
@@ -82,8 +84,9 @@ class CCDCPlot(FigureCanvas):
             self.axes.set_ylim([options['min'][options['band']], 
                                 options['max'][options['band']]])
         # Plot time series data
-        self.axes.plot(self.x, self.y, 
-                       marker='o', ls='', color='k')
+        line, = self.axes.plot(self.x, self.y, 
+                       marker='o', ls='', color='k',
+                       picker=options['picker_tol'])
         # Plot modeled fit
         if options['fit'] == True and self.reccg != None:
             if len(self.reccg) > 0:

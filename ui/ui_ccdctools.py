@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'ui/ui_ccdctools.ui'
 #
-# Created: Mon Apr  8 17:56:35 2013
+# Created: Mon Apr  8 20:57:02 2013
 #      by: PyQt4 UI code generator 4.9.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -86,6 +86,12 @@ class Ui_CCDCTools(object):
         self.cbox_scale = QtGui.QCheckBox(self.tab_options)
         self.cbox_scale.setObjectName(_fromUtf8("cbox_scale"))
         self.formLayout.setWidget(1, QtGui.QFormLayout.FieldRole, self.cbox_scale)
+        self.lab_plotlayer = QtGui.QLabel(self.tab_options)
+        self.lab_plotlayer.setObjectName(_fromUtf8("lab_plotlayer"))
+        self.formLayout.setWidget(7, QtGui.QFormLayout.LabelRole, self.lab_plotlayer)
+        self.cbox_plotlayer = QtGui.QCheckBox(self.tab_options)
+        self.cbox_plotlayer.setObjectName(_fromUtf8("cbox_plotlayer"))
+        self.formLayout.setWidget(7, QtGui.QFormLayout.FieldRole, self.cbox_plotlayer)
         self.verticalLayout.addLayout(self.formLayout)
         self.tabWidget.addTab(self.tab_options, _fromUtf8(""))
         self.tab_images = QtGui.QWidget()
@@ -126,7 +132,7 @@ class Ui_CCDCTools(object):
         self.verticalLayout_2.addWidget(self.tabWidget)
 
         self.retranslateUi(CCDCTools)
-        self.tabWidget.setCurrentIndex(1)
+        self.tabWidget.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(CCDCTools)
 
     def retranslateUi(self, CCDCTools):
@@ -144,6 +150,8 @@ class Ui_CCDCTools(object):
         self.edit_max.setText(QtGui.QApplication.translate("CCDCTools", "10000", None, QtGui.QApplication.UnicodeUTF8))
         self.lab_scale.setText(QtGui.QApplication.translate("CCDCTools", "Auto scale", None, QtGui.QApplication.UnicodeUTF8))
         self.cbox_scale.setText(QtGui.QApplication.translate("CCDCTools", "Auto set min/max", None, QtGui.QApplication.UnicodeUTF8))
+        self.lab_plotlayer.setText(QtGui.QApplication.translate("CCDCTools", "Add plot images", None, QtGui.QApplication.UnicodeUTF8))
+        self.cbox_plotlayer.setText(QtGui.QApplication.translate("CCDCTools", "Click point, get image", None, QtGui.QApplication.UnicodeUTF8))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_options), QtGui.QApplication.translate("CCDCTools", "Options", None, QtGui.QApplication.UnicodeUTF8))
         self.image_table.setSortingEnabled(False)
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_images), QtGui.QApplication.translate("CCDCTools", "Images", None, QtGui.QApplication.UnicodeUTF8))
