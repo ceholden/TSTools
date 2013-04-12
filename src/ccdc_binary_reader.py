@@ -60,7 +60,8 @@ class CCDCBinaryReader:
 			
 		with open(self.filename, 'rb') as f:
 			# Skip to location of data in file
-			f.seek(self.dt.itemsize * (row * self.size[1] + col) * self.n_band)
+			f.seek(self.dt.itemsize * (row * self.size[1] + col) * 
+                self.n_band)
 			# Read in
 			dat = np.fromfile(f, self.dt, count = self.n_band)
 			f.close()

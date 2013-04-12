@@ -21,10 +21,6 @@
  ***************************************************************************/
 """
 
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-from qgis.utils import iface
-
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt4agg \
     import FigureCanvasQTAgg as FigureCanvas
@@ -46,40 +42,57 @@ class CCDCPlot(FigureCanvas):
         dopts['break'] = True
         dopts['picker_tol'] = 2
 
-        # Setup datasets
+        ### Setup datasets
+        # Actual data
         self.x = np.zeros(0)
         self.y = np.zeros(0)
-        self.reccg = None
+        # Modeled fitted data
+        self.mx = np.zeros(0)
+        self.my = np.zeros(0)
+        # Breaks
+        self.bx = np.zeros(0)
+        self.by = np.zeros(0)
 
         # Setup plots
         self.setup_plots()
         self.plot(dopts)
 
     def setup_plots(self):
-        layout = QHBoxLayout()
         # matplotlib
         self.fig = Figure()
+#        self.fig.set_facecolor('white')
         self.axes = self.fig.add_subplot(111)
         FigureCanvas.__init__(self, self.fig)
         self.setAutoFillBackground(False)
         self.axes.set_ylim([0, 10000])
 
-        # TODO: move these into the plot command...?
-#        self.axes.set_title('Time Series')
-#        self.axes.set_xlabel('Date')
-#        self.axes.set_ylabel('SR x 10000')
-    
+            
     def update_plot(self, ts, opt):
         print 'Updating plot...'
         self.x = ts.dates
         self.y = ts.data[opt['band'], :]
-        print 'update opt band %s' % str(opt['band'])
-        self.reccg = ts.reccg
+        if opt['fit'] is True and ts.reccg is not None:
+            if len(ts.reccg) > 0:
+                self.mx, self.my = ts.get_prediction(opt['band'])
+            else:
+                self.mx, self.my = (np.zeros(0), np.zeros(0))
+        if opt['break'] is True and ts.reccg is not None:
+            if len(ts.reccg) > 1:
+                self.bx, self.by = ts.get_breaks(opt['band'])
+            else:
+                self.bx, self.by = (np.zeros(0), np.zeros(0))
         self.plot(opt)
+
+        print hex(id(ts))
 
     def plot(self, options=None):
         print 'Plotting...'
         self.axes.clear()
+        
+        self.axes.set_title('Time Series')
+        self.axes.set_xlabel('Date')
+        self.axes.set_ylabel('SR x 10000')
+        
         if options:
             self.axes.set_ylim([options['min'][options['band']], 
                                 options['max'][options['band']]])
@@ -88,44 +101,15 @@ class CCDCPlot(FigureCanvas):
                        marker='o', ls='', color='k',
                        picker=options['picker_tol'])
         # Plot modeled fit
-        if options['fit'] == True and self.reccg != None:
-            if len(self.reccg) > 0:
-                for rec in self.reccg:
-                    if options['band'] >= rec['coefs'].shape[1]:
-                        break
-                    # Create sequence of MATLAB ordinal dates
-                    mx = np.linspace(rec['t_start'],
-                                     rec['t_end'],
-                                     rec['t_end'] - rec['t_start'])
-                    coef = rec['coefs'][:, options['band']]
-                    # Calculate model predictions
-                    my = (coef[0] + 
-                          coef[1] * mx +
-                          coef[2] * np.cos(2 * np.pi / 365 * mx) + 
-                          coef[3] * np.sin(2 * np.pi / 365 * mx))
-                    # Transform MATLAB oridnal date into Python datetime
-                    mx = [dt.datetime.fromordinal(int(m)) -
-                                                  dt.timedelta(days = 366)
-                                                  for m in mx]
-                    self.axes.plot(mx, my, linewidth=2)
+        if options and options['fit'] == True:
+            for i in xrange(len(self.mx)):
+                self.axes.plot(self.mx[i], self.my[i], linewidth=2)
         # Plot break points
-        if options['break'] == True and self.reccg != None:
-            if len(self.reccg) > 1:
-                for rec in self.reccg[0:-1]:
-                    mx = (dt.datetime.fromordinal(int(rec['t_break'])) -
-                                                 dt.timedelta(days = 366))
-                    print 'Break:'
-                    print mx
-                    index = [i for i, date in 
-                             enumerate(self.x) if date == mx][0]
-                    print 'Index:'
-                    print index
-                    if index < len(self.y) and index >= 0:
-                        my = self.y[index]
-                        print 'Y break:'
-                        print my
-                        self.axes.plot(mx, my, 'ro', mec='r', 
-                                       mfc='none', ms=10, mew=5)
+        if options and options['break'] == True:
+            for i in xrange(len(self.bx)):
+                self.axes.plot(self.bx[i], self.by[i], 'ro',
+                    mec='r', mfc='none', ms=10, mew=5)
+        # Redraw
         self.fig.canvas.draw()
 
 

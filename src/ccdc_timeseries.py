@@ -36,6 +36,7 @@ from ccdc_binary_reader import CCDCBinaryReader
 
 
 class CCDCTimeSeries:
+
     def __init__(self, location, image_pattern, stack_pattern):
         # Keep location of stacks   
         self.location = location
@@ -72,7 +73,8 @@ class CCDCTimeSeries:
         # in this list for tradeoff of more memory but better performance?
     
     def __repr__(self):
-        return 'A CCDC Time Series of %s images' % str(self.length)
+        return 'A CCDCTimeSeries of %s images at %s' % (
+            str(self.length), str(hex(id(self))))
 
     def _find_stacks(self, image_pattern, stack_pattern):
         """ 
@@ -223,7 +225,7 @@ class CCDCTimeSeries:
             self.data = ma.MaskedArray(self.data, mask=(
                 np.ones_like(self.data) *
                 self.data[7, :] > 1))
-#        return self.data
+        return self.data
 
     def get_reccg_pixel(self, x, y):
         """
@@ -246,6 +248,71 @@ class CCDCTimeSeries:
             if mat[i].pos == pos:
                 self.reccg.append(self._todict(mat[i]))
 
+    def get_prediction(self, band):
+        """
+        Return the time series model fit predictions for any single pixel
+        """
+        mx = []
+        my = []
+        if len(self.reccg) > 0:
+            for rec in self.reccg:
+                if band >= rec['coefs'].shape[1]:
+                    break
+                ### Create sequence of MATLAB ordinal dates
+                _mx = np.linspace(rec['t_start'],
+                                 rec['t_end'],
+                                 rec['t_end'] - rec['t_start'])
+                coef = rec['coefs'][:, band]
+                
+                ### Calculate model predictions
+                w = 2 * np.pi / 365
+                if coef.shape[0] == 4:
+                    # 4 coefficient model
+                    _my = (coef[0] +
+                            coef[1] * _mx +
+                            coef[2] * np.cos(w * _mx) +
+                            coef[3] * np.sin(w * _mx))
+                elif coef.shape[0] == 8:
+                    # 8 coefficient model
+                    _my = (coef[0] +
+                            coef[1] * _mx +
+                            coef[2] * np.cos(w * _mx) +
+                            coef[3] * np.sin(w * _mx) +
+                            coef[4] * np.cos(2 * w * _mx) +
+                            coef[5] * np.sin(2 * w * _mx) +
+                            coef[6] * np.cos(3 * w * _mx) +
+                            coef[7] * np.sin(3 * w * _mx))
+                else:
+                    break
+                ### Transform MATLAB ordinal date into Python datetime
+                _mx = [dt.datetime.fromordinal(int(m)) -
+                                dt.timedelta(days = 366)
+                                for m in _mx]
+                ### Append
+                mx.append(_mx)
+                my.append(_my)
+
+        return (mx, my)
+
+    def get_breaks(self, band):
+        """
+        Return an array of x,y points for time series breaks
+        """
+        bx = []
+        by = []
+        if len(self.reccg) > 1:
+            for rec in self.reccg[0:-1]:
+                bx.append(dt.datetime.fromordinal(int(rec['t_break'])) -
+                      dt.timedelta(days = 366))
+                print 'Break: %s' % str(bx)
+                index = [i for i, date in 
+                        enumerate(self.dates) if date == bx[-1]][0]
+                print 'Index: %s' % str(index)
+                if index < self.data.shape[1]:
+                    by.append(self.data[band, index])
+        return (bx, by)
+                    
+
     def _todict(self, matlabobj):
         """
         Utility function:
@@ -260,7 +327,8 @@ class CCDCTimeSeries:
                 d[field] = value
         return d
 
-
+# TODO: delete this... it is stupid and should be replaced with length error
+# or something
 class CCDCLengthError(Exception):
     """
     Raised when a time series is initialized with not enough data.
