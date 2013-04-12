@@ -250,6 +250,11 @@ class Controller(object):
                                     self.ts.image_ids[index])
             if rlayer.isValid():
                 reg.addMapLayer(rlayer)
+        # If we have added it, move to top
+        elif any(add[0] for add in added):
+            print 'Have added layer, moving to top!'
+            index = [i for i, tup in enumerate(added) if tup[0] == True][0]
+            self.move_layer_top(added[index][1])
 
     ### Function helper for MapTool slot
     def fetch_data(self, pos):
@@ -290,6 +295,7 @@ class Controller(object):
                 rlayer = QgsRasterLayer(self.ts.stacks[item.row()],
                                         self.ts.image_ids[item.row()])
                 if rlayer.isValid():
+                    # Add the layer
                     reg.addMapLayer(rlayer)
         elif item.checkState() == Qt.Unchecked:
             # If added is true and we now have unchecked, remove
@@ -332,6 +338,28 @@ class Controller(object):
                 if item:
                     if item.checkState() == Qt.Checked:
                         item.setCheckState(Qt.Unchecked)
+
+    def move_layer_top(self, layer):
+        """
+        Move layer to top of map renderer set of layers so it appears in legend
+        above all others and will render on top of others
+        """
+        # Some reference about mapRenderer and setLayerSet:
+        # http://www.qgis.org/pyqgis-cookbook/composer.html
+        canvas = self.iface.mapCanvas()
+        renderer = canvas.mapRenderer()
+
+        # Convert returned QStringList to list of QString and map to str
+        layer_set = map(str, list(renderer.layerSet()))
+        # Check if new layer is in list (i.e. only act if layer is on)
+        if layer.id() in layer_set:
+            # Shuffle layer to top of layer_set
+            layer_set.insert(0, layer_set.pop(layer_set.index(layer.id())))
+            # Assign this newly ordered set to map renderer
+            renderer.setLayerSet(QStringList(map(QString, layer_set)))
+            # Force a refresh
+            canvas.refresh()
+
 
     def disconnect(self):
         """
