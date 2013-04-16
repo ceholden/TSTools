@@ -244,6 +244,7 @@ class CCDCTimeSeries:
         # Store the time series fits as dictionary
         self.reccg = []
         # Loop through (ugh) to find correct x,y
+        print mat
         for i in xrange(mat.shape[0]):
             if mat[i].pos == pos:
                 self.reccg.append(self._todict(mat[i]))

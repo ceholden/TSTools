@@ -22,7 +22,8 @@
 """
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
-from qgis.core import QgsRasterLayer, QgsMapLayerRegistry
+#from qgis.core import QgsFeature, QgsGeometry, QgsRasterLayer, QgsMapLayerRegistry
+from qgis.core import *
 
 from functools import partial
 import itertools
@@ -44,6 +45,8 @@ class Controller(object):
         
         ### Options
         self.opt = {}
+        self.opt['show_click'] = True
+        self.opt['click_layer'] = None
         self.opt['plot'] = False
         self.opt['band'] = 0
         # TODO: turn these into specifics for each band
@@ -83,6 +86,9 @@ class Controller(object):
         """
         Add the signals to the options tab
         """
+        ### Show/don't show where user clicked
+        self.ctrl.cbox_showclick.stateChanged.connect(self.set_show_click)
+
         ### Raster band select checkbox
         self.ctrl.combox_band.currentIndexChanged.connect(partial(
             self.set_band_select))
@@ -136,6 +142,19 @@ class Controller(object):
                            for band in self.ts.data[:, ]]
 
     ### Slots for options tab
+    def set_show_click(self, state):
+        """
+        Updates showing/not showing of polygon where user clicked
+        """
+        if state == Qt.Checked:
+            self.opt['show_click'] = True
+        elif state == Qt.Unchecked:
+            self.opt['show_click'] = False
+            if self.opt['click_layer']:
+                QgsMapLayerRegistry.instance().removeMapLayer(
+                    self.opt['click_layer'].id())
+                self.opt['click_layer'] = None
+
     def set_band_select(self, index):
         """
         Update the band selected & replot
@@ -273,7 +292,76 @@ class Controller(object):
         print 'Pixel x/y %s/%s' % (px, py)
         print 'nBreaks = %s' % len(self.ts.reccg)
         self.plt.update_plot(self.ts, self.opt)
-    
+
+    def show_click(self, pos):
+        """
+        Receives QgsPoint and adds shapefile boundary of raster pixel clicked
+        """
+        ### First store last layer selected
+        last_selected = self.iface.activeLayer()
+        ### Remove old click_layer
+        if self.opt['click_layer']:
+            QgsMapLayerRegistry.instance().removeMapLayer(
+                self.opt['click_layer'].id())
+
+        ### Create vector layer
+        print 'Showing where user clicked...!'
+        # Getting raster x, y
+        GT = self.ts.geo_transform
+        px = int((pos[0] - GT[0]) /
+                 GT[1])
+        py = int((pos[1] - GT[3]) /
+                 GT[5])
+
+        # Upper left coordinates
+        ulx = (GT[0] + px * GT[1] + py * GT[2])
+        uly = (GT[3] + px * GT[4] + py * GT[5])
+
+        # Create geometry
+        gSquare = QgsGeometry.fromPolygon( [[ 
+            QgsPoint(ulx, uly), # upper left
+            QgsPoint(ulx + GT[1], uly), # upper right
+            QgsPoint(ulx + GT[1], uly + GT[5]), # lower right
+            QgsPoint(ulx, uly + GT[5])]] ) # lower left
+
+        # Create layer
+        uri = QString('polygon?crs=%s&field=row:integer&field=col:integer' % 
+                      self.ts.projection)
+
+        vlayer = QgsVectorLayer(uri, 'Query', 'memory')
+        vlayer.startEditing()
+
+        pr = vlayer.dataProvider()
+        pr.addAttributes( [ QgsField('row', QVariant.Int),
+                           QgsField('col', QVariant.Int)])
+
+        feat = QgsFeature()
+        feat.setGeometry(gSquare)
+        feat.setAttributeMap( { 0: QVariant(px),
+                                1: QVariant(py) } )
+        pr.addFeatures([feat])
+
+        ### Do symbology
+        # Reference:
+        # http://lists.osgeo.org/pipermail/qgis-developer/2011-April/013772.html
+        props = { 'color_border' : '255, 0, 0, 255', 
+                 'style' : 'no',
+                 'style_border' : 'solid',
+                 'width' : '0.40' }
+        s = QgsFillSymbolV2.createSimple(props)
+        vlayer.setRendererV2(QgsSingleSymbolRendererV2(s))
+
+        # Commit
+        vlayer.commitChanges()
+        # Add to map! (without emitting signal)
+        vlayer_id = QgsMapLayerRegistry.instance().addMapLayer(vlayer)
+        if vlayer_id:
+            self.opt['click_layer'] = vlayer_id
+
+        ### Set old layer selected
+        self.iface.setActiveLayer(last_selected)
+       
+
     ### Image table slots
     def get_tablerow_clicked(self, item):
         """
@@ -320,6 +408,7 @@ class Controller(object):
                     if item.checkState() == Qt.Unchecked:
                         item.setCheckState(Qt.Checked)
 
+
     def map_layers_removed(self, layer_ids):
         """
         Unchecks image tab checkbox for layers removed.
@@ -338,6 +427,7 @@ class Controller(object):
                 if item:
                     if item.checkState() == Qt.Checked:
                         item.setCheckState(Qt.Unchecked)
+
 
     def move_layer_top(self, layer):
         """
@@ -359,7 +449,6 @@ class Controller(object):
             renderer.setLayerSet(QStringList(map(QString, layer_set)))
             # Force a refresh
             canvas.refresh()
-
 
     def disconnect(self):
         """

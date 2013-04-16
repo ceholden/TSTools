@@ -33,7 +33,6 @@ from ccdc_config import CCDCConfig
 from ccdc_controller import Controller
 from ccdc_controls import CCDCControls
 from ccdc_plot import CCDCPlot
-from ccdc_timeseries import CCDCTimeSeries
 
 class CCDCTools:
 
@@ -46,6 +45,7 @@ class CCDCTools:
         ### Location info - define these elsewhere
         self.location = '/home/ceholden/Dropbox/Work/Research/pyCCDC/Dataset/p012r031/images'
         # self.location = '/net/caseq/lcscratch/ceholden/p012r030/images'
+        # self.location = '/net/caseq/lcscratch/ceholden/QGIS/p013r029/images/'
 		self.image_pattern = 'LND*'
         self.stack_pattern = '*stack'
 
@@ -153,6 +153,8 @@ class CCDCTools:
         if layer and layer.extent().contains(pos):
             self.controller.fetch_data(pos)
             self.controller.update_display()
+            if self.controller.opt['show_click']:
+                self.controller.show_click(pos)
 
     def unload(self):
         """

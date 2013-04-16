@@ -45,8 +45,10 @@ class CCDCControls(QWidget, Ui_Widget):
 
     def update_options(self, ts, opt):
         print 'Ctrl updates...'
+        ### Show/don't show clicks
+        self.cbox_showclick.setChecked(opt['show_click'])
+
         ### Raster band select
-        print 'Len combox_band %s' % str(self.combox_band.count())
         if self.combox_band.count() == 0:
             self.combox_band.addItems(ts.band_names)
         self.combox_band.setCurrentIndex(opt['band'])
@@ -95,7 +97,6 @@ class CCDCControls(QWidget, Ui_Widget):
             self.image_table.setItem(row, 2, _img)
 
         cbox = self.image_table.cellWidget(0, 0)
-        print 'Checkbox(0,0)?: %s ' % str(cbox)
 
     def disconnect(self):
         # TODO
