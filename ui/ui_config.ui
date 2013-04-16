@@ -7,87 +7,13 @@
     <x>0</x>
     <y>0</y>
     <width>357</width>
-    <height>490</height>
+    <height>568</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <item row="0" column="0" colspan="2">
-    <widget class="QLabel" name="lab_config">
-     <property name="font">
-      <font>
-       <weight>75</weight>
-       <bold>true</bold>
-      </font>
-     </property>
-     <property name="text">
-      <string>Dataset Configuration</string>
-     </property>
-     <property name="alignment">
-      <set>Qt::AlignCenter</set>
-     </property>
-    </widget>
-   </item>
-   <item row="6" column="0" colspan="2">
-    <widget class="QLineEdit" name="lineEdit_2">
-     <property name="text">
-      <string>*stack</string>
-     </property>
-    </widget>
-   </item>
-   <item row="10" column="0" colspan="2" alignment="Qt::AlignHCenter">
-    <widget class="QLabel" name="label_3">
-     <property name="font">
-      <font>
-       <weight>75</weight>
-       <bold>true</bold>
-      </font>
-     </property>
-     <property name="text">
-      <string>Layer Display Configuration</string>
-     </property>
-    </widget>
-   </item>
-   <item row="2" column="1">
-    <widget class="QPushButton" name="button_location">
-     <property name="text">
-      <string>Open</string>
-     </property>
-    </widget>
-   </item>
-   <item row="4" column="0" colspan="2">
-    <widget class="QLineEdit" name="lineEdit">
-     <property name="text">
-      <string>LND*</string>
-     </property>
-    </widget>
-   </item>
-   <item row="11" column="0" colspan="2">
-    <widget class="QLabel" name="label_4">
-     <property name="text">
-      <string>Default Bands</string>
-     </property>
-    </widget>
-   </item>
-   <item row="5" column="0">
-    <widget class="QLabel" name="label_2">
-     <property name="text">
-      <string>Stack pattern:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="16" column="1">
-    <widget class="QDialogButtonBox" name="buttonBox">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="standardButtons">
-      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
-     </property>
-    </widget>
-   </item>
    <item row="12" column="0" colspan="2">
     <layout class="QFormLayout" name="formLayout">
      <property name="sizeConstraint">
@@ -176,13 +102,81 @@
      </item>
     </layout>
    </item>
-   <item row="2" column="0">
-    <widget class="QLineEdit" name="edit_location"/>
+   <item row="3" column="0">
+    <widget class="QLabel" name="label">
+     <property name="text">
+      <string>Stack directory pattern:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="7" column="0" colspan="2">
+    <widget class="QLabel" name="label_3">
+     <property name="font">
+      <font>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
+     <property name="text">
+      <string>Layer Display Configuration</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
    </item>
    <item row="15" column="1">
     <widget class="QRadioButton" name="rad_stretch_plot">
      <property name="text">
       <string>Use plot Y-limits</string>
+     </property>
+    </widget>
+   </item>
+   <item row="19" column="1">
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="0" colspan="2">
+    <widget class="QLabel" name="lab_location">
+     <property name="text">
+      <string>Stacked time series location:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="0">
+    <widget class="QLineEdit" name="edit_location"/>
+   </item>
+   <item row="4" column="0" colspan="2">
+    <widget class="QLineEdit" name="lineEdit">
+     <property name="text">
+      <string>LND*</string>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="0" colspan="2">
+    <widget class="QLineEdit" name="lineEdit_2">
+     <property name="text">
+      <string>*stack</string>
+     </property>
+    </widget>
+   </item>
+   <item row="13" column="0" colspan="2">
+    <widget class="QLabel" name="label_5">
+     <property name="text">
+      <string>Default Stretch</string>
+     </property>
+    </widget>
+   </item>
+   <item row="14" column="0">
+    <widget class="QLabel" name="lab_stretch_sd">
+     <property name="text">
+      <string>Standard Deviations:</string>
      </property>
     </widget>
    </item>
@@ -199,10 +193,10 @@
      </property>
     </widget>
    </item>
-   <item row="3" column="0">
-    <widget class="QLabel" name="label">
+   <item row="2" column="1">
+    <widget class="QPushButton" name="button_location">
      <property name="text">
-      <string>Stack directory pattern:</string>
+      <string>Open</string>
      </property>
     </widget>
    </item>
@@ -213,26 +207,59 @@
      </property>
     </widget>
    </item>
-   <item row="14" column="0">
-    <widget class="QLabel" name="lab_stretch_sd">
+   <item row="5" column="0">
+    <widget class="QLabel" name="label_2">
      <property name="text">
-      <string>Standard Deviations:</string>
+      <string>Stack pattern:</string>
      </property>
     </widget>
    </item>
-   <item row="1" column="0" colspan="2">
-    <widget class="QLabel" name="lab_location">
+   <item row="11" column="0" colspan="2">
+    <widget class="QLabel" name="label_4">
      <property name="text">
-      <string>Stacked time series location:</string>
+      <string>Default Bands</string>
      </property>
     </widget>
    </item>
-   <item row="13" column="0" colspan="2">
-    <widget class="QLabel" name="label_5">
+   <item row="16" column="0" colspan="2">
+    <widget class="QLabel" name="label_6">
      <property name="text">
-      <string>Default Stretch</string>
+      <string>Clipping Options</string>
      </property>
     </widget>
+   </item>
+   <item row="0" column="0" colspan="2">
+    <widget class="QLabel" name="lab_config">
+     <property name="font">
+      <font>
+       <weight>75</weight>
+       <bold>true</bold>
+      </font>
+     </property>
+     <property name="text">
+      <string>Dataset Configuration</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+   </item>
+   <item row="17" column="0" colspan="2">
+    <widget class="QComboBox" name="comboBox"/>
+   </item>
+   <item row="18" column="0" colspan="2">
+    <layout class="QFormLayout" name="formLayout_2">
+     <item row="0" column="0">
+      <widget class="QLabel" name="lab_transparency">
+       <property name="text">
+        <string>Transparency</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QComboBox" name="combox_transparency"/>
+     </item>
+    </layout>
    </item>
   </layout>
  </widget>
