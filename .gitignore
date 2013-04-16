@@ -3,6 +3,8 @@
 *.swp
 *~
 
+ui/*.py
+
 # C extensions
 *.so
 
