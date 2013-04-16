@@ -52,6 +52,9 @@ class CCDCPlot(FigureCanvas):
         # Breaks
         self.bx = np.zeros(0)
         self.by = np.zeros(0)
+        # Location of pixel plotted
+        self.px = None
+        self.py = None
 
         # Setup plots
         self.setup_plots()
@@ -68,9 +71,16 @@ class CCDCPlot(FigureCanvas):
 
             
     def update_plot(self, ts, opt):
+        """
+        Fetches new information and then calls to plot
+        """
+        
         print 'Updating plot...'
+        
+        self.px, self.py = ts.x, ts.y
         self.x = ts.dates
         self.y = ts.data[opt['band'], :]
+
         if opt['fit'] is True and ts.reccg is not None:
             if len(ts.reccg) > 0:
                 self.mx, self.my = ts.get_prediction(opt['band'])
@@ -86,10 +96,15 @@ class CCDCPlot(FigureCanvas):
         print hex(id(ts))
 
     def plot(self, options=None):
+        """
+        Matplotlib plot of time series
+        """
         print 'Plotting...'
         self.axes.clear()
-        
-        self.axes.set_title('Time Series')
+
+        title = 'Time series - row: %s col: %s' % (
+            str(self.py), str(self.px))
+        self.axes.set_title(title)
         self.axes.set_xlabel('Date')
         self.axes.set_ylabel('SR x 10000')
         
