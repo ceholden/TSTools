@@ -30,7 +30,7 @@ import itertools
 
 import numpy as np
 
-from ccdc_timeseries import CCDCTimeSeries
+from ccdc_timeseries import CCDCTimeSeries, CCDCLengthError
 
 class Controller(object):
 
@@ -65,12 +65,18 @@ class Controller(object):
         Loads the time series class when called by ccdctools and feeds
         information to controls & plotter
         """
-        self.ts = CCDCTimeSeries(location, image_pattern, stack_pattern)
+        try:
+            self.ts = CCDCTimeSeries(location, image_pattern, stack_pattern)
+        except CCDCLengthError:
+            print 'Length error'
+            return False
+
         if self.ts:
             # Update plot & controls
             self.update_display()
             self.ctrl.update_table(self.ts, self.opt)
             self.add_signals()
+            return True
 
     def update_display(self):
         """

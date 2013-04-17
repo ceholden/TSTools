@@ -29,6 +29,8 @@ from qgis.gui import QgsMapToolEmitPoint
 # Initialize Qt resources from file resources.py
 import resources_rc
 
+import os
+
 from ccdc_config import CCDCConfig 
 from ccdc_controller import Controller
 from ccdc_controls import CCDCControls
@@ -43,15 +45,20 @@ class CCDCTools:
         self.canvas = self.iface.mapCanvas()
 
         ### Location info - define these elsewhere
-        self.location = '/home/ceholden/Dropbox/Work/Research/pyCCDC/Dataset/p012r031/images'
+        self.location = os.getcwd()
+        self.image_pattern = 'LND*'
+        self.stack_pattern = '*stack'
+
+        # self.location = '/home/ceholden/Dropbox/Work/Research/pyCCDC/Dataset/p012r031/images'
         # self.location = '/net/caseq/lcscratch/ceholden/p012r030/images'
         # self.location = '/net/caseq/lcscratch/ceholden/QGIS/p013r029/images/'
-		self.image_pattern = 'LND*'
-        self.stack_pattern = '*stack'
+		# self.image_pattern = 'LND*'
+        # self.stack_pattern = '*stack'
 
         ### Toolbar - map tool & config
         self.init_toolbar()
 
+    ### Toolbar section
     def init_toolbar(self):
         ### MapTool button
         self.action = QAction(QIcon(':/plugins/ccdctools/icon.png'),
@@ -72,26 +79,58 @@ class CCDCTools:
 
     def set_tool(self):
         self.canvas.setMapTool(self.tool_ts)
-
+    
     def handle_show_config(self):
         print 'Show/hide config'
-        self.config = CCDCConfig(self)
+        self.config = CCDCConfig(self, 
+                                 self.location, 
+                                 self.image_pattern,
+                                 self.stack_pattern)
+        # Connect signals for okay/cancel buttons
+        self.config.accepted.connect(self.config_accepted)
+        self.config.canceled.connect(self.config_canceled)
+        # Execute & show dialog
         self.config.exec_()
 
+    def config_accepted(self):
+        print 'Accepted config!'
+        # Accept the new values
+        self.location = str(self.config.location)
+        self.image_pattern = str(self.config.image_pattern)
+        self.stack_pattern = str(self.config.stack_pattern)
+        # Now, update the time series
+        success = self.controller.get_time_series(self.location, 
+                                        self.image_pattern,
+                                        self.stack_pattern)
+        # Close and disconnect the window if successful
+        if success:
+            self.config.close()
+            self.config.accepted.disconnect()
+            self.config.canceled.disconnect()
+        else:
+            message = QMessageBox()
+            message.critical(None, 'Configuration Error',
+                             'Could not find time series',
+                             QMessageBox.Ok)
+
+    def config_canceled(self):
+        print 'Canceled config!'
+        self.config.accepted.disconnect()
+        self.config.canceled.disconnect()
+        self.config.close()
+
+    ### Configuration and plot widgets section
     def init_controls(self):
         """
         Initialize and add signals to the left side control widget
         """
-        
         print 'init_controls'
-        
         # Create widget
         self.ctrl_widget = CCDCControls(self.iface)
         # Create dock and add control widget
         self.ctrl_dock = QDockWidget("CCDC Tools", self.iface.mainWindow())
         self.ctrl_dock.setObjectName("CCDC Tools")
         self.ctrl_dock.setWidget(self.ctrl_widget)
-        # Connect signals #TODO
         # Add to iface
         self.iface.addDockWidget(Qt.LeftDockWidgetArea, self.ctrl_dock)
 
@@ -118,10 +157,7 @@ class CCDCTools:
         self.init_plotter()
         self.controller = Controller(self.ctrl_widget, self.plot_widget,
                                      self.iface)
-        self.controller.get_time_series(self.location, 
-                                        self.image_pattern,
-                                        self.stack_pattern)
-            
+                    
     def plot_request(self, pos, button=None):
         print 'Trying to fetch...'
         if self.canvas.layerCount() == 0 or pos is None:

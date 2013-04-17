@@ -28,7 +28,49 @@ from ui_config import Ui_Config
 
 class CCDCConfig(QDialog, Ui_Config):
 
-    def __init__(self, iface):
+    accepted = pyqtSignal()
+    canceled = pyqtSignal()
+
+    def __init__(self, iface, location, img_pattern, stack_pattern):
         self.iface = iface
         QWidget.__init__(self)
         self.setupUi(self)
+        ### Data
+        self.location = location
+        self.image_pattern = img_pattern
+        self.stack_pattern = stack_pattern
+        ### Finish setup
+        self.setup_config()
+
+    def setup_config(self):
+        ### Setup location text field and open button
+        self.edit_location.setText(self.location)
+        self.button_location.clicked.connect(self.select_location)
+        ### Setup stack directory & patterns
+        self.edit_image.setText(self.image_pattern)
+        self.edit_stack.setText(self.stack_pattern)
+        ### Setup dialog buttons
+        # Init buttons
+        self.ok = self.button_box.button(QDialogButtonBox.Ok)
+        self.cancel = self.button_box.button(QDialogButtonBox.Cancel)
+        # Add signals
+        self.ok.pressed.connect(self.accept_config)
+        self.cancel.pressed.connect(self.cancel_config)
+
+    def select_location(self):
+        """
+        Brings up a QFileDialog allowing user to select a folder
+        """
+        self.location = QFileDialog.getExistingDirectory(self, 
+                            'Select stack location',
+                            self.location,
+                            QFileDialog.ShowDirsOnly)
+        self.edit_location.setText(self.location) 
+
+    def accept_config(self):
+        print 'Okay pressed!'
+        self.accepted.emit()
+
+    def cancel_config(self):
+        print 'Cancel pressed!'
+        self.canceled.emit()
