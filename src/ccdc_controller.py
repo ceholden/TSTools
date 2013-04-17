@@ -292,12 +292,13 @@ class Controller(object):
                  self.ts.geo_transform[1])
         py = int((pos[1] - self.ts.geo_transform[3]) / 
                  self.ts.geo_transform[5])
-        self.ts.get_ts_pixel(px, py,
-                             mask=self.opt['fmask'])
-        self.ts.get_reccg_pixel(px, py)
         print 'Pixel x/y %s/%s' % (px, py)
-        print 'nBreaks = %s' % len(self.ts.reccg)
-        self.plt.update_plot(self.ts, self.opt)
+
+        if px <= self.ts.x_size and py <= self.ts.y_size:
+            self.ts.get_ts_pixel(px, py, mask=self.opt['fmask'])
+            self.ts.get_reccg_pixel(px, py)
+            print 'nBreaks = %s' % len(self.ts.reccg)
+            self.plt.update_plot(self.ts, self.opt)
 
     def show_click(self, pos):
         """
@@ -374,7 +375,7 @@ class Controller(object):
         If user clicks checkbox for image in image table, will add/remove
         image layer from map layers.
         """
-        print '%s,%s row,col triggered' % (str(item.row()), str(item.column()))
+        #print '%s,%s row,col triggered' % (str(item.row()), str(item.column()))
         if item.column() != 0:
             return
 
