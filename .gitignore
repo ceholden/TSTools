@@ -3,6 +3,8 @@
 *.swp
 *~
 
+# Compiled pyQt stuff
+resources_rc.py
 ui/*.py
 
 # C extensions
