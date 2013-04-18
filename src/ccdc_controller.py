@@ -304,70 +304,73 @@ class Controller(object):
         """
         Receives QgsPoint and adds shapefile boundary of raster pixel clicked
         """
+        print 'Showing where user clicked...!'
         ### First store last layer selected
         last_selected = self.iface.activeLayer()
-        ### Remove old click_layer
-        if self.opt['click_layer']:
-            QgsMapLayerRegistry.instance().removeMapLayer(
-                self.opt['click_layer'].id())
-
-        ### Create vector layer
-        print 'Showing where user clicked...!'
-        # Getting raster x, y
+        ### Getting raster x, y
         GT = self.ts.geo_transform
         px = int((pos[0] - GT[0]) /
                  GT[1])
         py = int((pos[1] - GT[3]) /
                  GT[5])
-
         # Upper left coordinates
         ulx = (GT[0] + px * GT[1] + py * GT[2])
         uly = (GT[3] + px * GT[4] + py * GT[5])
-
-        # Create geometry
+        ### Create geometry
         gSquare = QgsGeometry.fromPolygon( [[ 
             QgsPoint(ulx, uly), # upper left
             QgsPoint(ulx + GT[1], uly), # upper right
             QgsPoint(ulx + GT[1], uly + GT[5]), # lower right
             QgsPoint(ulx, uly + GT[5])]] ) # lower left
 
-        # Create layer
-        uri = QString('polygon?crs=%s&field=row:integer&field=col:integer' % 
-                      self.ts.projection)
-
-        vlayer = QgsVectorLayer(uri, 'Query', 'memory')
-        vlayer.startEditing()
-
-        pr = vlayer.dataProvider()
-        pr.addAttributes( [ QgsField('row', QVariant.Int),
-                           QgsField('col', QVariant.Int)])
-
-        feat = QgsFeature()
-        feat.setGeometry(gSquare)
-        feat.setAttributeMap( { 0: QVariant(px),
-                                1: QVariant(py) } )
-        pr.addFeatures([feat])
-
-        ### Do symbology
-        # Reference:
-        # http://lists.osgeo.org/pipermail/qgis-developer/2011-April/013772.html
-        props = { 'color_border' : '255, 0, 0, 255', 
-                 'style' : 'no',
-                 'style_border' : 'solid',
-                 'width' : '0.40' }
-        s = QgsFillSymbolV2.createSimple(props)
-        vlayer.setRendererV2(QgsSingleSymbolRendererV2(s))
-
-        # Commit
-        vlayer.commitChanges()
-        # Add to map! (without emitting signal)
-        vlayer_id = QgsMapLayerRegistry.instance().addMapLayer(vlayer)
-        if vlayer_id:
-            self.opt['click_layer'] = vlayer_id
-
+        if self.opt['click_layer']:
+            print 'Updating click layer geometry'
+            ### If exists, update to new row/column
+            vlayer = self.opt['click_layer']
+            vlayer.startEditing()
+            pr = vlayer.dataProvider()
+            attrs = pr.attributeIndexes()
+            pr.select(attrs)
+            feat = QgsFeature()
+            while pr.nextFeature(feat):
+                vlayer.changeAttributeValue(feat.id(), 0, py)
+                vlayer.changeAttributeValue(feat.id(), 1, px)
+                vlayer.changeGeometry(feat.id(), gSquare)
+            vlayer.commitChanges()
+            vlayer.triggerRepaint()
+        else:
+            print 'Creating new vector to show click'
+            ### Create layer since we removed it
+            uri = QString('polygon?crs=%s' % self.ts.projection)
+            vlayer = QgsVectorLayer(uri, 'Query', 'memory')
+            pr = vlayer.dataProvider()
+            vlayer.startEditing()
+            pr.addAttributes( [ QgsField('row', QVariant.Int),
+                               QgsField('col', QVariant.Int)])
+            feat = QgsFeature()
+            feat.setGeometry(gSquare)
+            feat.setAttributeMap( { 0: QVariant(px),
+                                    1: QVariant(py) } )
+            pr.addFeatures([feat])
+            ### Do symbology
+            # Reference:
+            # http://lists.osgeo.org/pipermail/qgis-developer/2011-April/013772.html
+            props = { 'color_border' : '255, 0, 0, 255', 
+                     'style' : 'no',
+                     'style_border' : 'solid',
+                     'width' : '0.40' }
+            s = QgsFillSymbolV2.createSimple(props)
+            vlayer.setRendererV2(QgsSingleSymbolRendererV2(s))
+    
+            # Commit
+            vlayer.commitChanges()
+            # Add to map! (without emitting signal)
+            vlayer_id = QgsMapLayerRegistry.instance().addMapLayer(vlayer)
+            if vlayer_id:
+                self.opt['click_layer'] = vlayer_id
+    
         ### Set old layer selected
         self.iface.setActiveLayer(last_selected)
-       
 
     ### Image table slots
     def get_tablerow_clicked(self, item):
