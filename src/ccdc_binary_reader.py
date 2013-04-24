@@ -40,13 +40,12 @@ class CCDCBinaryReader:
 	size -- list of [nrow, ncol]
 
 	"""
-	def __init__(self, filename, fformat, dt, size):
+	def __init__(self, filename, fformat, dt, size, n_band):
 		self.filename = filename
 		self.fformat = fformat
 		self.dt = dt
 		self.size = size
-		# TODO: make this variable
-		self.n_band = 8
+		self.n_band = n_band
 
 		# Switch the actual definition of get_pixel by fformat
 		# TODO: reimplement this using class inheritance

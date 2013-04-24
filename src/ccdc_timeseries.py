@@ -72,7 +72,7 @@ class CCDCTimeSeries:
         # TODO: store some number of last fetches... don't re-retrieve if x-y
         # in this list for tradeoff of more memory but better performance?
     
-    def __repr__(self):
+    def __repr__(self), self:
         return 'A CCDCTimeSeries of %s images at %s' % (
             str(self.length), str(hex(id(self))))
 
@@ -197,7 +197,7 @@ class CCDCTimeSeries:
         for stack in self.stacks:
             self.readers.append(
                 CCDCBinaryReader(stack, self.fformat,
-                self.datatype, [self.y_size, self.x_size])) 
+                self.datatype, [self.y_size, self.x_size], self.n_band)) 
 
     def get_ts_pixel(self, x, y, mask=True):
         """
