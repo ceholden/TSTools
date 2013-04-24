@@ -72,7 +72,7 @@ class CCDCTimeSeries:
         # TODO: store some number of last fetches... don't re-retrieve if x-y
         # in this list for tradeoff of more memory but better performance?
     
-    def __repr__(self), self:
+    def __repr__(self):
         return 'A CCDCTimeSeries of %s images at %s' % (
             str(self.length), str(hex(id(self))))
 
