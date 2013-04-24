@@ -158,7 +158,7 @@ class Controller(object):
             self.opt['show_click'] = False
             if self.opt['click_layer']:
                 QgsMapLayerRegistry.instance().removeMapLayer(
-                    self.opt['click_layer'].id())
+                    self.opt['click_layer'])
                 self.opt['click_layer'] = None
 
     def set_band_select(self, index):
@@ -305,6 +305,7 @@ class Controller(object):
         Receives QgsPoint and adds shapefile boundary of raster pixel clicked
         """
         print 'Showing where user clicked...!'
+        reg = QgsMapLayerRegistry.instance()
         ### First store last layer selected
         last_selected = self.iface.activeLayer()
         ### Getting raster x, y
@@ -326,7 +327,7 @@ class Controller(object):
         if self.opt['click_layer']:
             print 'Updating click layer geometry'
             ### If exists, update to new row/column
-            vlayer = self.opt['click_layer']
+            vlayer = reg.mapLayers()[self.opt['click_layer']]
             vlayer.startEditing()
             pr = vlayer.dataProvider()
             attrs = pr.attributeIndexes()
@@ -365,7 +366,7 @@ class Controller(object):
             # Commit
             vlayer.commitChanges()
             # Add to map! (without emitting signal)
-            vlayer_id = QgsMapLayerRegistry.instance().addMapLayer(vlayer)
+            vlayer_id = QgsMapLayerRegistry.instance().addMapLayer(vlayer).id()
             if vlayer_id:
                 self.opt['click_layer'] = vlayer_id
     
@@ -421,13 +422,15 @@ class Controller(object):
 
     def map_layers_removed(self, layer_ids):
         """
-        Unchecks image tab checkbox for layers removed.
+        Unchecks image tab checkbox for layers removed. Also ensures
+        self.opt['click_layer'] is None if the layer is removed.
         
         Note that layers is a QStringList of layer IDs. A layer ID contains
         the layer name appended by the datetime added
         """
         print 'Removed a map layer'
         for layer_id in layer_ids:
+            print layer_id
             rows_removed = [row for row, (image_id, fname) in 
                 enumerate(itertools.izip(self.ts.image_ids, self.ts.files))
                 if image_id in layer_id or fname in layer_id]
@@ -438,6 +441,10 @@ class Controller(object):
                     if item.checkState() == Qt.Checked:
                         item.setCheckState(Qt.Unchecked)
 
+            if self.opt['click_layer'] == layer_id:
+                print 'Removed click layer'
+                print self.opt['click_layer']
+                self.opt['click_layer'] = None
 
     def move_layer_top(self, layer):
         """
