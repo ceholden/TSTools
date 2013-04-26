@@ -46,7 +46,7 @@ class Controller(object):
         ### Options
         self.opt = {}
         self.opt['show_click'] = True
-        self.opt['click_layer'] = None
+        self.opt['click_layer_id'] = None
         self.opt['plot'] = False
         self.opt['band'] = 0
         # TODO: turn these into specifics for each band
@@ -156,10 +156,10 @@ class Controller(object):
             self.opt['show_click'] = True
         elif state == Qt.Unchecked:
             self.opt['show_click'] = False
-            if self.opt['click_layer']:
+            if self.opt['click_layer_id']:
                 QgsMapLayerRegistry.instance().removeMapLayer(
-                    self.opt['click_layer'])
-                self.opt['click_layer'] = None
+                    self.opt['click_layer_id'])
+                self.opt['click_layer_id'] = None
 
     def set_band_select(self, index):
         """
@@ -279,7 +279,7 @@ class Controller(object):
         elif any(add[0] for add in added):
             print 'Have added layer, moving to top!'
             index = [i for i, tup in enumerate(added) if tup[0] == True][0]
-            self.move_layer_top(added[index][1])
+            self.move_layer_top(added[index][1].id())
 
     ### Function helper for MapTool slot
     def fetch_data(self, pos):
@@ -324,10 +324,10 @@ class Controller(object):
             QgsPoint(ulx + GT[1], uly + GT[5]), # lower right
             QgsPoint(ulx, uly + GT[5])]] ) # lower left
 
-        if self.opt['click_layer']:
+        if self.opt['click_layer_id']:
             print 'Updating click layer geometry'
             ### If exists, update to new row/column
-            vlayer = reg.mapLayers()[self.opt['click_layer']]
+            vlayer = reg.mapLayers()[self.opt['click_layer_id']]
             vlayer.startEditing()
             pr = vlayer.dataProvider()
             attrs = pr.attributeIndexes()
@@ -368,7 +368,7 @@ class Controller(object):
             # Add to map! (without emitting signal)
             vlayer_id = QgsMapLayerRegistry.instance().addMapLayer(vlayer).id()
             if vlayer_id:
-                self.opt['click_layer'] = vlayer_id
+                self.opt['click_layer_id'] = vlayer_id
     
         ### Set old layer selected
         self.iface.setActiveLayer(last_selected)
@@ -406,7 +406,8 @@ class Controller(object):
     def map_layers_added(self, layers):
         """
         Check if newly added layer is part of stacks; if so, make sure image
-        checkbox is clicked in the images tab
+        checkbox is clicked in the images tab. Also ensure
+        self.opt['click_layer_id'] gets moved to the top
         """
         print 'Added a map layer'
         for layer in layers:
@@ -419,11 +420,15 @@ class Controller(object):
                     if item.checkState() == Qt.Unchecked:
                         item.setCheckState(Qt.Checked)
 
+        if self.opt['click_layer_id']:
+            print 'Moving click layer back to top'
+            self.move_layer_top(self.opt['click_layer_id'])
+
 
     def map_layers_removed(self, layer_ids):
         """
         Unchecks image tab checkbox for layers removed. Also ensures
-        self.opt['click_layer'] is None if the layer is removed.
+        self.opt['click_layer_id'] = None if the this layer is removed.
         
         Note that layers is a QStringList of layer IDs. A layer ID contains
         the layer name appended by the datetime added
@@ -441,12 +446,12 @@ class Controller(object):
                     if item.checkState() == Qt.Checked:
                         item.setCheckState(Qt.Unchecked)
 
-            if self.opt['click_layer'] == layer_id:
+            if self.opt['click_layer_id'] == layer_id:
                 print 'Removed click layer'
-                print self.opt['click_layer']
-                self.opt['click_layer'] = None
+                print self.opt['click_layer_id']
+                self.opt['click_layer_id'] = None
 
-    def move_layer_top(self, layer):
+    def move_layer_top(self, layer_id):
         """
         Move layer to top of map renderer set of layers so it appears in legend
         above all others and will render on top of others
@@ -459,9 +464,9 @@ class Controller(object):
         # Convert returned QStringList to list of QString and map to str
         layer_set = map(str, list(renderer.layerSet()))
         # Check if new layer is in list (i.e. only act if layer is on)
-        if layer.id() in layer_set:
+        if layer_id in layer_set:
             # Shuffle layer to top of layer_set
-            layer_set.insert(0, layer_set.pop(layer_set.index(layer.id())))
+            layer_set.insert(0, layer_set.pop(layer_set.index(layer_id)))
             # Assign this newly ordered set to map renderer
             renderer.setLayerSet(QStringList(map(QString, layer_set)))
             # Force a refresh
