@@ -37,7 +37,8 @@ from ccdc_binary_reader import CCDCBinaryReader
 
 class CCDCTimeSeries:
 
-    def __init__(self, location, image_pattern, stack_pattern):
+    def __init__(self, location, image_pattern='LND*', 
+                 stack_pattern='*stack'):
         # Keep location of stacks   
         self.location = location
         
