@@ -337,6 +337,7 @@ class Controller(object):
                 vlayer.changeAttributeValue(feat.id(), 0, py)
                 vlayer.changeAttributeValue(feat.id(), 1, px)
                 vlayer.changeGeometry(feat.id(), gSquare)
+                vlayer.updateExtents()
             vlayer.commitChanges()
             vlayer.triggerRepaint()
         else:
@@ -350,6 +351,7 @@ class Controller(object):
                                QgsField('col', QVariant.Int)])
             feat = QgsFeature()
             feat.setGeometry(gSquare)
+            vlayer.updateExtents()
             feat.setAttributeMap( { 0: QVariant(px),
                                     1: QVariant(py) } )
             pr.addFeatures([feat])
