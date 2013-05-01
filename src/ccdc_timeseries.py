@@ -176,14 +176,20 @@ class CCDCTimeSeries:
             basename:   basename for record changes (currently record_change)
         """
         # Check for TSFitMap
-        if not os.path.isdir(self.location + '/TSFitMap'):
+        if os.path.islink(self.location + '/TSFitMap'):
+            loc = os.path.realpath(self.location + '/TSFitMap')
+            if not loc.endswith('/'):
+                loc = loc + '/'
+        elif os.path.isdir(self.location + '/TSFitMap'):
+            loc = self.location + '/TSFitMap/'
+        else:
             return False
 
-        files = os.listdir(self.location + '/TSFitMap')
+        files = os.listdir(loc)
         for filename in fnmatch.filter(files, basename + '*'):
             # Row = filename row - 1 since we start on 0
             row = int(filename.replace(basename, '').replace('.mat', '')) - 1
-            self.reccgmat[row] = self.location + '/TSFitMap/' + filename
+            self.reccgmat[row] = loc + filename
         
         if len(self.reccgmat) == 0:
             print 'Could not find recorded changes...'
