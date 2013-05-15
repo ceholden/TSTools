@@ -45,10 +45,13 @@ class CCDCTimeSeries:
         ### Try to find stacks
         # image_ids -> Landsat IDs i.e. directory names
         self.image_ids = []
-        # files -> basenames of stacks
+        # files - basenames of stacks
         self.files = []
-        # stacks -> full filenames
+        # stacks - full filenames
         self.stacks = []
+        # length - number of images
+        self.length = 0
+        # Find stack ids, files, stack names and length
         self._find_stacks(image_pattern, stack_pattern)
 
         # Gather geo-attributes
@@ -237,15 +240,19 @@ class CCDCTimeSeries:
     def get_reccg_pixel(self, x, y):
         """
         Returns the record changes for a given pixel
+
+        Note:   MATLAB indexes on 1 so y is really (y - 1) in calculations 
+                and x is (x - 1)                
         """
         if x > self.x_size or x < 0 or y > self.y_size or y < 0:
             return
         if not y in self.reccgmat.keys():
-            print 'Could not find row %i in keys...' % y
+            print 'Could not find row %i in keys...' % (y + 1)
             return
-        # Fetch the position value for given x, y (+1 for offset)
+        # Fetch the position value for given x, y
         pos = (y * self.x_size) + x + 1
         # Read mat file as ndarray of scipy.io.matlab.mio5_params.mat_struct
+        print 'Opening %s' % self.reccgmat[y]
         mat = scipy.io.loadmat(self.reccgmat[y], squeeze_me=True,
             struct_as_record=False)['rec_cg']
         # Store the time series fits as dictionary

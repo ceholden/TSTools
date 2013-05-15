@@ -77,7 +77,7 @@ class CCDCPlot(FigureCanvas):
         
         print 'Updating plot...'
         
-        self.px, self.py = ts.x, ts.y
+        self.px, self.py = ts.x + 1, ts.y + 1
         self.x = ts.dates
         self.y = ts.data[opt['band'], :]
 
@@ -106,8 +106,9 @@ class CCDCPlot(FigureCanvas):
             str(self.py), str(self.px))
         self.axes.set_title(title)
         self.axes.set_xlabel('Date')
-        self.axes.set_ylabel('SR x 10000')
-        
+        self.axes.set_ylabel('Band %s (SR x 10000)' % str(options['band']))
+        self.axes.grid(True)
+
         if options:
             self.axes.set_ylim([options['min'][options['band']], 
                                 options['max'][options['band']]])
