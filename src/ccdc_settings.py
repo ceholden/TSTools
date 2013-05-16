@@ -25,6 +25,8 @@ import numpy as np
 
 # Dictionary to store plot settings
 plot = {
+    # Should we plot when we click canvas?
+    'plot_layer'    :       True,
     # Which band to plot
     'band'          :       0,
     # Plot scaling options
@@ -41,4 +43,9 @@ plot = {
     'picker_tol'    :       2
 }
 
-
+canvas = {
+    # Show outline of clicked pixel
+    'show_click'        :       True,
+    # QgsVectorLayer ID for polygon outline of clicked pixel
+    'click_layer_id'    :       None
+}

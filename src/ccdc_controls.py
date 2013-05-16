@@ -33,7 +33,7 @@ from itertools import izip
 import os
 
 from ui_ccdctools import Ui_CCDCTools as Ui_Widget
-
+import ccdc_settings as s
 
 class CCDCControls(QWidget, Ui_Widget):
     
@@ -43,30 +43,30 @@ class CCDCControls(QWidget, Ui_Widget):
         QWidget.__init__(self)
         self.setupUi(self)
 
-    def update_options(self, ts, opt):
+    def update_options(self, ts):
         print 'Ctrl updates...'
         ### Show/don't show clicks
-        self.cbox_showclick.setChecked(opt['show_click'])
+        self.cbox_showclick.setChecked(s.canvas['show_click'])
 
         ### Raster band select
         if self.combox_band.count() == 0:
             self.combox_band.addItems(ts.band_names)
-        self.combox_band.setCurrentIndex(opt['band'])
+        self.combox_band.setCurrentIndex(s.plot['band'])
         
         ### Ylim min and max
         # Auto scale
-        self.cbox_scale.setChecked(opt['scale'])
+        self.cbox_scale.setChecked(s.plot['auto_scale'])
         # Manual scale & auto-scale display
-        self.edit_min.setText(str(opt['min'][opt['band']]))
-        self.edit_max.setText(str(opt['max'][opt['band']]))
+        self.edit_min.setText(str(s.plot['min'][s.plot['band']]))
+        self.edit_max.setText(str(s.plot['max'][s.plot['band']]))
         
         ### Fmask, fit & breaks on/off
-        self.cbox_fmask.setChecked(opt['fmask'])
-        self.cbox_ccdcfit.setChecked(opt['fit'])
-        self.cbox_ccdcbreak.setChecked(opt['break'])
+        self.cbox_fmask.setChecked(s.plot['fmask'])
+        self.cbox_ccdcfit.setChecked(s.plot['fit'])
+        self.cbox_ccdcbreak.setChecked(s.plot['break'])
         
         ### Click a point, add the layer
-        self.cbox_plotlayer.setChecked(opt['plotlayer'])
+        self.cbox_plotlayer.setChecked(s.plot['plot_layer'])
 
     def update_table(self, ts, opt):
         print 'Table updates...'

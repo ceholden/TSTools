@@ -31,6 +31,7 @@ import itertools
 import numpy as np
 
 from ccdc_timeseries import CCDCTimeSeries, CCDCLengthError
+import ccdc_settings as s
 
 class Controller(object):
 
@@ -45,8 +46,6 @@ class Controller(object):
         
         ### Options
         self.opt = {}
-        self.opt['show_click'] = True
-        self.opt['click_layer_id'] = None
         self.opt['plot'] = False
         self.opt['band'] = 0
         # TODO: turn these into specifics for each band
@@ -83,9 +82,9 @@ class Controller(object):
         Once ts is read, update controls & plot with relevant information
         (i.e. update)
         """
-        if self.opt['scale']:
+        if s.plot['auto_scale']:
             self.calculate_scale()
-        self.ctrl.update_options(self.ts, self.opt)
+        self.ctrl.update_options(self.ts)
         self.plt.update_plot(self.ts, self.opt)
 
     def add_signals(self):
@@ -142,9 +141,9 @@ class Controller(object):
         """
         Automatically calculate the min/max for time series plotting
         """
-        self.opt['min'] = [np.min(band) * (1 - self.opt['scale_factor']) 
+        s.plot['min'] = [np.min(band) * (1 - s.plot['scale_factor']) 
                            for band in self.ts.data[:, ]]
-        self.opt['max'] = [np.max(band) * (1 + self.opt['scale_factor'])
+        s.plot['max'] = [np.max(band) * (1 + s.plot['scale_factor'])
                            for band in self.ts.data[:, ]]
 
     ### Slots for options tab
@@ -153,13 +152,13 @@ class Controller(object):
         Updates showing/not showing of polygon where user clicked
         """
         if state == Qt.Checked:
-            self.opt['show_click'] = True
+            s.canvas['show_click'] = True
         elif state == Qt.Unchecked:
-            self.opt['show_click'] = False
-            if self.opt['click_layer_id']:
+            s.canvas['show_click'] = False
+            if s.canvas['click_layer_id']:
                 QgsMapLayerRegistry.instance().removeMapLayer(
-                    self.opt['click_layer_id'])
-                self.opt['click_layer_id'] = None
+                    s.canvas['click_layer_id'])
+                s.canvas['click_layer_id'] = None
 
     def set_band_select(self, index):
         """
@@ -237,11 +236,11 @@ class Controller(object):
         Turns on or off the adding of map layers for a data point on plot
         """
         if state == Qt.Checked:
-            self.opt['plotlayer'] = True
+            s.plot['plot_layer'] = True
             self.cid = self.plt.fig.canvas.mpl_connect('pick_event',
                                                        self.plot_add_layer)
         elif state == Qt.Unchecked:
-            self.opt['plotlayer'] = False
+            s.plot['plot_layer'] = False
             self.plt.fig.canvas.mpl_disconnect(self.cid)
 
     ### Slots for plot window
@@ -324,10 +323,10 @@ class Controller(object):
             QgsPoint(ulx + GT[1], uly + GT[5]), # lower right
             QgsPoint(ulx, uly + GT[5])]] ) # lower left
 
-        if self.opt['click_layer_id']:
+        if s.canvas['click_layer_id'] is not None:
             print 'Updating click layer geometry'
             ### If exists, update to new row/column
-            vlayer = reg.mapLayers()[self.opt['click_layer_id']]
+            vlayer = reg.mapLayers()[s.canvas['click_layer_id']]
             vlayer.startEditing()
             pr = vlayer.dataProvider()
             attrs = pr.attributeIndexes()
@@ -370,7 +369,7 @@ class Controller(object):
             # Add to map! (without emitting signal)
             vlayer_id = QgsMapLayerRegistry.instance().addMapLayer(vlayer).id()
             if vlayer_id:
-                self.opt['click_layer_id'] = vlayer_id
+                s.canvas['click_layer_id'] = vlayer_id
     
         ### Set old layer selected
         self.iface.setActiveLayer(last_selected)
@@ -409,7 +408,7 @@ class Controller(object):
         """
         Check if newly added layer is part of stacks; if so, make sure image
         checkbox is clicked in the images tab. Also ensure
-        self.opt['click_layer_id'] gets moved to the top
+        s.canvas['click_layer_id'] gets moved to the top
         """
         print 'Added a map layer'
         for layer in layers:
@@ -422,15 +421,15 @@ class Controller(object):
                     if item.checkState() == Qt.Unchecked:
                         item.setCheckState(Qt.Checked)
 
-        if self.opt['click_layer_id']:
+        if s.canvas['click_layer_id']:
             print 'Moving click layer back to top'
-            self.move_layer_top(self.opt['click_layer_id'])
+            self.move_layer_top(s.canvas['click_layer_id'])
 
 
     def map_layers_removed(self, layer_ids):
         """
         Unchecks image tab checkbox for layers removed. Also ensures
-        self.opt['click_layer_id'] = None if the this layer is removed.
+        s.canvas['click_layer_id'] = None if the this layer is removed.
         
         Note that layers is a QStringList of layer IDs. A layer ID contains
         the layer name appended by the datetime added
@@ -448,10 +447,10 @@ class Controller(object):
                     if item.checkState() == Qt.Checked:
                         item.setCheckState(Qt.Unchecked)
 
-            if self.opt['click_layer_id'] == layer_id:
+            if s.canvas['click_layer_id'] == layer_id:
                 print 'Removed click layer'
-                print self.opt['click_layer_id']
-                self.opt['click_layer_id'] = None
+                print s.canvas['click_layer_id']
+                s.canvas['click_layer_id'] = None
 
     def move_layer_top(self, layer_id):
         """
