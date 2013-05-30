@@ -34,6 +34,19 @@ from osgeo.gdalconst import GA_ReadOnly
 
 from ccdc_binary_reader import CCDCBinaryReader
 
+def mat2dict(matlabobj):
+    """
+    Utility function:
+    Converts a scipy.io.matlab.mio5_params.mat_struct to a dictionary
+    """
+    d = {}
+    for field in matlabobj._fieldnames:
+        value = matlabobj.__dict__[field]
+        if isinstance(value, scipy.io.matlab.mio5_params.mat_struct):
+            d[field] = mat2dict(value)
+        else:
+            d[field] = value
+    return d
 
 class CCDCTimeSeries:
 
@@ -260,7 +273,7 @@ class CCDCTimeSeries:
         # Loop through (ugh) to find correct x,y
         for i in xrange(mat.shape[0]):
             if mat[i].pos == pos:
-                self.reccg.append(self._todict(mat[i]))
+                self.reccg.append(mat2dict(mat[i]))
 
     def get_prediction(self, band, mx=None):
         """
@@ -346,19 +359,6 @@ class CCDCTimeSeries:
         return (bx, by)
                     
 
-    def _todict(self, matlabobj):
-        """
-        Utility function:
-        Converts a scipy.io.matlab.mio5_params.mat_struct to a dictionary
-        """
-        d = {}
-        for field in matlabobj._fieldnames:
-            value = matlabobj.__dict__[field]
-            if isinstance(value, scipy.io.matlab.mio5_params.mat_struct):
-                d[field] = _todict(value)
-            else:
-                d[field] = value
-        return d
 
 # TODO: delete this... it is stupid and should be replaced with length error
 # or something
