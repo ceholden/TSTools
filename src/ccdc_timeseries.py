@@ -262,20 +262,39 @@ class CCDCTimeSeries:
             if mat[i].pos == pos:
                 self.reccg.append(self._todict(mat[i]))
 
-    def get_prediction(self, band):
+    def get_prediction(self, band, mx=None):
         """
-        Return the time series model fit predictions for any single pixel
+        Return the time series model fit predictions for any single pixel.
+
+        Arguments:
+            band            Band to predict in the layer stack
+            mx              Optional; can specify MATLAB datenum dates
         """
-        mx = []
+        if mx is None:
+            has_mx = False
+            mx = []
+        else:
+            has_mx = True
+
         my = []
+
         if len(self.reccg) > 0:
             for rec in self.reccg:
                 if band >= rec['coefs'].shape[1]:
                     break
-                ### Create sequence of MATLAB ordinal dates
-                _mx = np.linspace(rec['t_start'],
-                                 rec['t_end'],
-                                 rec['t_end'] - rec['t_start'])
+                
+                ### Setup x values (dates)
+                # Use user specified values, if possible
+                if has_mx:
+                    _mx = mx[np.where((mx >= rec['t_start']) & 
+                                      (mx <= rec['t_end']))]
+                    if len(_mx) == 0: # User didn't ask for dates in this range
+                        continue
+                else:
+                 # Create sequence of MATLAB ordinal date
+                    _mx = np.linspace(rec['t_start'],
+                                      rec['t_end'],
+                                      rec['t_end'] - rec['t_start'])
                 coef = rec['coefs'][:, band]
                 
                 ### Calculate model predictions
