@@ -48,6 +48,20 @@ def mat2dict(matlabobj):
             d[field] = value
     return d
 
+def ml2pydate(ml_date):
+    """
+    Utility function:
+    Returns Python datetime for MATLAB date
+    """
+    return dt.datetime.fromordinal(int(ml_date)) - dt.timedelta(days = 366)
+
+def py2mldate(py_date):
+    """
+    Utility function:
+    Returns MATLAB datenum for Python datetime
+    """
+    return (py_date + dt.timedelta(days = 366)).toordinal()
+
 class CCDCTimeSeries:
 
     def __init__(self, location, image_pattern='LND*', 
