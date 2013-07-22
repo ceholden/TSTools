@@ -33,7 +33,7 @@ from itertools import izip
 import os
 
 from ui_ccdctools import Ui_CCDCTools as Ui_Widget
-import ccdc_settings as s
+import ccdc_settings as setting
 
 class CCDCControls(QWidget, Ui_Widget):
     
@@ -46,29 +46,29 @@ class CCDCControls(QWidget, Ui_Widget):
     def update_options(self, ts):
         print 'Ctrl updates...'
         ### Show/don't show clicks
-        self.cbox_showclick.setChecked(s.canvas['show_click'])
+        self.cbox_showclick.setChecked(setting.canvas['show_click'])
 
         ### Raster band select
         if self.combox_band.count() == 0:
             self.combox_band.addItems(ts.band_names)
-        self.combox_band.setCurrentIndex(s.plot['band'])
+        self.combox_band.setCurrentIndex(setting.plot['band'])
         
         ### Ylim min and max
         # Auto scale
-        self.cbox_scale.setChecked(s.plot['auto_scale'])
+        self.cbox_scale.setChecked(setting.plot['auto_scale'])
         # Manual scale & auto-scale display
-        self.edit_min.setText(str(s.plot['min'][s.plot['band']]))
-        self.edit_max.setText(str(s.plot['max'][s.plot['band']]))
+        self.edit_min.setText(str(setting.plot['min'][setting.plot['band']]))
+        self.edit_max.setText(str(setting.plot['max'][setting.plot['band']]))
         
         ### Fmask, fit & breaks on/off
-        self.cbox_fmask.setChecked(s.plot['fmask'])
-        self.cbox_ccdcfit.setChecked(s.plot['fit'])
-        self.cbox_ccdcbreak.setChecked(s.plot['break'])
+        self.cbox_fmask.setChecked(setting.plot['fmask'])
+        self.cbox_ccdcfit.setChecked(setting.plot['fit'])
+        self.cbox_ccdcbreak.setChecked(setting.plot['break'])
         
         ### Click a point, add the layer
-        self.cbox_plotlayer.setChecked(s.plot['plot_layer'])
+        self.cbox_plotlayer.setChecked(setting.plot['plot_layer'])
 
-    def update_table(self, ts, opt):
+    def update_table(self, ts):
         print 'Table updates...'
         # Set header labels
         self.image_table.setHorizontalHeaderLabels(

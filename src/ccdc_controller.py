@@ -31,7 +31,7 @@ import itertools
 import numpy as np
 
 from ccdc_timeseries import CCDCTimeSeries, CCDCLengthError
-import ccdc_settings as s
+import ccdc_settings as setting
 
 class Controller(object):
 
@@ -43,21 +43,6 @@ class Controller(object):
         self.ctrl = control
         self.plt = plot
         self.iface = iface
-        
-        ### Options
-        self.opt = {}
-        self.opt['plot'] = False
-        self.opt['band'] = 0
-        # TODO: turn these into specifics for each band
-        self.opt['scale'] = True
-        self.opt['scale_factor'] = 0.25
-        self.opt['min'] = np.zeros(1, dtype=np.int)
-        self.opt['max'] = np.ones(1, dtype=np.int) * 10000
-        self.opt['fmask'] = True
-        self.opt['fit'] = True
-        self.opt['break'] = True
-        self.opt['plotlayer'] = True
-        self.opt['picker_tol'] = 2
 
     def get_time_series(self, location, image_pattern, stack_pattern):
         """
@@ -73,7 +58,7 @@ class Controller(object):
         if self.ts:
             # Update plot & controls
             self.update_display()
-            self.ctrl.update_table(self.ts, self.opt)
+            self.ctrl.update_table(self.ts)
             self.add_signals()
             return True
 
@@ -82,10 +67,10 @@ class Controller(object):
         Once ts is read, update controls & plot with relevant information
         (i.e. update)
         """
-        if s.plot['auto_scale']:
+        if setting.plot['auto_scale']:
             self.calculate_scale()
         self.ctrl.update_options(self.ts)
-        self.plt.update_plot(self.ts, self.opt)
+        self.plt.update_plot(self.ts)
 
     def add_signals(self):
         """
@@ -141,9 +126,9 @@ class Controller(object):
         """
         Automatically calculate the min/max for time series plotting
         """
-        s.plot['min'] = [np.min(band) * (1 - s.plot['scale_factor']) 
+        setting.plot['min'] = [np.min(band) * (1 - setting.plot['scale_factor'])
                            for band in self.ts.data[:, ]]
-        s.plot['max'] = [np.max(band) * (1 + s.plot['scale_factor'])
+        setting.plot['max'] = [np.max(band) * (1 + setting.plot['scale_factor'])
                            for band in self.ts.data[:, ]]
 
     ### Slots for options tab
@@ -152,32 +137,32 @@ class Controller(object):
         Updates showing/not showing of polygon where user clicked
         """
         if state == Qt.Checked:
-            s.canvas['show_click'] = True
+            setting.canvas['show_click'] = True
         elif state == Qt.Unchecked:
-            s.canvas['show_click'] = False
-            if s.canvas['click_layer_id']:
+            setting.canvas['show_click'] = False
+            if setting.canvas['click_layer_id']:
                 QgsMapLayerRegistry.instance().removeMapLayer(
-                    s.canvas['click_layer_id'])
-                s.canvas['click_layer_id'] = None
+                    setting.canvas['click_layer_id'])
+                setting.canvas['click_layer_id'] = None
 
     def set_band_select(self, index):
         """
         Update the band selected & replot
         """
-        self.opt['band'] = index
-        self.ctrl.update_options(self.ts, self.opt)
-        self.plt.update_plot(self.ts, self.opt)
+        setting.plot['band'] = index
+        self.ctrl.update_options(self.ts)
+        self.plt.update_plot(self.ts)
 
     def set_scale(self, state):
         """
         Automatically set the scale for each band & disable manual set
         """
         if state == Qt.Checked:
-            self.opt['scale'] = True
+            setting.plot['scale'] = True
         elif state == Qt.Unchecked:
-            self.opt['scale'] = False
-        self.ctrl.edit_min.setEnabled(not self.opt['scale'])
-        self.ctrl.edit_max.setEnabled(not self.opt['scale'])
+            setting.plot['scale'] = False
+        self.ctrl.edit_min.setEnabled(not setting.plot['scale'])
+        self.ctrl.edit_max.setEnabled(not setting.plot['scale'])
 
     def set_min(self, edit, validator):
         """
@@ -186,8 +171,8 @@ class Controller(object):
         state, pos = validator.validate(edit.text(), 0)
 
         if state == QValidator.Acceptable:
-            self.opt['min'][self.opt['band']] = int(edit.text())
-        self.plt.update_plot(self.ts, self.opt)
+            setting.plot['min'][setting.plot['band']] = int(edit.text())
+            self.plt.update_plot(self.ts)
     
     def set_max(self, edit, validator):
         """
@@ -196,51 +181,51 @@ class Controller(object):
         state, pos = validator.validate(edit.text(), 0)
 
         if state == QValidator.Acceptable:
-            self.opt['max'][self.opt['band']] = int(edit.text())
-        self.plt.update_plot(self.ts, self.opt)
+            setting.plot['max'][setting.plot['band']] = int(edit.text())
+        self.plt.update_plot(self.ts)
 
     def set_fmask(self, state):
         """
         Turn on or off the Fmask masking & replot
         """
         if state == Qt.Checked:
-            self.opt['fmask'] = True
+            setting.plot['fmask'] = True
         elif state == Qt.Unchecked:
-            self.opt['fmask'] = False
+            setting.plot['fmask'] = False
         # Update the data for without the masks
-        self.ts.get_ts_pixel(self.ts.x, self.ts.y, self.opt['fmask'])
-        self.plt.update_plot(self.ts, self.opt)
+        self.ts.get_ts_pixel(self.ts.x, self.ts.y, setting.plot['fmask'])
+        self.plt.update_plot(self.ts)
 
     def set_fit(self, state):
         """
         Turn on or off the CCDC fit lines & replot
         """
         if state == Qt.Checked:
-            self.opt['fit'] = True
+            setting.plot['fit'] = True
         elif state == Qt.Unchecked:
-            self.opt['fit'] = False
-        self.plt.update_plot(self.ts, self.opt)
+            setting.plot['fit'] = False
+        self.plt.update_plot(self.ts)
 
     def set_break(self, state):
         """
         Turn on or off the CCDC break indicator & replot
         """
         if state == Qt.Checked:
-            self.opt['break'] = True
+            setting.plot['break'] = True
         elif state == Qt.Unchecked:
-            self.opt['break'] = False
-        self.plt.update_plot(self.ts, self.opt)
+            setting.plot['break'] = False
+        self.plt.update_plot(self.ts)
 
     def set_plotlayer(self, state):
         """
         Turns on or off the adding of map layers for a data point on plot
         """
         if state == Qt.Checked:
-            s.plot['plot_layer'] = True
+            setting.plot['plot_layer'] = True
             self.cid = self.plt.fig.canvas.mpl_connect('pick_event',
                                                        self.plot_add_layer)
         elif state == Qt.Unchecked:
-            s.plot['plot_layer'] = False
+            setting.plot['plot_layer'] = False
             self.plt.fig.canvas.mpl_disconnect(self.cid)
 
     ### Slots for plot window
@@ -294,10 +279,10 @@ class Controller(object):
         print 'Pixel x/y %s/%s' % (px, py)
 
         if px <= self.ts.x_size and py <= self.ts.y_size:
-            self.ts.get_ts_pixel(px, py, mask=self.opt['fmask'])
+            self.ts.get_ts_pixel(px, py, mask=setting.plot['fmask'])
             self.ts.get_reccg_pixel(px, py)
             print 'nBreaks = %s' % len(self.ts.reccg)
-            self.plt.update_plot(self.ts, self.opt)
+            self.plt.update_plot(self.ts)
 
     def show_click(self, pos):
         """
@@ -323,10 +308,10 @@ class Controller(object):
             QgsPoint(ulx + GT[1], uly + GT[5]), # lower right
             QgsPoint(ulx, uly + GT[5])]] ) # lower left
 
-        if s.canvas['click_layer_id'] is not None:
+        if setting.canvas['click_layer_id'] is not None:
             print 'Updating click layer geometry'
             ### If exists, update to new row/column
-            vlayer = reg.mapLayers()[s.canvas['click_layer_id']]
+            vlayer = reg.mapLayers()[setting.canvas['click_layer_id']]
             vlayer.startEditing()
             pr = vlayer.dataProvider()
             attrs = pr.attributeIndexes()
@@ -369,7 +354,7 @@ class Controller(object):
             # Add to map! (without emitting signal)
             vlayer_id = QgsMapLayerRegistry.instance().addMapLayer(vlayer).id()
             if vlayer_id:
-                s.canvas['click_layer_id'] = vlayer_id
+                setting.canvas['click_layer_id'] = vlayer_id
     
         ### Set old layer selected
         self.iface.setActiveLayer(last_selected)
@@ -408,7 +393,7 @@ class Controller(object):
         """
         Check if newly added layer is part of stacks; if so, make sure image
         checkbox is clicked in the images tab. Also ensure
-        s.canvas['click_layer_id'] gets moved to the top
+        setting.canvas['click_layer_id'] gets moved to the top
         """
         print 'Added a map layer'
         for layer in layers:
@@ -421,15 +406,15 @@ class Controller(object):
                     if item.checkState() == Qt.Unchecked:
                         item.setCheckState(Qt.Checked)
 
-        if s.canvas['click_layer_id']:
+        if setting.canvas['click_layer_id']:
             print 'Moving click layer back to top'
-            self.move_layer_top(s.canvas['click_layer_id'])
+            self.move_layer_top(setting.canvas['click_layer_id'])
 
 
     def map_layers_removed(self, layer_ids):
         """
         Unchecks image tab checkbox for layers removed. Also ensures
-        s.canvas['click_layer_id'] = None if the this layer is removed.
+        setting.canvas['click_layer_id'] = None if the this layer is removed.
         
         Note that layers is a QStringList of layer IDs. A layer ID contains
         the layer name appended by the datetime added
@@ -447,10 +432,10 @@ class Controller(object):
                     if item.checkState() == Qt.Checked:
                         item.setCheckState(Qt.Unchecked)
 
-            if s.canvas['click_layer_id'] == layer_id:
+            if setting.canvas['click_layer_id'] == layer_id:
                 print 'Removed click layer'
-                print s.canvas['click_layer_id']
-                s.canvas['click_layer_id'] = None
+                print setting.canvas['click_layer_id']
+                setting.canvas['click_layer_id'] = None
 
     def move_layer_top(self, layer_id):
         """

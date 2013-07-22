@@ -35,6 +35,7 @@ from ccdc_config import CCDCConfig
 from ccdc_controller import Controller
 from ccdc_controls import CCDCControls
 from ccdc_plot import CCDCPlot
+import ccdc_settings as settings
 
 class CCDCTools:
 
@@ -189,7 +190,7 @@ class CCDCTools:
         if layer and layer.extent().contains(pos):
             self.controller.fetch_data(pos)
             self.controller.update_display()
-            if self.controller.opt['show_click']:
+            if settings.canvas['show_click']:
                 self.controller.show_click(pos)
 
     def unload(self):

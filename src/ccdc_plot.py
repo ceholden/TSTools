@@ -29,19 +29,12 @@ import datetime as dt
 
 import numpy as np
 
+import ccdc_settings as setting
+
 # Note: FigureCanvas is also a QWidget
 class CCDCPlot(FigureCanvas):
     
     def __init__(self, parent=None):
-        # Setup some defaults
-        dopts = {}
-        dopts['band'] = 0
-        dopts['min'] = np.zeros(1, dtype=np.int)
-        dopts['max'] = np.ones(1, dtype=np.int) * 10000
-        dopts['fit'] = True
-        dopts['break'] = True
-        dopts['picker_tol'] = 2
-
         ### Setup datasets
         # Actual data
         self.x = np.zeros(0)
@@ -58,7 +51,7 @@ class CCDCPlot(FigureCanvas):
 
         # Setup plots
         self.setup_plots()
-        self.plot(dopts)
+        self.plot()
 
     def setup_plots(self):
         # matplotlib
@@ -70,7 +63,7 @@ class CCDCPlot(FigureCanvas):
         self.axes.set_ylim([0, 10000])
 
             
-    def update_plot(self, ts, opt):
+    def update_plot(self, ts):
         """
         Fetches new information and then calls to plot
         """
@@ -79,23 +72,23 @@ class CCDCPlot(FigureCanvas):
         
         self.px, self.py = ts.x + 1, ts.y + 1
         self.x = ts.dates
-        self.y = ts.data[opt['band'], :]
+        self.y = ts.data[setting.plot['band'], :]
 
-        if opt['fit'] is True and ts.reccg is not None:
+        if setting.plot['fit'] is True and ts.reccg is not None:
             if len(ts.reccg) > 0:
-                self.mx, self.my = ts.get_prediction(opt['band'])
+                self.mx, self.my = ts.get_prediction(setting.plot['band'])
             else:
                 self.mx, self.my = (np.zeros(0), np.zeros(0))
-        if opt['break'] is True and ts.reccg is not None:
+        if setting.plot['break'] is True and ts.reccg is not None:
             if len(ts.reccg) > 1:
-                self.bx, self.by = ts.get_breaks(opt['band'])
+                self.bx, self.by = ts.get_breaks(setting.plot['band'])
             else:
                 self.bx, self.by = (np.zeros(0), np.zeros(0))
-        self.plot(opt)
+        self.plot()
 
         print hex(id(ts))
 
-    def plot(self, options=None):
+    def plot(self):
         """
         Matplotlib plot of time series
         """
@@ -106,28 +99,26 @@ class CCDCPlot(FigureCanvas):
             str(self.py), str(self.px))
         self.axes.set_title(title)
         self.axes.set_xlabel('Date')
-        self.axes.set_ylabel('Band %s (SR x 10000)' % str(options['band']))
+        self.axes.set_ylabel('Band %s (SR x 10000)' % str(setting.plot['band']))
         self.axes.grid(True)
 
-        if options:
-            self.axes.set_ylim([options['min'][options['band']], 
-                                options['max'][options['band']]])
+        self.axes.set_ylim([setting.plot['min'][setting.plot['band']], 
+                            setting.plot['max'][setting.plot['band']]])
         # Plot time series data
         line, = self.axes.plot(self.x, self.y, 
                        marker='o', ls='', color='k',
-                       picker=options['picker_tol'])
+                       picker=setting.plot['picker_tol'])
         # Plot modeled fit
-        if options and options['fit'] == True:
+        if setting.plot['fit'] == True:
             for i in xrange(len(self.mx)):
                 self.axes.plot(self.mx[i], self.my[i], linewidth=2)
         # Plot break points
-        if options and options['break'] == True:
+        if setting.plot['break'] == True:
             for i in xrange(len(self.bx)):
                 self.axes.plot(self.bx[i], self.by[i], 'ro',
                     mec='r', mfc='none', ms=10, mew=5)
         # Redraw
         self.fig.canvas.draw()
-
 
     def disconnect(self):
         pass

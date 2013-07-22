@@ -289,20 +289,19 @@ class CCDCTimeSeries:
             if mat[i].pos == pos:
                 self.reccg.append(mat2dict(mat[i]))
 
-    def get_prediction(self, band, mx=None):
+    def get_prediction(self, band, usermx=None):
         """
         Return the time series model fit predictions for any single pixel.
 
         Arguments:
             band            Band to predict in the layer stack
-            mx              Optional; can specify MATLAB datenum dates
+            mx              Optional; can specify MATLAB datenum dates as list
         """
-        if mx is None:
+        if usermx is None:
             has_mx = False
-            mx = []
         else:
             has_mx = True
-
+        mx = []
         my = []
 
         if len(self.reccg) > 0:
@@ -313,8 +312,8 @@ class CCDCTimeSeries:
                 ### Setup x values (dates)
                 # Use user specified values, if possible
                 if has_mx:
-                    _mx = mx[np.where((mx >= rec['t_start']) & 
-                                      (mx <= rec['t_end']))]
+                    _mx = usermx[np.where((usermx >= rec['t_start']) & 
+                                      (usermx <= rec['t_end']))]
                     if len(_mx) == 0: # User didn't ask for dates in this range
                         continue
                 else:
