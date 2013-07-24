@@ -68,6 +68,36 @@ class CCDCControls(QWidget, Ui_Widget):
         ### Click a point, add the layer
         self.cbox_plotlayer.setChecked(setting.plot['plot_layer'])
 
+    def update_symbology(self, ts):
+        print 'Symbology update...'
+        ### Band selections
+        if self.combox_red.count() == 0:
+            self.combox_red.addItems(ts.band_names)
+        if setting.symbol['band_red'] < len(ts.band_names):
+            self.combox_red.setCurrentIndex(setting.symbol['band_red'])
+        
+        if self.combox_green.count() == 0:
+            self.combox_green.addItems(ts.band_names)
+        if setting.symbol['band_green'] < len(ts.band_names):
+            self.combox_green.setCurrentIndex(setting.symbol['band_green'])
+        
+        if self.combox_blue.count() == 0:
+            self.combox_blue.addItems(ts.band_names)
+        if setting.symbol['band_blue'] < len(ts.band_names):
+            self.combox_blue.setCurrentIndex(setting.symbol['band_blue'])
+
+        ### Band min/max
+        self.edit_redmin.setText(str(setting.symbol['min_red']))
+        self.edit_redmax.setText(str(setting.symbol['max_red']))
+
+        self.edit_greenmin.setText(str(setting.symbol['min_green']))
+        self.edit_greenmax.setText(str(setting.symbol['max_green']))
+
+        self.edit_bluemin.setText(str(setting.symbol['min_blue']))
+        self.edit_bluemax.setText(str(setting.symbol['max_blue']))
+
+        ### 
+
     def update_table(self, ts):
         print 'Table updates...'
         # Set header labels

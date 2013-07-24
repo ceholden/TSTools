@@ -43,6 +43,28 @@ plot = {
     'picker_tol'    :       2
 }
 
+# Dictionary to store raster symbology settings
+symbol = {
+    # Red
+    'band_red'      :       4,
+    'min_red'       :       0,
+    'max_red'       :       10000,
+    # Green
+    'band_green'    :       3,
+    'min_green'     :       0,
+    'max_green'     :       10000,
+    # Blue
+    'band_blue'     :       2,
+    'min_blue'      :       0,
+    'max_blue'      :       10000,
+    # Contrast enhancement
+    #   NoEnhancement                           0
+    #   StretchToMinimumMaximum                 1
+    #   StretchAndClipToMinimumMaximum          2
+    #   ClipToMinimumMaximum                    3
+    'contrast'      :       'StretchToMinimumMaximum'
+}
+
 canvas = {
     # Show outline of clicked pixel
     'show_click'        :       True,

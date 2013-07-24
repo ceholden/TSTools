@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>357</width>
-    <height>568</height>
+    <height>254</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -18,101 +18,6 @@
     <widget class="QLabel" name="label_2">
      <property name="text">
       <string>Stack pattern:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="12" column="0" colspan="2">
-    <layout class="QFormLayout" name="formLayout">
-     <property name="sizeConstraint">
-      <enum>QLayout::SetDefaultConstraint</enum>
-     </property>
-     <item row="0" column="0">
-      <widget class="QLabel" name="lab_redband">
-       <property name="minimumSize">
-        <size>
-         <width>150</width>
-         <height>0</height>
-        </size>
-       </property>
-       <property name="text">
-        <string>Red</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="0">
-      <widget class="QLabel" name="lab_greenband">
-       <property name="minimumSize">
-        <size>
-         <width>150</width>
-         <height>0</height>
-        </size>
-       </property>
-       <property name="text">
-        <string>Green</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="1">
-      <widget class="QLineEdit" name="edit_greenband">
-       <property name="inputMask">
-        <string>0000D; </string>
-       </property>
-       <property name="text">
-        <string>2</string>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="0">
-      <widget class="QLabel" name="lab_blueband">
-       <property name="minimumSize">
-        <size>
-         <width>150</width>
-         <height>0</height>
-        </size>
-       </property>
-       <property name="text">
-        <string>Blue</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="1">
-      <widget class="QLineEdit" name="edit_blueband">
-       <property name="inputMask">
-        <string>0000D; </string>
-       </property>
-       <property name="text">
-        <string>1</string>
-       </property>
-       <property name="cursorPosition">
-        <number>5</number>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="1">
-      <widget class="QLineEdit" name="edit_redband">
-       <property name="inputMask">
-        <string>0000D; </string>
-       </property>
-       <property name="text">
-        <string>3</string>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </item>
-   <item row="13" column="0" colspan="2">
-    <widget class="QLabel" name="label_5">
-     <property name="text">
-      <string>Default Stretch</string>
      </property>
     </widget>
    </item>
@@ -146,91 +51,10 @@
      </property>
     </widget>
    </item>
-   <item row="7" column="0" colspan="2">
-    <widget class="QLabel" name="label_3">
-     <property name="font">
-      <font>
-       <weight>75</weight>
-       <bold>true</bold>
-      </font>
-     </property>
-     <property name="text">
-      <string>Layer Display Configuration</string>
-     </property>
-     <property name="alignment">
-      <set>Qt::AlignCenter</set>
-     </property>
-    </widget>
-   </item>
-   <item row="14" column="1">
-    <widget class="QRadioButton" name="rad_stretch_sd">
-     <property name="text">
-      <string>2 standard deviations</string>
-     </property>
-     <property name="checked">
-      <bool>true</bool>
-     </property>
-     <property name="autoRepeat">
-      <bool>false</bool>
-     </property>
-    </widget>
-   </item>
-   <item row="15" column="0">
-    <widget class="QLabel" name="lab_stretch_plot">
-     <property name="text">
-      <string>Plot min/max:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="17" column="0" colspan="2">
-    <widget class="QComboBox" name="comboBox"/>
-   </item>
-   <item row="18" column="0" colspan="2">
-    <layout class="QFormLayout" name="formLayout_2">
-     <item row="0" column="0">
-      <widget class="QLabel" name="lab_transparency">
-       <property name="text">
-        <string>Transparency</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="1">
-      <widget class="QComboBox" name="combox_transparency"/>
-     </item>
-    </layout>
-   </item>
-   <item row="11" column="0" colspan="2">
-    <widget class="QLabel" name="label_4">
-     <property name="text">
-      <string>Default Bands</string>
-     </property>
-    </widget>
-   </item>
-   <item row="15" column="1">
-    <widget class="QRadioButton" name="rad_stretch_plot">
-     <property name="text">
-      <string>Use plot Y-limits</string>
-     </property>
-    </widget>
-   </item>
-   <item row="16" column="0" colspan="2">
-    <widget class="QLabel" name="label_6">
-     <property name="text">
-      <string>Clipping Options</string>
-     </property>
-    </widget>
-   </item>
    <item row="4" column="0" colspan="2">
     <widget class="QLineEdit" name="edit_image">
      <property name="text">
       <string/>
-     </property>
-    </widget>
-   </item>
-   <item row="14" column="0">
-    <widget class="QLabel" name="lab_stretch_sd">
-     <property name="text">
-      <string>Standard Deviations:</string>
      </property>
     </widget>
    </item>
@@ -255,7 +79,7 @@
      </property>
     </widget>
    </item>
-   <item row="19" column="1">
+   <item row="10" column="1">
     <widget class="QDialogButtonBox" name="button_box">
      <property name="standardButtons">
       <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
