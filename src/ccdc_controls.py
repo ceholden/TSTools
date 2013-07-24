@@ -87,14 +87,24 @@ class CCDCControls(QWidget, Ui_Widget):
             self.combox_blue.setCurrentIndex(setting.symbol['band_blue'])
 
         ### Band min/max
-        self.edit_redmin.setText(str(setting.symbol['min_red']))
-        self.edit_redmax.setText(str(setting.symbol['max_red']))
+        # First initialize the values...
+        setting.symbol['min'] = np.zeros(ts.n_band, dtype=np.int)
+        setting.symbol['max'] = np.ones(ts.n_band, dtype=np.int) * 10000
 
-        self.edit_greenmin.setText(str(setting.symbol['min_green']))
-        self.edit_greenmax.setText(str(setting.symbol['max_green']))
+        self.edit_redmin.setText(str(
+            setting.symbol['min'][setting.symbol['band_red']]))
+        self.edit_redmax.setText(str(
+            setting.symbol['max'][setting.symbol['band_red']]))
 
-        self.edit_bluemin.setText(str(setting.symbol['min_blue']))
-        self.edit_bluemax.setText(str(setting.symbol['max_blue']))
+        self.edit_greenmin.setText(str(
+            setting.symbol['min'][setting.symbol['band_green']]))
+        self.edit_greenmax.setText(str(
+            setting.symbol['max'][setting.symbol['band_green']]))
+
+        self.edit_bluemin.setText(str(
+            setting.symbol['min'][setting.symbol['band_blue']]))
+        self.edit_bluemax.setText(str(
+            setting.symbol['max'][setting.symbol['band_blue']]))
 
         ### 
 

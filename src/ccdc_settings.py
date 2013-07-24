@@ -34,7 +34,7 @@ plot = {
     'scale_factor'  :       0.25,
     # Plot min, max
     'min'           :       np.zeros(1, dtype=np.int),
-    'max'           :       np.zeros(1, dtype=np.int) * 10000,
+    'max'           :       np.ones(1, dtype=np.int) * 10000,
     # Show Fmask, CCDC fit, time series breaks
     'fmask'         :       True,
     'fit'           :       True,
@@ -45,18 +45,15 @@ plot = {
 
 # Dictionary to store raster symbology settings
 symbol = {
-    # Red
+    # RGB color options
     'band_red'      :       4,
-    'min_red'       :       0,
-    'max_red'       :       10000,
-    # Green
     'band_green'    :       3,
-    'min_green'     :       0,
-    'max_green'     :       10000,
-    # Blue
     'band_blue'     :       2,
-    'min_blue'      :       0,
-    'max_blue'      :       10000,
+    
+    # Min/max values for all bands
+    'min'           :       np.zeros(1, dtype=np.int),
+    'max'           :       np.ones(1, dtype=np.int) * 10000,
+    
     # Contrast enhancement
     #   NoEnhancement                           0
     #   StretchToMinimumMaximum                 1
