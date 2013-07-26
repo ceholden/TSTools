@@ -23,6 +23,9 @@
 
 import numpy as np
 
+# List of raster images added - used to track for symbology
+image_layers = []
+
 # Dictionary to store plot settings
 plot = {
     # Should we plot when we click canvas?
@@ -44,22 +47,35 @@ plot = {
 }
 
 # Dictionary to store raster symbology settings
-symbol = {
+p_symbol = {
+    ### Pre-apply options
+    # Control symbology?
+    'control'       :       True,
     # RGB color options
     'band_red'      :       4,
     'band_green'    :       3,
     'band_blue'     :       2,
-    
     # Min/max values for all bands
     'min'           :       np.zeros(1, dtype=np.int),
     'max'           :       np.ones(1, dtype=np.int) * 10000,
-    
     # Contrast enhancement
     #   NoEnhancement                           0
     #   StretchToMinimumMaximum                 1
     #   StretchAndClipToMinimumMaximum          2
     #   ClipToMinimumMaximum                    3
-    'contrast'      :       'StretchToMinimumMaximum'
+    'contrast'      :       1,
+}
+symbol = {
+    # Control symbology?
+    'control'       :       True,
+
+    ### Post-apply options
+    'band_red'      :       4,
+    'band_green'    :       3,
+    'band_blue'     :       2,
+    'min'           :       np.zeros(1, dtype=np.int),
+    'max'           :       np.ones(1, dtype=np.int) * 10000,
+    'contrast'      :       1,
 }
 
 canvas = {

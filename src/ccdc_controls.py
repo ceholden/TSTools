@@ -29,14 +29,23 @@ import numpy as np
 
 import datetime as dt
 import fnmatch
+from functools import partial
 from itertools import izip
 import os
 
 from ui_ccdctools import Ui_CCDCTools as Ui_Widget
 import ccdc_settings as setting
 
+def str2num(s):
+    try:
+        return int(s)
+    except ValueError:
+        return float(s)
+
 class CCDCControls(QWidget, Ui_Widget):
-    
+
+    symbology_applied = pyqtSignal()
+
     def __init__(self, iface):
         # Qt setup
         self.iface = iface
@@ -68,9 +77,23 @@ class CCDCControls(QWidget, Ui_Widget):
         ### Click a point, add the layer
         self.cbox_plotlayer.setChecked(setting.plot['plot_layer'])
 
-    def update_symbology(self, ts):
-        print 'Symbology update...'
-        ### Band selections
+
+    def init_symbology(self, ts):
+        print 'Symbology init...'
+        ### UI
+        # Control symbology
+        self.cbox_symbolcontrol.setChecked(setting.symbol['control'])
+
+        # Band min/max
+        setting.symbol['min'] = np.zeros(ts.n_band, dtype=np.int)
+        setting.symbol['max'] = np.ones(ts.n_band, dtype=np.int) * 10000
+        setting.p_symbol['min'] = np.zeros(ts.n_band, dtype=np.int)
+        setting.p_symbol['max'] = np.ones(ts.n_band, dtype=np.int) * 10000
+
+        # Contrast enhancement
+        self.combox_cenhance.setCurrentIndex(setting.symbol['contrast'])
+        
+        # Band selections
         if self.combox_red.count() == 0:
             self.combox_red.addItems(ts.band_names)
         if setting.symbol['band_red'] < len(ts.band_names):
@@ -85,28 +108,119 @@ class CCDCControls(QWidget, Ui_Widget):
             self.combox_blue.addItems(ts.band_names)
         if setting.symbol['band_blue'] < len(ts.band_names):
             self.combox_blue.setCurrentIndex(setting.symbol['band_blue'])
-
-        ### Band min/max
-        # First initialize the values...
-        setting.symbol['min'] = np.zeros(ts.n_band, dtype=np.int)
-        setting.symbol['max'] = np.ones(ts.n_band, dtype=np.int) * 10000
-
+        
+        # Min / max
         self.edit_redmin.setText(str(
             setting.symbol['min'][setting.symbol['band_red']]))
         self.edit_redmax.setText(str(
             setting.symbol['max'][setting.symbol['band_red']]))
-
         self.edit_greenmin.setText(str(
             setting.symbol['min'][setting.symbol['band_green']]))
         self.edit_greenmax.setText(str(
             setting.symbol['max'][setting.symbol['band_green']]))
-
         self.edit_bluemin.setText(str(
             setting.symbol['min'][setting.symbol['band_blue']]))
         self.edit_bluemax.setText(str(
             setting.symbol['max'][setting.symbol['band_blue']]))
 
-        ### 
+        ### Signals
+        # Allow control of symbology
+        self.cbox_symbolcontrol.stateChanged.connect(self.set_symbol_control)
+        # Select image bands for symbology RGB colors
+        self.combox_red.currentIndexChanged.connect(partial(
+            self.set_symbol_band, 'red'))
+        self.combox_green.currentIndexChanged.connect(partial(
+            self.set_symbol_band, 'green'))
+        self.combox_blue.currentIndexChanged.connect(partial(
+            self.set_symbol_band, 'blue'))
+        # Manual set of min/max
+        self.edit_redmin.editingFinished.connect(partial(
+            self.set_symbol_minmax, self.edit_redmin, 'red', 'min'))
+        self.edit_redmax.editingFinished.connect(partial(
+            self.set_symbol_minmax, self.edit_redmax, 'red', 'max'))
+        self.edit_greenmin.editingFinished.connect(partial(
+            self.set_symbol_minmax, self.edit_greenmin, 'green', 'min'))
+        self.edit_greenmax.editingFinished.connect(partial(
+            self.set_symbol_minmax, self.edit_greenmax, 'green', 'max'))
+        self.edit_bluemin.editingFinished.connect(partial(
+            self.set_symbol_minmax, self.edit_bluemin, 'blue', 'min'))
+        self.edit_bluemax.editingFinished.connect(partial(
+            self.set_symbol_minmax, self.edit_bluemax, 'blue', 'max'))
+        # Contrast enhancement
+        self.combox_cenhance.currentIndexChanged.connect(
+            self.set_symbol_enhance)
+        # Apply settings
+        self.but_symbol_apply.clicked.connect(self.apply_symbology)
+
+    def set_symbol_control(self, state):
+        """ Turns on or off control of symbology """
+        if state == Qt.Checked:
+            setting.symbol['control'] = True
+            self.but_symbol_apply.setEnabled(True)
+        elif state == Qt.Unchecked:
+            setting.symbol['control'] = False
+            self.but_symbol_apply.setEnabled(False)
+
+    def set_symbol_band(self, color, index):
+        """
+        Assigns image band to symbology color and updates the QLineEdit min/max
+        display to the min/max for the image band chosen for symbology color.
+        """
+        if color == 'red':
+            setting.p_symbol['band_red'] = index
+        elif color == 'green':
+            setting.p_symbol['band_green'] = index
+        elif color == 'blue':
+            setting.p_symbol['band_blue'] = index
+        
+        self.edit_redmin.setText(
+            str(setting.p_symbol['min'][setting.p_symbol['band_red']]))
+        self.edit_redmax.setText(
+            str(setting.p_symbol['max'][setting.p_symbol['band_red']]))
+        self.edit_greenmin.setText(
+            str(setting.p_symbol['min'][setting.p_symbol['band_green']]))
+        self.edit_greenmax.setText(
+            str(setting.p_symbol['max'][setting.p_symbol['band_green']]))
+        self.edit_bluemin.setText(
+            str(setting.p_symbol['min'][setting.p_symbol['band_blue']]))
+        self.edit_bluemax.setText(
+            str(setting.p_symbol['max'][setting.p_symbol['band_blue']]))
+
+    def set_symbol_minmax(self, field, color, minmax):
+        """ Assigns minimum or maximum value for a given color """
+        # Determine which image band we're using for symbology color
+        if color == 'red':
+            band = setting.p_symbol['band_red']
+        elif color == 'green':
+            band = setting.p_symbol['band_green']
+        elif color == 'blue':
+            band = setting.p_symbol['band_blue']
+
+        # Grab value from text field
+        print field.text()
+        try:
+            value = str2num(field.text())
+            # Set min or max
+            setting.p_symbol[minmax][band] = value
+        except:
+            field.setText(str(setting.p_symbol.get(minmax)[band]))
+            
+        
+    def set_symbol_enhance(self, index):
+        """ Assigns color enhancement from combo box of methods """
+        setting.p_symbol['contrast'] = index
+
+    def apply_symbology(self):
+        """ 
+        Fetches current symbology tab values and applies to rasters in time
+        series.
+        """
+        if setting.symbol['control']:
+            # Copy over pre-apply attributes to the 'live' symbology dictionary
+            setting.symbol = setting.p_symbol.copy()
+            if setting.symbol['control']:
+                # Emit that we applied settings
+                self.symbology_applied.emit()
 
     def update_table(self, ts):
         print 'Table updates...'

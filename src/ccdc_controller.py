@@ -60,7 +60,7 @@ class Controller(object):
             self.update_display()
 
             # Init symbology, table & signals
-            self.ctrl.update_symbology(self.ts)
+            self.ctrl.init_symbology(self.ts)
             self.ctrl.update_table(self.ts)
             self.add_signals()
             return True
@@ -79,14 +79,12 @@ class Controller(object):
         """
         Add the signals to the options tab
         """
-        ### Show/don't show where user clicked
+        ### Options tab
+        # Show/don't show where user clicked
         self.ctrl.cbox_showclick.stateChanged.connect(self.set_show_click)
-
-        ### Raster band select checkbox
+        # Raster band select checkbox
         self.ctrl.combox_band.currentIndexChanged.connect(partial(
             self.set_band_select))
-        
-        ### Plotting scale options
         # Auto scale
         self.ctrl.cbox_scale.stateChanged.connect(self.set_scale)
         # Manual set of min/max
@@ -96,20 +94,21 @@ class Controller(object):
         # Plot Y max
         self.ctrl.edit_max.returnPressed.connect(partial(
             self.set_max, self.ctrl.edit_max, validator))
-
-        ### Time series options
         # Show or hide Fmask masked values
         self.ctrl.cbox_fmask.stateChanged.connect(self.set_fmask)
         # Show or hide fitted time series
         self.ctrl.cbox_ccdcfit.stateChanged.connect(self.set_fit)
         # Show or hide break points
         self.ctrl.cbox_ccdcbreak.stateChanged.connect(self.set_break)
-
-        ### Add layer from time series plot points
+        # Add layer from time series plot points
         # Turn on default for checkbox
         self.ctrl.cbox_plotlayer.stateChanged.connect(self.set_plotlayer)
         # Connect/disconnect matplotlib event signal based on checkbox default
         self.set_plotlayer(self.ctrl.cbox_plotlayer.checkState())
+
+        ### Symbology tab
+        # Signal for having applied symbology settings
+        self.ctrl.symbology_applied.connect(self.apply_symbology)
 
         ### Image tab panel helpers for add/remove layers
         # NOTE: QGIS added "layersAdded" in 1.8(?) to replace some older
@@ -124,6 +123,52 @@ class Controller(object):
 
         ### Image tab panel
         self.ctrl.image_table.itemClicked.connect(self.get_tablerow_clicked)
+
+    def apply_symbology(self, rlayers=None):
+        """
+        Apply time series symbology to a raster layer or all layers added from
+        time series
+        """
+        print 'Applying symbology!!!!'
+        
+        if rlayers is None:
+            rlayers = setting.image_layers
+        elif type(rlayers) != type([]):
+            rlayers = [rlayers]
+
+        # Fetch band indexes
+        red_band = setting.symbol['band_red'] 
+        green_band = setting.symbol['band_green']
+        blue_band = setting.symbol['band_blue']
+        
+        for rlayer in rlayers:
+            # Force RGB color image
+            rlayer.setDrawingStyle(QgsRasterLayer.MultiBandColor)
+            # Setup raster band to color pairing
+            rlayer.setRedBandName(rlayer.bandName(red_band + 1))
+            rlayer.setGreenBandName(rlayer.bandName(green_band + 1))
+            rlayer.setBlueBandName(rlayer.bandName(blue_band + 1))
+            # Setup min/max
+            rlayer.setMinimumValue(red_band + 1, 
+                                   setting.symbol['min'][red_band], False)
+            rlayer.setMinimumValue(green_band + 1,  
+                                   setting.symbol['min'][green_band], False)
+            rlayer.setMinimumValue(blue_band + 1,  
+                                   setting.symbol['min'][blue_band], False)
+            rlayer.setMaximumValue(red_band + 1,  
+                                   setting.symbol['max'][red_band], False)
+            rlayer.setMaximumValue(green_band + 1,
+                                   setting.symbol['max'][green_band], False)
+            rlayer.setMaximumValue(blue_band + 1,
+                                   setting.symbol['max'][blue_band], False)
+            rlayer.setUserDefinedRGBMinimumMaximum(True)
+            # Contrast
+            rlayer.setContrastEnhancementAlgorithm(setting.symbol['contrast'])
+            # Refresh & update symbology in legend
+            if hasattr(rlayer, 'setCacheImage'):
+                rlayer.setCacheImage(None)
+            rlayer.triggerRepaint()
+            self.iface.legendInterface().refreshLayerSymbology(rlayer)
 
     def calculate_scale(self):
         """
@@ -249,24 +294,8 @@ class Controller(object):
             index = index[0]
 
         print 'Selected date %s' % str(line.get_xdata()[index])
-
-        # Use the QgsMapLayerRegistery singleton to access/add/remove layers
-        reg = QgsMapLayerRegistry.instance()
-        # Check if added #TODO refactor this code out?
-        added = [(self.ts.stacks[index] == layer.source(), layer)
-                 for layer in reg.mapLayers().values()]
-        # We haven't already added it
-        if all(not add[0] for add in added) or len(added) == 0:
-            print 'Adding new raster layer for plot point'
-            rlayer = QgsRasterLayer(self.ts.stacks[index],
-                                    self.ts.image_ids[index])
-            if rlayer.isValid():
-                reg.addMapLayer(rlayer)
-        # If we have added it, move to top
-        elif any(add[0] for add in added):
-            print 'Have added layer, moving to top!'
-            index = [i for i, tup in enumerate(added) if tup[0] == True][0]
-            self.move_layer_top(added[index][1].id())
+        
+        self.add_map_layer(index)
 
     ### Function helper for MapTool slot
     def fetch_data(self, pos):
@@ -368,30 +397,43 @@ class Controller(object):
         If user clicks checkbox for image in image table, will add/remove
         image layer from map layers.
         """
-        #print '%s,%s row,col triggered' % (str(item.row()), str(item.column()))
         if item.column() != 0:
             return
-
-        # Use the QgsMapLayerRegistery singleton to access/add/remove layers
-        reg = QgsMapLayerRegistry.instance()
-        # Check if added
-        added = [(self.ts.stacks[item.row()] == layer.source(), layer)
-                 for layer in reg.mapLayers().values()]
         if item.checkState() == Qt.Checked:
-            # If current layers do not include checked image, add
-            if all(not add[0] for add in added) or len(added) == 0:
-                rlayer = QgsRasterLayer(self.ts.stacks[item.row()],
-                                        self.ts.image_ids[item.row()])
-                if rlayer.isValid():
-                    # Add the layer
-                    reg.addMapLayer(rlayer)
+            self.add_map_layer(item.row())
         elif item.checkState() == Qt.Unchecked:
             # If added is true and we now have unchecked, remove
-            for (rm, layer) in added:
-                if rm:
-                    print 'Removing unchecked layer...'
-                    reg.removeMapLayer(layer.id())
+            for layer in setting.image_layers:
+                if self.ts.stacks[item.row()] == layer.source():
+                    QgsMapLayerRegistry.instance().removeMapLayer(layer.id())
 
+    def add_map_layer(self, index):
+        """
+        Method called when adding an image via the table or plot.
+        """
+        reg = QgsMapLayerRegistry.instance()
+
+        # Which layer are we adding?
+        added = [(self.ts.stacks[index] == layer.source(), layer) 
+                 for layer in reg.mapLayers().values()]
+        # Check if we haven't already added it
+        if all(not add[0] for add in added) or len(added) == 0:
+            # Create
+            rlayer = QgsRasterLayer(self.ts.stacks[index],
+                                    self.ts.image_ids[index])
+            if rlayer.isValid():
+                reg.addMapLayer(rlayer)
+           # Add to settings "registry"
+            setting.image_layers.append(rlayer)
+            # Handle symbology
+            self.apply_symbology(rlayer)
+        # If we have already added it, move it to top
+        elif any(add[0] for add in added):
+            print 'Have added layer, moving to top!'
+            index = [i for i, tup in enumerate(added) if tup[0] == True][0]
+            self.move_layer_top(added[index][1].id())
+        
+        
     def map_layers_added(self, layers):
         """
         Check if newly added layer is part of stacks; if so, make sure image
@@ -409,14 +451,15 @@ class Controller(object):
                     if item.checkState() == Qt.Unchecked:
                         item.setCheckState(Qt.Checked)
 
+        # Move pixel highlight back to top
         if setting.canvas['click_layer_id']:
             print 'Moving click layer back to top'
             self.move_layer_top(setting.canvas['click_layer_id'])
 
-
     def map_layers_removed(self, layer_ids):
         """
-        Unchecks image tab checkbox for layers removed. Also ensures
+        Unchecks image tab checkbox for layers removed and synchronizes
+        image_layers in settings. Also ensures that
         setting.canvas['click_layer_id'] = None if the this layer is removed.
         
         Note that layers is a QStringList of layer IDs. A layer ID contains
@@ -439,6 +482,12 @@ class Controller(object):
                 print 'Removed click layer'
                 print setting.canvas['click_layer_id']
                 setting.canvas['click_layer_id'] = None
+
+        # Sync setting.image_layers
+        map_layers = QgsMapLayerRegistry.instance().mapLayers().values()
+        for layer_id in setting.image_layers:
+            if layer_id not in map_layers:
+                setting.image_layers.remove(layer_id)
 
     def move_layer_top(self, layer_id):
         """
