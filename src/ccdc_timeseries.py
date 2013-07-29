@@ -178,7 +178,7 @@ class CCDCTimeSeries:
                 len(band.GetDescription()) > 0):
                 self.band_names.append(band.GetDescription())
             else:
-                self.band_names.append('Band %s' % str(iBand))
+                self.band_names.append('Band %s' % str(iBand + 1))
         
         # Close band & dataset
         band = None
