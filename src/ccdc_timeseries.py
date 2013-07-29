@@ -111,7 +111,7 @@ class CCDCTimeSeries:
         """ 
         Finds & sets names for Landsat image directories & stacks
         """
-        for root, dnames, fnames in os.walk(self.location):
+        for root, dnames, fnames in os.walk(self.location, followlinks=True):
             for dname in fnmatch.filter(dnames, image_pattern):
                 self.image_ids.append(dname)
             for fname in fnmatch.filter(fnames, stack_pattern):
