@@ -56,16 +56,14 @@ class CCDCPlot(FigureCanvas):
     def setup_plots(self):
         # matplotlib
         self.fig = Figure()
-#        self.fig.set_facecolor('white')
+        self.fig.tight_layout()
         self.axes = self.fig.add_subplot(111)
         FigureCanvas.__init__(self, self.fig)
         self.setAutoFillBackground(False)
         self.axes.set_ylim([0, 10000])
-
             
     def update_plot(self, ts):
-        """
-        Fetches new information and then calls to plot
+        """ Fetches new information and then calls to plot
         """
         
         print 'Updating plot...'
@@ -89,10 +87,10 @@ class CCDCPlot(FigureCanvas):
         print hex(id(ts))
 
     def plot(self):
-        """
-        Matplotlib plot of time series
+        """ Matplotlib plot of time series
         """
         print 'Plotting...'
+        
         self.axes.clear()
 
         title = 'Time series - row: %s col: %s' % (
@@ -118,7 +116,29 @@ class CCDCPlot(FigureCanvas):
                 self.axes.plot(self.bx[i], self.by[i], 'ro',
                     mec='r', mfc='none', ms=10, mew=5)
         # Redraw
+        self.fig.tight_layout()
         self.fig.canvas.draw()
+
+    def save_plot(self, fname, fformat='png'):
+        """ Save the matplotlib figure 
+        """
+        ### Format the output path
+        directory = os.path.split(fname)[0]
+        # Check for file extension
+        if '.' not in os.path.split(fname)[1]:
+            filename = '{f}.{e}'.format(f=os.path.split(path)[1], e=fformat)
+        # Add in directory if none
+        if directory == '':
+            directory = '.'
+        # If directory does not exist, return False
+        if not os.path.exists(directory):
+            return False
+        # Join and save
+        filename = os.path.join(directory, filename)
+
+        self.fig.savefig(filename)
+
+        return True
 
     def disconnect(self):
         pass
