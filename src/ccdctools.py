@@ -145,7 +145,6 @@ class CCDCTools:
         self.plot_dock = QDockWidget('CCDC Plot', self.iface.mainWindow())
         self.plot_dock.setObjectName('CCDC Plot')
         self.plot_dock.setWidget(self.plot_widget)
-        # Connect signals #TODO
         # Add to iface
         self.iface.addDockWidget(Qt.BottomDockWidgetArea, self.plot_dock)
 

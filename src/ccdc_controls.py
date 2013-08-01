@@ -45,6 +45,7 @@ def str2num(s):
 class CCDCControls(QWidget, Ui_Widget):
 
     symbology_applied = pyqtSignal()
+    plot_options_changed = pyqtSignal()
 
     def __init__(self, iface):
         # Qt setup
@@ -52,30 +53,102 @@ class CCDCControls(QWidget, Ui_Widget):
         QWidget.__init__(self)
         self.setupUi(self)
 
-    def update_options(self, ts):
-        print 'Ctrl updates...'
-        ### Show/don't show clicks
+    def init_options(self):
+        # Show/don't show clicks
         self.cbox_showclick.setChecked(setting.canvas['show_click'])
+       
 
-        ### Raster band select
+    def init_plot_options(self, ts):
+        print 'Plot options init'
+        # Click a point, add the layer
+        self.cbox_plotlayer.setChecked(setting.plot['plot_layer'])
+        # Signal handled by CCDCController
+
+        # Raster band select
         if self.combox_band.count() == 0:
             self.combox_band.addItems(ts.band_names)
         self.combox_band.setCurrentIndex(setting.plot['band'])
-        
-        ### Ylim min and max
-        # Auto scale
+        self.combox_band.currentIndexChanged.connect(partial(
+            self.set_band_select))
+
+        # Ylim min and max - Auto scale
         self.cbox_scale.setChecked(setting.plot['auto_scale'])
+        self.cbox_scale.stateChanged.connect(self.set_auto_scale)
         # Manual scale & auto-scale display
         self.edit_min.setText(str(setting.plot['min'][setting.plot['band']]))
         self.edit_max.setText(str(setting.plot['max'][setting.plot['band']]))
+        self.edit_min.editingFinished.connect(self.set_plot_min)
+        self.edit_max.editingFinished.connect(self.set_plot_max)
         
         ### Fmask, fit & breaks on/off
         self.cbox_fmask.setChecked(setting.plot['fmask'])
-        self.cbox_ccdcfit.setChecked(setting.plot['fit'])
-        self.cbox_ccdcbreak.setChecked(setting.plot['break'])
+        self.cbox_fmask.stateChanged.connect(self.set_plot_fmask)
+
+        self.cbox_modelfit.setChecked(setting.plot['fit'])
+        self.cbox_modelfit.stateChanged.connect(self.set_model_fit)
         
-        ### Click a point, add the layer
-        self.cbox_plotlayer.setChecked(setting.plot['plot_layer'])
+        self.cbox_breakpoint.setChecked(setting.plot['break'])
+        self.cbox_breakpoint.stateChanged.connect(self.set_break_point)
+    
+    def update_plot_options(self):
+        """ Updates some of the plot options - mostly the text fields for
+        min/max based on if user changes pixel or band
+        """
+        # Enable/disable user edit of min/max
+        self.edit_min.setEnabled(not setting.plot['auto_scale'])
+        self.edit_max.setEnabled(not setting.plot['auto_scale'])
+        # Update min/max
+        self.edit_min.setText(str(setting.plot['min'][setting.plot['band']]))
+        self.edit_max.setText(str(setting.plot['max'][setting.plot['band']]))
+
+    def set_band_select(self, index):
+        """ Slot for band plot selection combo-box
+        """
+        setting.plot['band'] = index
+        self.plot_options_changed.emit()
+
+    def set_auto_scale(self, state):
+        """ Slot for turning on/off automatic scaling of data
+        """
+        if state == Qt.Checked:
+            setting.plot['auto_scale'] = True
+        elif state == Qt.Unchecked:
+            setting.plot['auto_scale'] = False
+        self.plot_options_changed.emit()
+
+    def set_plot_min(self):
+        """ Slot for setting plot Y-axis minimum
+        """
+        setting.plot['min'][setting.plot['band']] = int(self.edit_min.text())
+        self.plot_options_changed.emit()
+
+    def set_plot_max(self):
+        """ Slot for setting plot Y-axis maximum
+        """
+        setting.plot['max'][setting.plot['band']] = int(self.edit_max.text())
+        self.plot_options_changed.emit()
+    
+    def set_plot_fmask(self, state):
+        """ Slot for enabling/disabling masking of data by Fmask
+        """
+
+    def set_model_fit(self, state):
+        """ Slot for enabling/disabling model fit on plot
+        """
+        if state == Qt.Checked:
+            setting.plot['fit'] = True
+        elif state == Qt.Unchecked:
+            setting.plot['fit'] = False
+        self.plot_options_changed.emit()
+
+    def set_break_point(self, state):
+        """ Slot for showing/hiding model break points on plot
+        """
+        if state == Qt.Checked:
+            setting.plot['break'] = True
+        elif state == Qt.Unchecked:
+            setting.plot['break'] = False
+        self.plot_options_changed.emit()
 
 
     def init_symbology(self, ts):
@@ -153,7 +226,8 @@ class CCDCControls(QWidget, Ui_Widget):
         self.but_symbol_apply.clicked.connect(self.apply_symbology)
 
     def set_symbol_control(self, state):
-        """ Turns on or off control of symbology """
+        """ Turns on or off control of symbology 
+        """
         if state == Qt.Checked:
             setting.symbol['control'] = True
             self.but_symbol_apply.setEnabled(True)
@@ -162,9 +236,9 @@ class CCDCControls(QWidget, Ui_Widget):
             self.but_symbol_apply.setEnabled(False)
 
     def set_symbol_band(self, color, index):
-        """
-        Assigns image band to symbology color and updates the QLineEdit min/max
-        display to the min/max for the image band chosen for symbology color.
+        """ Assigns image band to symbology color and updates the QLineEdit 
+        min/max display to the min/max for the image band chosen for symbology 
+        color.
         """
         if color == 'red':
             setting.p_symbol['band_red'] = index
@@ -187,7 +261,8 @@ class CCDCControls(QWidget, Ui_Widget):
             str(setting.p_symbol['max'][setting.p_symbol['band_blue']]))
 
     def set_symbol_minmax(self, field, color, minmax):
-        """ Assigns minimum or maximum value for a given color """
+        """ Assigns minimum or maximum value for a given color 
+        """
         # Determine which image band we're using for symbology color
         if color == 'red':
             band = setting.p_symbol['band_red']
@@ -207,12 +282,12 @@ class CCDCControls(QWidget, Ui_Widget):
             
         
     def set_symbol_enhance(self, index):
-        """ Assigns color enhancement from combo box of methods """
+        """ Assigns color enhancement from combo box of methods 
+        """
         setting.p_symbol['contrast'] = index
 
     def apply_symbology(self):
-        """ 
-        Fetches current symbology tab values and applies to rasters in time
+        """ Fetches current symbology tab values and applies to rasters in time
         series.
         """
         if setting.symbol['control']:

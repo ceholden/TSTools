@@ -51,17 +51,16 @@ class Controller(object):
         """
         try:
             self.ts = CCDCTimeSeries(location, image_pattern, stack_pattern)
-        except CCDCLengthError:
+        except:
             print 'Length error'
             return False
 
         if self.ts:
-            # Update plot & controls
-            self.update_display()
-
             # Init symbology, table & signals
+            self.ctrl.init_plot_options(self.ts)
             self.ctrl.init_symbology(self.ts)
             self.ctrl.update_table(self.ts)
+            self.plt.update_plot(self.ts)
             self.add_signals()
             return True
 
@@ -72,36 +71,19 @@ class Controller(object):
         """
         if setting.plot['auto_scale']:
             self.calculate_scale()
-        self.ctrl.update_options(self.ts)
+        self.ctrl.update_plot_options()
         self.plt.update_plot(self.ts)
 
     def add_signals(self):
         """
         Add the signals to the options tab
         """
-        ### Options tab
+        ### Plot tab
+        # Catch signal from plot options that we need to update
+        self.ctrl.plot_options_changed.connect(self.update_display)
         # Show/don't show where user clicked
         self.ctrl.cbox_showclick.stateChanged.connect(self.set_show_click)
-        # Raster band select checkbox
-        self.ctrl.combox_band.currentIndexChanged.connect(partial(
-            self.set_band_select))
-        # Auto scale
-        self.ctrl.cbox_scale.stateChanged.connect(self.set_scale)
-        # Manual set of min/max
-        validator = QIntValidator(0, 10000, self.ctrl)
-        self.ctrl.edit_min.returnPressed.connect(partial(
-            self.set_min, self.ctrl.edit_min, validator))
-        # Plot Y max
-        self.ctrl.edit_max.returnPressed.connect(partial(
-            self.set_max, self.ctrl.edit_max, validator))
-        # Show or hide Fmask masked values
-        self.ctrl.cbox_fmask.stateChanged.connect(self.set_fmask)
-        # Show or hide fitted time series
-        self.ctrl.cbox_ccdcfit.stateChanged.connect(self.set_fit)
-        # Show or hide break points
-        self.ctrl.cbox_ccdcbreak.stateChanged.connect(self.set_break)
         # Add layer from time series plot points
-        # Turn on default for checkbox
         self.ctrl.cbox_plotlayer.stateChanged.connect(self.set_plotlayer)
         # Connect/disconnect matplotlib event signal based on checkbox default
         self.set_plotlayer(self.ctrl.cbox_plotlayer.checkState())
@@ -120,8 +102,7 @@ class Controller(object):
             self.map_layers_added)
         QgsMapLayerRegistry.instance().layersWillBeRemoved.connect(
             self.map_layers_removed)
-
-        ### Image tab panel
+        # Image tab panel
         self.ctrl.image_table.itemClicked.connect(self.get_tablerow_clicked)
 
     def apply_symbology(self, rlayers=None):
@@ -192,77 +173,6 @@ class Controller(object):
                 QgsMapLayerRegistry.instance().removeMapLayer(
                     setting.canvas['click_layer_id'])
                 setting.canvas['click_layer_id'] = None
-
-    def set_band_select(self, index):
-        """
-        Update the band selected & replot
-        """
-        setting.plot['band'] = index
-        self.ctrl.update_options(self.ts)
-        self.plt.update_plot(self.ts)
-
-    def set_scale(self, state):
-        """
-        Automatically set the scale for each band & disable manual set
-        """
-        if state == Qt.Checked:
-            setting.plot['scale'] = True
-        elif state == Qt.Unchecked:
-            setting.plot['scale'] = False
-        self.ctrl.edit_min.setEnabled(not setting.plot['scale'])
-        self.ctrl.edit_max.setEnabled(not setting.plot['scale'])
-
-    def set_min(self, edit, validator):
-        """
-        If valid, update the minimum scale & replot
-        """
-        state, pos = validator.validate(edit.text(), 0)
-
-        if state == QValidator.Acceptable:
-            setting.plot['min'][setting.plot['band']] = int(edit.text())
-            self.plt.update_plot(self.ts)
-    
-    def set_max(self, edit, validator):
-        """
-        If valid, update the maximum scale & replot
-        """
-        state, pos = validator.validate(edit.text(), 0)
-
-        if state == QValidator.Acceptable:
-            setting.plot['max'][setting.plot['band']] = int(edit.text())
-        self.plt.update_plot(self.ts)
-
-    def set_fmask(self, state):
-        """
-        Turn on or off the Fmask masking & replot
-        """
-        if state == Qt.Checked:
-            setting.plot['fmask'] = True
-        elif state == Qt.Unchecked:
-            setting.plot['fmask'] = False
-        # Update the data for without the masks
-        self.ts.get_ts_pixel(self.ts.x, self.ts.y, setting.plot['fmask'])
-        self.plt.update_plot(self.ts)
-
-    def set_fit(self, state):
-        """
-        Turn on or off the CCDC fit lines & replot
-        """
-        if state == Qt.Checked:
-            setting.plot['fit'] = True
-        elif state == Qt.Unchecked:
-            setting.plot['fit'] = False
-        self.plt.update_plot(self.ts)
-
-    def set_break(self, state):
-        """
-        Turn on or off the CCDC break indicator & replot
-        """
-        if state == Qt.Checked:
-            setting.plot['break'] = True
-        elif state == Qt.Unchecked:
-            setting.plot['break'] = False
-        self.plt.update_plot(self.ts)
 
     def set_plotlayer(self, state):
         """

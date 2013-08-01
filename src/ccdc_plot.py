@@ -56,12 +56,12 @@ class CCDCPlot(FigureCanvas):
     def setup_plots(self):
         # matplotlib
         self.fig = Figure()
-        self.fig.tight_layout()
         self.axes = self.fig.add_subplot(111)
         FigureCanvas.__init__(self, self.fig)
         self.setAutoFillBackground(False)
         self.axes.set_ylim([0, 10000])
-            
+        self.fig.tight_layout()
+
     def update_plot(self, ts):
         """ Fetches new information and then calls to plot
         """
