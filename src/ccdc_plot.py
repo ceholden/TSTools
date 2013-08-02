@@ -26,7 +26,7 @@ from matplotlib.backends.backend_qt4agg \
     import FigureCanvasQTAgg as FigureCanvas
 
 import datetime as dt
-
+import os
 import numpy as np
 
 import ccdc_settings as setting
@@ -82,11 +82,11 @@ class CCDCPlot(FigureCanvas):
                 self.bx, self.by = ts.get_breaks(setting.plot['band'])
             else:
                 self.bx, self.by = (np.zeros(0), np.zeros(0))
-        self.plot()
+        self.plot(ts)
 
         print hex(id(ts))
 
-    def plot(self):
+    def plot(self, ts=None):
         """ Matplotlib plot of time series
         """
         print 'Plotting...'
@@ -97,7 +97,10 @@ class CCDCPlot(FigureCanvas):
             str(self.py), str(self.px))
         self.axes.set_title(title)
         self.axes.set_xlabel('Date')
-        self.axes.set_ylabel('Band %s (SR x 10000)' % str(setting.plot['band']))
+        if ts is None:
+            self.axes.set_ylabel('Band')
+        else:
+            self.axes.set_ylabel(ts.band_names[setting.plot['band']])
         self.axes.grid(True)
 
         self.axes.set_ylim([setting.plot['min'][setting.plot['band']], 
@@ -119,14 +122,20 @@ class CCDCPlot(FigureCanvas):
         self.fig.tight_layout()
         self.fig.canvas.draw()
 
-    def save_plot(self, fname, fformat='png'):
+    def save_plot(self):
         """ Save the matplotlib figure 
         """
+        ### Parse options from settings
+        fname = setting.save_plot['fname']
+        fformat = setting.save_plot['format']
+        facecolor = setting.save_plot['facecolor']
+        edgecolor = setting.save_plot['edgecolor']
+        transparent = setting.save_plot['transparent']
         ### Format the output path
         directory = os.path.split(fname)[0]
         # Check for file extension
         if '.' not in os.path.split(fname)[1]:
-            filename = '{f}.{e}'.format(f=os.path.split(path)[1], e=fformat)
+            filename = '{f}.{e}'.format(f=os.path.split(fname)[1], e=fformat)
         # Add in directory if none
         if directory == '':
             directory = '.'
@@ -136,7 +145,9 @@ class CCDCPlot(FigureCanvas):
         # Join and save
         filename = os.path.join(directory, filename)
 
-        self.fig.savefig(filename)
+        self.fig.savefig(filename, format=fformat, 
+                         facecolor=facecolor, edgecolor=edgecolor,
+                         transparent=transparent)
 
         return True
 

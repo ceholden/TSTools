@@ -37,7 +37,7 @@ PY_FILES = src/*.py
 
 EXTRAS = icon.png 
 
-UI_FILES = ui/ui_ccdctools.py ui/ui_config.py
+UI_FILES = ui/ui_ccdctools.py ui/ui_config.py ui/ui_plotsave.py
 
 RESOURCE_FILES = resources_rc.py
 

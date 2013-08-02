@@ -42,8 +42,20 @@ plot = {
     'fmask'         :       True,
     'fit'           :       True,
     'break'         :       True,
+    # Fmask values
+    'mask_val'      :       [2, 3, 4, 255],
     # Tolerance for clicking data points
     'picker_tol'    :       2
+}
+
+save_plot = {
+
+    'fname'         :       'time_series_plot',
+    'format'        :       'png',
+    'transparent'   :       False,
+    'facecolor'     :       'w',
+    'edgecolor'     :       'w'
+
 }
 
 # Dictionary to store raster symbology settings

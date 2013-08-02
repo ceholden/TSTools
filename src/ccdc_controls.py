@@ -34,6 +34,7 @@ from itertools import izip
 import os
 
 from ui_ccdctools import Ui_CCDCTools as Ui_Widget
+from SavePlotDialog import SavePlotDialog
 import ccdc_settings as setting
 
 def str2num(s):
@@ -46,6 +47,7 @@ class CCDCControls(QWidget, Ui_Widget):
 
     symbology_applied = pyqtSignal()
     plot_options_changed = pyqtSignal()
+    plot_save_request = pyqtSignal()
 
     def __init__(self, iface):
         # Qt setup
@@ -89,7 +91,10 @@ class CCDCControls(QWidget, Ui_Widget):
         
         self.cbox_breakpoint.setChecked(setting.plot['break'])
         self.cbox_breakpoint.stateChanged.connect(self.set_break_point)
-    
+
+        ### Save button options
+        self.but_plot_save.clicked.connect(self.init_save_plot_dialog)
+
     def update_plot_options(self):
         """ Updates some of the plot options - mostly the text fields for
         min/max based on if user changes pixel or band
@@ -149,6 +154,28 @@ class CCDCControls(QWidget, Ui_Widget):
         elif state == Qt.Unchecked:
             setting.plot['break'] = False
         self.plot_options_changed.emit()
+
+    def init_save_plot_dialog(self):
+        """ Slot for saving Matplotlib plot. Brings up plot save dialog and
+        listens for signal to save figure.
+        """
+        self.save_plot = SavePlotDialog(self)
+        self.save_plot.save_plot_requested.connect(self.save_plot_dialog_save)
+        self.save_plot.save_plot_closed.connect(self.save_plot_dialog_close)
+        self.save_plot.exec_()
+
+    def save_plot_dialog_save(self):
+        """ Slot for disconnecting signals to save plot dialog upon either
+        canceling or saving the plot
+        """
+        self.plot_save_request.emit()
+
+    def save_plot_dialog_close(self):
+        """ Slot for closing down plot dialog after saving/canceling
+        """
+        self.save_plot.save_plot_requested.disconnect()
+        self.save_plot.save_plot_closed.disconnect()
+        self.save_plot.close()
 
 
     def init_symbology(self, ts):

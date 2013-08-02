@@ -78,15 +78,20 @@ class Controller(object):
         """
         Add the signals to the options tab
         """
+        ### Options tab
+        # Show/don't show where user clicked
+        self.ctrl.cbox_showclick.stateChanged.connect(self.set_show_click)
+
         ### Plot tab
         # Catch signal from plot options that we need to update
         self.ctrl.plot_options_changed.connect(self.update_display)
-        # Show/don't show where user clicked
-        self.ctrl.cbox_showclick.stateChanged.connect(self.set_show_click)
+        # Catch signal to save the figure
+        self.ctrl.plot_save_request.connect(self.plt.save_plot)
         # Add layer from time series plot points
         self.ctrl.cbox_plotlayer.stateChanged.connect(self.set_plotlayer)
         # Connect/disconnect matplotlib event signal based on checkbox default
         self.set_plotlayer(self.ctrl.cbox_plotlayer.checkState())
+
 
         ### Symbology tab
         # Signal for having applied symbology settings
