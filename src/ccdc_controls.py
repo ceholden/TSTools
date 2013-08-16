@@ -124,13 +124,15 @@ class CCDCControls(QWidget, Ui_Widget):
     def set_plot_min(self):
         """ Slot for setting plot Y-axis minimum
         """
-        setting.plot['min'][setting.plot['band']] = int(self.edit_min.text())
+        setting.plot['min'][setting.plot['band']] = str2num(
+            self.edit_min.text())
         self.plot_options_changed.emit()
 
     def set_plot_max(self):
         """ Slot for setting plot Y-axis maximum
         """
-        setting.plot['max'][setting.plot['band']] = int(self.edit_max.text())
+        setting.plot['max'][setting.plot['band']] = str2num(
+            self.edit_max.text())
         self.plot_options_changed.emit()
     
     def set_plot_fmask(self, state):
