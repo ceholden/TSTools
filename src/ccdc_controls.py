@@ -47,6 +47,7 @@ class CCDCControls(QWidget, Ui_Widget):
 
     symbology_applied = pyqtSignal()
     plot_options_changed = pyqtSignal()
+    refetch_data = pyqtSignal()
     plot_save_request = pyqtSignal()
 
     def __init__(self, iface):
@@ -142,6 +143,7 @@ class CCDCControls(QWidget, Ui_Widget):
             setting.plot['fmask'] = True
         elif state == Qt.Unchecked:
             setting.plot['fmask'] = False
+        self.refetch_data.emit()
         self.plot_options_changed.emit()
 
     def set_model_fit(self, state):

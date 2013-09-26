@@ -74,6 +74,13 @@ class Controller(object):
         self.ctrl.update_plot_options()
         self.plt.update_plot(self.ts)
 
+    def update_data(self):
+        """
+        Calls ts to refetch the dataset and then displays the update
+        """
+        self.ts.get_ts_pixel(self.ts.x, self.ts.y, setting.plot['fmask'])
+        self.update_display()
+        
     def add_signals(self):
         """
         Add the signals to the options tab
@@ -85,13 +92,14 @@ class Controller(object):
         ### Plot tab
         # Catch signal from plot options that we need to update
         self.ctrl.plot_options_changed.connect(self.update_display)
+        # Catch signal from Fmask plot option to fetch new data
+        self.ctrl.refetch_data.connect(self.update_data)
         # Catch signal to save the figure
         self.ctrl.plot_save_request.connect(self.plt.save_plot)
         # Add layer from time series plot points
         self.ctrl.cbox_plotlayer.stateChanged.connect(self.set_plotlayer)
         # Connect/disconnect matplotlib event signal based on checkbox default
         self.set_plotlayer(self.ctrl.cbox_plotlayer.checkState())
-
 
         ### Symbology tab
         # Signal for having applied symbology settings
@@ -158,12 +166,20 @@ class Controller(object):
 
     def calculate_scale(self):
         """
-        Automatically calculate the min/max for time series plotting
+        Automatically calculate the min/max for time series plotting as the
+        2nd and 98th percentile of each band's time series
         """
-        setting.plot['min'] = [np.min(band) * (1 - setting.plot['scale_factor'])
-                           for band in self.ts.data[:, ]]
-        setting.plot['max'] = [np.max(band) * (1 + setting.plot['scale_factor'])
-                           for band in self.ts.data[:, ]]
+        print 'Calculating scaling'
+        setting.plot['min'] = [np.percentile(np.ma.compressed(band), 2) 
+                                for band in self.ts.data[:, ]]
+        setting.plot['max'] = [np.percentile(np.ma.compressed(band), 98) 
+                                for band in self.ts.data[:, ]]
+#        setting.plot['min'] = [min(0, np.min(band) * 
+#                                   (1 - setting.plot['scale_factor']))
+#                           for band in self.ts.data[:, ]]
+#        setting.plot['max'] = [max(10000, np.max(band) * 
+#                                   (1 + setting.plot['scale_factor']))
+#                           for band in self.ts.data[:, ]]
 
     ### Slots for options tab
     def set_show_click(self, state):
@@ -195,8 +211,7 @@ class Controller(object):
     def plot_add_layer(self, event):
         """
         Receives matplotlib event and adds layer for data point picked
-
-        Reference:
+print 'Calculating scaling'        Reference:
             http://matplotlib.org/users/event_handling.html
         """
         line = event.artist
@@ -386,6 +401,7 @@ class Controller(object):
             rows_removed = [row for row, (image_id, fname) in 
                 enumerate(itertools.izip(self.ts.image_ids, self.ts.files))
                 if image_id in layer_id or fname in layer_id]
+            
             print 'Removed these rows %s' % str(rows_removed)
             for row in rows_removed:
                 item = self.ctrl.image_table.item(row, 0)
