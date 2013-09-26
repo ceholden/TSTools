@@ -138,6 +138,11 @@ class CCDCControls(QWidget, Ui_Widget):
     def set_plot_fmask(self, state):
         """ Slot for enabling/disabling masking of data by Fmask
         """
+        if state == Qt.Checked:
+            setting.plot['fmask'] = True
+        elif state == Qt.Unchecked:
+            setting.plot['fmask'] = False
+        self.plot_options_changed.emit()
 
     def set_model_fit(self, state):
         """ Slot for enabling/disabling model fit on plot
