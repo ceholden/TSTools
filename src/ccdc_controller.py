@@ -211,7 +211,8 @@ class Controller(object):
     def plot_add_layer(self, event):
         """
         Receives matplotlib event and adds layer for data point picked
-print 'Calculating scaling'        Reference:
+        
+        Reference:
             http://matplotlib.org/users/event_handling.html
         """
         line = event.artist
@@ -445,4 +446,14 @@ print 'Calculating scaling'        Reference:
         """
         Disconnect all signals added to various components
         """
-        print 'TODO'
+        QgsMapLayerRegistry.instance().layersWillBeRemoved.disconnect()
+        QgsMapLayerRegistry.instance().layersAdded.disconnect()
+        
+        self.ctrl.cbox_showclick.stateChanged.disconnect()
+        self.ctrl.plot_options_changed.disconnect()
+        self.ctrl.refetch_data.disconnect()
+        self.ctrl.plot_save_request.disconnect()
+        self.ctrl.cbox_plotlayer.stateChanged.disconnect()
+        self.ctrl.symbology_applied.disconnect()
+        self.ctrl.image_table.itemClicked.disconnect()
+
