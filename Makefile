@@ -17,6 +17,14 @@
 # *                                                                         *
 # ***************************************************************************/
 
+# INSTALL LOCATION
+HOST=$(shell hostname)
+ifeq ($(HOST),geo)
+	LOC=/project/earth/packages/CCDCTools
+else
+	LOC=$(HOME)/.qgis/python/plugins
+endif
+
 # CONFIGURATION
 # PLUGIN_UPLOAD = $(CURDIR)/plugin_upload.py
 
@@ -60,29 +68,29 @@ compile: $(UI_FILES) $(RESOURCE_FILES)
 # the Python plugin directory is located at:
 # $HOME/.qgis/python/plugins
 deploy: compile doc transcompile
-	mkdir -p $(HOME)/.qgis/python/plugins/$(PLUGINNAME)
-	cp -vf $(PY_FILES) $(HOME)/.qgis/python/plugins/$(PLUGINNAME)
-	cp -vf $(UI_FILES) $(HOME)/.qgis/python/plugins/$(PLUGINNAME)
-	cp -vf $(RESOURCE_FILES) $(HOME)/.qgis/python/plugins/$(PLUGINNAME)
-	cp -vf $(EXTRAS) $(HOME)/.qgis/python/plugins/$(PLUGINNAME)
-	cp -vfr i18n $(HOME)/.qgis/python/plugins/$(PLUGINNAME)
-	cp -vfr $(HELP) $(HOME)/.qgis/python/plugins/$(PLUGINNAME)/help
+	mkdir -p $(LOC)/$(PLUGINNAME)
+	cp -vf $(PY_FILES) $(LOC)/$(PLUGINNAME)
+	cp -vf $(UI_FILES) $(LOC)/$(PLUGINNAME)
+	cp -vf $(RESOURCE_FILES) $(LOC)/$(PLUGINNAME)
+	cp -vf $(EXTRAS) $(LOC)/$(PLUGINNAME)
+	cp -vfr i18n $(LOC)/$(PLUGINNAME)
+	cp -vfr $(HELP) $(LOC)/$(PLUGINNAME)/help
 
 # The dclean target removes compiled python files from plugin directory
 # also delets any .svn entry
 dclean:
-	find $(HOME)/.qgis/python/plugins/$(PLUGINNAME) -iname "*.pyc" -delete
-	find $(HOME)/.qgis/python/plugins/$(PLUGINNAME) -iname ".svn" -prune -exec rm -Rf {} \;
+	find $(LOC)/$(PLUGINNAME) -iname "*.pyc" -delete
+	find $(LOC)/$(PLUGINNAME) -iname ".svn" -prune -exec rm -Rf {} \;
 
 # The derase deletes deployed plugin
 derase:
-	rm -Rf $(HOME)/.qgis/python/plugins/$(PLUGINNAME)
+	rm -Rf $(LOC)/$(PLUGINNAME)
 
 # The zip target deploys the plugin and creates a zip file with the deployed
 # content. You can then upload the zip file on http://plugins.qgis.org
 zip: deploy dclean 
 	rm -f $(PLUGINNAME).zip
-	cd $(HOME)/.qgis/python/plugins; zip -9r $(CURDIR)/$(PLUGINNAME).zip $(PLUGINNAME)
+	cd $(LOC); zip -9r $(CURDIR)/$(PLUGINNAME).zip $(PLUGINNAME)
 
 # Create a zip package of the plugin named $(PLUGINNAME).zip. 
 # This requires use of git (your plugin development directory must be a 
