@@ -58,8 +58,7 @@ class CCDCControls(QWidget, Ui_Widget):
 
     def init_options(self):
         # Show/don't show clicks
-        self.cbox_showclick.setChecked(setting.canvas['show_click'])
-       
+        self.cbox_showclick.setChecked(setting.canvas['show_click']) 
 
     def init_plot_options(self, ts):
         print 'Plot options init'

@@ -58,6 +58,7 @@ class Controller(object):
         if self.ts:
             # Init symbology, table & signals
             self.ctrl.init_plot_options(self.ts)
+            self.ctrl.init_options()
             self.ctrl.init_symbology(self.ts)
             self.ctrl.update_table(self.ts)
             self.plt.update_plot(self.ts)
