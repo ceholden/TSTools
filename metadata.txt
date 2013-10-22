@@ -9,12 +9,12 @@
 
 
 [general]
-name=CCDCTools
-qgisMinimumVersion=1.8
-description=Plotting & visualization tools for CCDC Landsat time series analysis
+name=TSTools
+qgisMinimumVersion=2.0
+description=Plugin for visualization and analysis of remote sensing time series
 version=0.1
 author=Chris Holden
-email=ceholden@bu.edu
+email=ceholden@gmail.com
 
 # end of mandatory metadata
 
@@ -24,7 +24,7 @@ email=ceholden@bu.edu
 # changelog=
 
 # tags are comma separated with spaces allowed
-tags=
+tags=remote sensing; time series
 
 homepage=
 tracker=

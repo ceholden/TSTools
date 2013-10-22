@@ -1,5 +1,5 @@
 <RCC>
-    <qresource prefix="/plugins/ccdctools" >
+    <qresource prefix="/plugins/tstools" >
         <file>icon.png</file>
     </qresource>
 </RCC>

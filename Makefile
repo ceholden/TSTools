@@ -1,11 +1,11 @@
 #/***************************************************************************
-# CCDCTools
+# TSTools
 # 
-# Plotting & visualization tools for CCDC Landsat time series analysis
+# Plugin for visualization and analysis of remote sensing time series
 #                             -------------------
-#        begin                : 2013-03-15
+#        begin                : 2013-10-01
 #        copyright            : (C) 2013 by Chris Holden
-#        email                : ceholden@bu.edu
+#        email                : ceholden@gmail.com
 # ***************************************************************************/
 # 
 #/***************************************************************************
@@ -20,32 +20,30 @@
 # INSTALL LOCATION
 HOST=$(shell hostname)
 ifeq ($(HOST),geo)
-	LOC=/project/earth/packages/CCDCTools
+    LOC=/project/earth/packages/CCDCTools
 else
-	LOC=$(HOME)/.qgis/python/plugins
+    LOC=$(HOME)/.qgis2/python/plugins
 endif
 
 # CONFIGURATION
-# PLUGIN_UPLOAD = $(CURDIR)/plugin_upload.py
+PLUGIN_UPLOAD = $(CURDIR)/plugin_upload.py
 
 # Makefile for a PyQGIS plugin 
 
 # translation
-#SOURCES = ccdctools.py ui_ccdctools.py __init__.py ccdcwidget.py ccdc_timeseries.py ccdc_binary_reader.py
 SOURCES = src/*.py
-#TRANSLATIONS = i18n/ccdctools_en.ts
+#TRANSLATIONS = i18n/tstools_en.ts
 TRANSLATIONS = 
 
 # global
 
-PLUGINNAME = ccdctools
+PLUGINNAME = tstools
 
-# PY_FILES = ccdctools.py ccdcwidget.py __init__.py ccdc_timeseries.py ccdc_binary_reader.py
 PY_FILES = src/*.py
 
-EXTRAS = icon.png 
+EXTRAS = icon.png metadata.txt
 
-UI_FILES = ui/ui_ccdctools.py ui/ui_config.py ui/ui_plotsave.py
+UI_FILES = ui/ui_config.py ui/ui_controls.py ui/ui_plotsave.py
 
 RESOURCE_FILES = resources_rc.py
 
@@ -102,8 +100,8 @@ package: compile
 		git archive --prefix=$(PLUGINNAME)/ -o $(PLUGINNAME).zip $(VERSION)
 		echo "Created package: $(PLUGINNAME).zip"
 
-# upload: zip
-#	$(PLUGIN_UPLOAD) $(PLUGINNAME).zip
+upload: zip
+	$(PLUGIN_UPLOAD) $(PLUGINNAME).zip
 
 # transup
 # update .ts translation files

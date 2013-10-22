@@ -1,10 +1,10 @@
 Plugin Builder Results
 
-Your plugin CCDCTools was created in:
-    /home/ceholden/Dropbox/Work/Research/qgisCCDC/CCDCTools
+Your plugin TSTools was created in:
+    /home/ceholden/Dropbox/Work/Research/qgisCCDC/TSTools
 
 Your QGIS plugin directory is located at:
-    /home/ceholden/.qgis/python/plugins
+    /home/ceholden/.qgis2/python/plugins
 
 What's Next:
 
@@ -18,11 +18,11 @@ What's Next:
   * Test the plugin by enabling it in the QGIS plugin manager
 
   * Customize it by editing the implementation file:
-         ccdctools.py
+         tstools.py
 
   * Create your own custom icon, replacing the default icon.png
 
-  * Modify your user interface by opening ccdctools.ui
+  * Modify your user interface by opening tstools.ui
     in Qt Designer (don't forget to compile it with pyuic4 after changing it)
 
   * You can use the Makefile to compile your Ui and resource files when

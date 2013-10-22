@@ -30,7 +30,7 @@ import os
 
 from matplotlib.colors import ColorConverter
 
-import ccdc_settings as setting
+import settings as setting
 
 class SavePlotDialog(QDialog, Ui_PlotSave):
     
