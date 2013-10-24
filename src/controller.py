@@ -43,6 +43,8 @@ class Controller(object):
         self.ctrl = control
         self.ts_plot = ts_plot
 
+        self.configured = False
+
 ### Setup
 
     def get_time_series(self, location, image_pattern, stack_pattern):
@@ -53,7 +55,6 @@ class Controller(object):
         try:
             self.ts = CCDCTimeSeries(location, image_pattern, stack_pattern)
         except:
-            print 'Length error'
             return False
 
         if self.ts:
@@ -62,6 +63,7 @@ class Controller(object):
             self.ctrl.init_symbology(self.ts)
             self.ctrl.update_table(self.ts)
             self.add_signals()
+            self.configured = True
             return True
 
 ### Communications
@@ -332,23 +334,12 @@ class Controller(object):
         """
         Disconnect all signals added to various components
         """
-#        self.ctrl.symbology_applied.disconnect()
-        self.ctrl.image_table.itemClicked.disconnect()
-        self.ctrl.cbox_showclick.stateChanged.disconnect()              
-        self.ctrl.plot_options_changed.disconnect()
-        self.ctrl.refetch_data.disconnect()
-        self.ctrl.plot_save_request.disconnect()
-        self.ctrl.cbox_plotlayer.stateChanged.disconnect()
-
-
-
-
-
-
-
-
-
-
-
-
-
+        if self.configured:
+    #        self.ctrl.symbology_applied.disconnect()
+                self.ctrl.image_table.itemClicked.disconnect()
+                self.ctrl.cbox_showclick.stateChanged.disconnect()              
+                self.ctrl.plot_options_changed.disconnect()
+                self.ctrl.refetch_data.disconnect()
+                self.ctrl.plot_save_request.disconnect()
+                self.ctrl.cbox_plotlayer.stateChanged.disconnect()
+    

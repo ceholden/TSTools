@@ -348,8 +348,8 @@ class CCDCTimeSeries:
                                 dt.timedelta(days = 366)
                                 for m in _mx]
                 ### Append
-                mx.append(_mx)
-                my.append(_my)
+                mx.append(np.array(_mx))
+                my.append(np.array(_my))
 
         return (mx, my)
 
