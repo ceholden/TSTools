@@ -185,7 +185,6 @@ class ControlPanel(QWidget, Ui_Widget):
         self.save_plot.save_plot_closed.disconnect()
         self.save_plot.close()
 
-
     def init_symbology(self, ts):
         print 'Symbology init...'
         ### UI

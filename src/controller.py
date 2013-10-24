@@ -106,7 +106,7 @@ class Controller(object):
            # Add to settings "registry"
             setting.image_layers.append(rlayer)
             # Handle symbology
-#            self.apply_symbology(rlayer)
+            self.apply_symbology(rlayer)
         # If we have already added it, move it to top
         elif any(add[0] for add in added):
             print 'Have added layer, moving to top!'
@@ -188,7 +188,8 @@ class Controller(object):
         self.ctrl.plot_options_changed.connect(self.update_display)
         # Catch signal from Fmask plot option to fetch new data
         self.ctrl.refetch_data.connect(self.update_data)
-        # Catch signal to save the figure
+        # Catch signal to save the figure 
+        #TODO make function to pass request to correct plot based on open tab
         self.ctrl.plot_save_request.connect(self.ts_plot.save_plot)
         # Add layer from time series plot points
         self.ctrl.cbox_plotlayer.stateChanged.connect(self.set_plotlayer)
@@ -197,7 +198,7 @@ class Controller(object):
 
         ### Symbology tab
         # Signal for having applied symbology settings
-        # self.ctrl.symbology_applied.connect(self.apply_symbology)
+        self.ctrl.symbology_applied.connect(self.apply_symbology)
 
         ### Image tab panel helpers for add/remove layers
         # NOTE: QGIS added "layersAdded" in 1.8(?) to replace some older
@@ -243,7 +244,72 @@ class Controller(object):
         """
         Receives QgsPoint and adds vector boundary of raster pixel clicked
         """
-        print 'DEBUG: show click'
+        # Record currently selected feature so we can restore it
+        last_selected = self.iface.activeLayer()
+        # Get raster pixel px py for pos
+        gt = self.ts.geo_transform
+        px = int((pos[0] - gt[0]) / gt[1] + 0.5)
+        py = int((pos[1] - gt[3]) / gt[5])
+
+        # Upper left coordinates of raster
+        ulx = (gt[0] + px * gt[1] + py * gt[2])
+        uly = (gt[3] + px * gt[4] + py * gt[5])
+
+        # Create geometry
+        gSquare = QgsGeometry.fromPolygon( [[
+            QgsPoint(ulx, uly), # upper left
+            QgsPoint(ulx + gt[1], uly), # upper right
+            QgsPoint(ulx + gt[1], uly + gt[5]), # lower right
+            QgsPoint(ulx, uly + gt[5]) # lower left
+        ]])
+
+        # Do we need to update or create the box?
+        if setting.canvas['click_layer_id'] is not None:
+            # Update to new row/column
+            vlayer = QgsMapLayerRegistry.instance().mapLayers()[
+                setting.canvas['click_layer_id']]
+            vlayer.startEditing()
+            pr = vlayer.dataProvider()
+            attrs = pr.attributeIndexes()
+            for feat in vlayer.getFeatures():
+                vlayer.changeAttributeValue(feat.id(), 0, py)
+                vlayer.changeAttributeValue(feat.id(), 1, px)
+                vlayer.changeGeometry(feat.id(), gSquare)
+                vlayer.updateExtents()
+            vlayer.commitChanges()
+            vlayer.triggerRepaint()
+        else:
+            # Create layer
+            uri = 'polygon?crs=%s' % self.ts.projection
+            vlayer = QgsVectorLayer(uri, 'Query', 'memory')
+            pr = vlayer.dataProvider()
+            vlayer.startEditing()
+            pr.addAttributes( [ QgsField('row', QVariant.Int),
+                               QgsField('col', QVariant.Int) ] )
+            feat = QgsFeature()
+            feat.setGeometry(gSquare)
+            feat.setAttributes([py, px])
+            pr.addFeatures([feat])
+            # Symbology
+            # Reference:
+            # http://lists.osgeo.org/pipermail/qgis-developer/2011-April/013772.html
+            props = { 'color_border'    : '255, 0, 0, 255',
+                     'style'            : 'no',
+                     'style_border'     : 'solid',
+                     'width'            : '0.40' }
+            s = QgsFillSymbolV2.createSimple(props)
+            vlayer.setRendererV2(QgsSingleSymbolRendererV2(s))
+
+            # Commit and add
+            vlayer.commitChanges()
+            vlayer.updateExtents()
+
+            vlayer_id = QgsMapLayerRegistry.instance().addMapLayer(vlayer).id()
+            if vlayer_id:
+                setting.canvas['click_layer_id'] = vlayer_id
+        
+        # Restore active layer
+        self.iface.setActiveLayer(last_selected)
 
 ## Slots for options tab
     def set_show_click(self, state):
@@ -278,8 +344,59 @@ class Controller(object):
                 if self.ts.stacks[item.row()] == layer.source():
                     QgsMapLayerRegistry.instance().removeMapLayer(layer.id())
 
-## Slots for plot window signals
+## Symbology tab
+    def apply_symbology(self, rlayers=None):
+        """ Apply consistent raster symbology to all raster layers in time
+        series 
+        """
+        if rlayers is None:
+            rlayers = setting.image_layers
+        elif type(rlayers) != type([]):
+            rlayers = [rlayers]
 
+        # Fetch band indexes
+        r_band = setting.symbol['band_red']
+        g_band = setting.symbol['band_green']
+        b_band = setting.symbol['band_blue']
+
+        for rlayer in rlayers:
+            # Setup renderer
+            r_ce = QgsContrastEnhancement(
+                rlayer.dataProvider().dataType(r_band + 1))
+            r_ce.setMinimumValue(setting.symbol['min'][r_band])
+            r_ce.setMaximumValue(setting.symbol['max'][r_band])
+            r_ce.setContrastEnhancementAlgorithm(setting.symbol['contrast'])
+            r_ce.setContrastEnhancementAlgorithm(1)
+            
+            g_ce = QgsContrastEnhancement(
+                rlayer.dataProvider().dataType(g_band + 1))
+            g_ce.setMinimumValue(setting.symbol['min'][g_band])
+            g_ce.setMaximumValue(setting.symbol['max'][g_band])
+            g_ce.setContrastEnhancementAlgorithm(setting.symbol['contrast'])
+    
+            b_ce = QgsContrastEnhancement(
+                rlayer.dataProvider().dataType(b_band + 1))
+            b_ce.setMinimumValue(setting.symbol['min'][b_band])
+            b_ce.setMaximumValue(setting.symbol['max'][b_band])
+            b_ce.setContrastEnhancementAlgorithm(setting.symbol['contrast'])
+    
+            renderer = QgsMultiBandColorRenderer(rlayer.dataProvider(),
+                r_band + 1, g_band + 1, b_band + 1)
+            renderer.setRedContrastEnhancement(r_ce)
+            renderer.setGreenContrastEnhancement(g_ce)
+            renderer.setBlueContrastEnhancement(b_ce)
+            
+            # Apply renderer
+            rlayer.setRenderer(renderer)
+            # Refresh & update symbology in legend
+            if hasattr(rlayer, 'setCacheImage'):
+                rlayer.setCacheImage(None)
+            # Repaint and refresh
+            rlayer.triggerRepaint()
+            self.iface.legendInterface().refreshLayerSymbology(rlayer)
+
+
+## Slots for plot window signals
     def set_plotlayer(self, state):
         """
         Turns on or off the adding of map layers for a data point on plot
@@ -335,11 +452,11 @@ class Controller(object):
         Disconnect all signals added to various components
         """
         if self.configured:
-    #        self.ctrl.symbology_applied.disconnect()
-                self.ctrl.image_table.itemClicked.disconnect()
-                self.ctrl.cbox_showclick.stateChanged.disconnect()              
-                self.ctrl.plot_options_changed.disconnect()
-                self.ctrl.refetch_data.disconnect()
-                self.ctrl.plot_save_request.disconnect()
-                self.ctrl.cbox_plotlayer.stateChanged.disconnect()
+            self.ctrl.symbology_applied.disconnect()
+            self.ctrl.image_table.itemClicked.disconnect()
+            self.ctrl.cbox_showclick.stateChanged.disconnect()              
+            self.ctrl.plot_options_changed.disconnect()
+            self.ctrl.refetch_data.disconnect()
+            self.ctrl.plot_save_request.disconnect()
+            self.ctrl.cbox_plotlayer.stateChanged.disconnect()
     

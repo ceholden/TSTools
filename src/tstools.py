@@ -30,10 +30,10 @@ from qgis.gui import QgsMapToolEmitPoint, QgsMessageBar
 # Initialize Qt resources from file resources.py
 import resources_rc
 
-from Config import Config
+from config import Config
 from controller import Controller
 from controls import ControlPanel
-from plot import TSPlot
+from plot_ts import TSPlot
 import settings as setting
 
 class TSTools:
