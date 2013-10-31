@@ -81,7 +81,30 @@ class ControlPanel(QWidget, Ui_Widget):
         self.edit_max.setText(str(setting.plot['max'][setting.plot['band']]))
         self.edit_min.editingFinished.connect(self.set_plot_min)
         self.edit_max.editingFinished.connect(self.set_plot_max)
-        
+
+        # Xlim min and max
+        setting.plot['xmin'] = ts.dates.min().year
+        setting.plot['xmax'] = ts.dates.max().year
+
+        self.lab_xmin.setText(str(setting.plot['xmin']))
+        self.lab_xmax.setText(str(setting.plot['xmax']))
+
+        self.scroll_xmin.setRange(setting.plot['xmin'], 
+            setting.plot['xmax'] - 1)
+        self.scroll_xmax.setRange(setting.plot['xmin'] + 1, 
+            setting.plot['xmax'])
+        self.scroll_xmin.setValue(setting.plot['xmin'])
+        self.scroll_xmax.setValue(setting.plot['xmax'])
+        self.scroll_xmin.setSingleStep(1)
+        self.scroll_xmax.setSingleStep(1)
+        self.scroll_xmin.setPageStep(1)
+        self.scroll_xmax.setPageStep(1)
+
+        self.scroll_xmin.valueChanged.connect(self.set_plot_xmin)
+        self.scroll_xmin.sliderMoved.connect(self.xmin_moved) 
+        self.scroll_xmax.valueChanged.connect(self.set_plot_xmax)
+        self.scroll_xmax.sliderMoved.connect(self.xmax_moved)
+
         ### Fmask, fit & breaks on/off
         self.cbox_fmask.setChecked(setting.plot['fmask'])
         self.cbox_fmask.stateChanged.connect(self.set_plot_fmask)
@@ -107,14 +130,12 @@ class ControlPanel(QWidget, Ui_Widget):
         self.edit_max.setText(str(setting.plot['max'][setting.plot['band']]))
 
     def set_band_select(self, index):
-        """ Slot for band plot selection combo-box
-        """
+        """ Slot for band plot selection combo-box """
         setting.plot['band'] = index
         self.plot_options_changed.emit()
 
     def set_auto_scale(self, state):
-        """ Slot for turning on/off automatic scaling of data
-        """
+        """ Slot for turning on/off automatic scaling of data """
         if state == Qt.Checked:
             setting.plot['auto_scale'] = True
         elif state == Qt.Unchecked:
@@ -122,22 +143,42 @@ class ControlPanel(QWidget, Ui_Widget):
         self.plot_options_changed.emit()
 
     def set_plot_min(self):
-        """ Slot for setting plot Y-axis minimum
-        """
+        """ Slot for setting plot Y-axis minimum """
         setting.plot['min'][setting.plot['band']] = str2num(
             self.edit_min.text())
         self.plot_options_changed.emit()
 
     def set_plot_max(self):
-        """ Slot for setting plot Y-axis maximum
-        """
+        """ Slot for setting plot Y-axis maximum """
         setting.plot['max'][setting.plot['band']] = str2num(
             self.edit_max.text())
         self.plot_options_changed.emit()
+
+    def xmin_moved(self, xmin):
+        """ Slot for ONLY updating current X-axis slider value label """
+        self.lab_xmin.setText(str(xmin))
+
+    def set_plot_xmin(self, xmin):
+        """ Slot for setting plot X-axis minimum """
+        setting.plot['xmin'] = xmin
+        self.lab_xmin.setText(str(xmin))
+        self.scroll_xmax.setMinimum(xmin + self.scroll_xmax.singleStep())
+        self.plot_options_changed.emit()
+
+    def xmax_moved(self, xmax):
+        """ Slot for ONLY updating current X-axis slider value label """
+        self.lab_xmax.setText(str(xmax))
+
+    def set_plot_xmax(self, xmax):
+        """ Slot for setting plot X-axis maximum """
+        setting.plot['xmax'] = xmax
+        self.lab_xmax.setText(str(xmax))
+        self.scroll_xmin.setMaximum(xmax - self.scroll_xmin.singleStep())
+        self.plot_options_changed.emit()
+        
     
     def set_plot_fmask(self, state):
-        """ Slot for enabling/disabling masking of data by Fmask
-        """
+        """ Slot for enabling/disabling masking of data by Fmask """
         if state == Qt.Checked:
             setting.plot['fmask'] = True
         elif state == Qt.Unchecked:
@@ -146,8 +187,7 @@ class ControlPanel(QWidget, Ui_Widget):
         self.plot_options_changed.emit()
 
     def set_model_fit(self, state):
-        """ Slot for enabling/disabling model fit on plot
-        """
+        """ Slot for enabling/disabling model fit on plot """
         if state == Qt.Checked:
             setting.plot['fit'] = True
         elif state == Qt.Unchecked:
@@ -155,8 +195,7 @@ class ControlPanel(QWidget, Ui_Widget):
         self.plot_options_changed.emit()
 
     def set_break_point(self, state):
-        """ Slot for showing/hiding model break points on plot
-        """
+        """ Slot for showing/hiding model break points on plot """
         if state == Qt.Checked:
             setting.plot['break'] = True
         elif state == Qt.Unchecked:
@@ -179,8 +218,7 @@ class ControlPanel(QWidget, Ui_Widget):
         self.plot_save_request.emit()
 
     def save_plot_dialog_close(self):
-        """ Slot for closing down plot dialog after saving/canceling
-        """
+        """ Slot for closing down plot dialog after saving/canceling """
         self.save_plot.save_plot_requested.disconnect()
         self.save_plot.save_plot_closed.disconnect()
         self.save_plot.close()

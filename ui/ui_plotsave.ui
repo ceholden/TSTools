@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Form</string>
+   <string>Export Plot</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="4" column="0" colspan="2">
@@ -108,9 +108,6 @@
        </widget>
       </item>
      </layout>
-     <zorder>pushButton</zorder>
-     <zorder>combox_plot_format</zorder>
-     <zorder>lab_plot_format</zorder>
     </widget>
    </item>
    <item row="0" column="0" colspan="2" alignment="Qt::AlignHCenter">

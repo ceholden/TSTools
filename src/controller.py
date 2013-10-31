@@ -23,18 +23,22 @@
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from qgis.core import *
+from qgis.gui import QgsMessageBar
 
+import datetime as dt
 from functools import partial
 import itertools
 
+import matplotlib as mpl
 import numpy as np
 
 from ccdc_timeseries import CCDCTimeSeries
 import settings as setting
 
+
 class Controller(object):
 
-    def __init__(self, iface, control, ts_plot):
+    def __init__(self, iface, control, ts_plot, doy_plot):
         """
         Controller stores options specified in control panel & makes them
         available for plotter by handling all signals...
@@ -42,6 +46,9 @@ class Controller(object):
         self.iface = iface
         self.ctrl = control
         self.ts_plot = ts_plot
+        self.doy_plot = doy_plot
+
+        self.active_plot = None
 
         self.configured = False
 
@@ -77,6 +84,7 @@ class Controller(object):
             self.calculate_scale()
         self.ctrl.update_plot_options()
         self.ts_plot.update_plot(self.ts)
+        self.doy_plot.update_plot(self.ts)
 
     def update_data(self):
         """
@@ -189,8 +197,7 @@ class Controller(object):
         # Catch signal from Fmask plot option to fetch new data
         self.ctrl.refetch_data.connect(self.update_data)
         # Catch signal to save the figure 
-        #TODO make function to pass request to correct plot based on open tab
-        self.ctrl.plot_save_request.connect(self.ts_plot.save_plot)
+        self.ctrl.plot_save_request.connect(self.save_plot)
         # Add layer from time series plot points
         self.ctrl.cbox_plotlayer.stateChanged.connect(self.set_plotlayer)
         # Connect/disconnect matplotlib event signal based on checkbox default
@@ -217,6 +224,17 @@ class Controller(object):
 
 ### Slots for signals
 
+### Slot for plot tab management
+    @pyqtSlot(int)
+    def changed_tab(self, index):
+        """ Updates which plot is currently being shown """
+        if index == 0:
+            self.active_plot = self.ts_plot
+        elif index == 1:
+            self.active_plot = self.doy_plot
+        else:
+            print 'You select a non-existent tab!? (#{i})'.format(i=index)
+
 ## Slots for map tool
     def fetch_data(self, pos):
         """
@@ -239,6 +257,7 @@ class Controller(object):
             self.ts.get_reccg_pixel(px, py)
             # Update plots
             self.ts_plot.update_plot(self.ts)
+            self.doy_plot.update_plot(self.ts)
 
     def show_click(self, pos):
         """
@@ -403,31 +422,51 @@ class Controller(object):
         """
         if state == Qt.Checked:
             setting.plot['plot_layer'] = True
-            self.cid = self.ts_plot.fig.canvas.mpl_connect('pick_event',
+            self.ts_cid = self.ts_plot.fig.canvas.mpl_connect('pick_event',
                                                        self.plot_add_layer)
+            self.doy_cid = self.doy_plot.fig.canvas.mpl_connect('pick_event',
+                                                        self.plot_add_layer)
         elif state == Qt.Unchecked:
             setting.plot['plot_layer'] = False
-            self.ts_plot.fig.canvas.mpl_disconnect(self.cid)
+            self.ts_plot.fig.canvas.mpl_disconnect(self.ts_cid)
+            self.doy_plot.fig.canvas.mpl_disconnect(self.doy_cid)
+
+    def save_plot(self):
+        """ Forwards plot save request to active plot """
+        if self.active_plot is not None:
+            success = self.active_plot.save_plot()
+            if success is True:
+                self.iface.messageBar().pushMessage('Info',
+                                                    'Saved plot to file',
+                                                    level=QgsMessageBar.INFO,
+                                                    duration=2)
 
     def plot_add_layer(self, event):
         """
         Receives matplotlib event and adds layer for data point picked
+
+        Note:   It's either VERY annoying or I'm just clueless to grab the
+                correct index when using matplotlib's scatterplot because the
+                artist is "mpl.collections.PathCollection"
         
         Reference:
             http://matplotlib.org/users/event_handling.html
         """
-        line = event.artist
-        index = event.ind
-
-        print 'Number selected: %s' % str(len(index))
-        if len(index) > 1:
-            print 'Error, selected more than one item...'
-            print 'Defaulting to the first'
-            index = index[0]
-
-        print 'Selected date %s' % str(line.get_xdata()[index])
-
-        self.add_map_layer(index)
+        ind = np.array(event.ind)
+        # ts_plot
+        if type(event.artist) == mpl.lines.Line2D:
+            self.add_map_layer(ind)
+        # doy_plot
+        elif type(event.artist) == mpl.collections.PathCollection:
+            print self.doy_plot.x[self.doy_plot.yr_range[ind]]
+            doy = str(self.doy_plot.x[self.doy_plot.yr_range[ind]][0])
+            doy = (3 - len(doy)) * '0' + doy
+            year = str(self.doy_plot.year[self.doy_plot.yr_range[ind]][0])
+            date = dt.datetime.strptime(year + doy, '%Y%j')
+            ind = np.where(self.ts.dates == date)[0][0]
+            self.add_map_layer(ind)
+        else:
+            print 'Unrecognized plot type. Cannot add image.'
 
 
     def calculate_scale(self):

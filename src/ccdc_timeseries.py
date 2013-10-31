@@ -195,6 +195,7 @@ class CCDCTimeSeries:
         for image_id in self.image_ids:
             self.dates.append(dt.datetime(int(image_id[9:13]), 1, 1) + 
                 dt.timedelta(int(image_id[13:16]) - 1))
+        self.dates = np.asarray(self.dates)
 
     def _get_record_changes(self, basename='record_change'):
         """

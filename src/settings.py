@@ -38,6 +38,8 @@ plot = {
     # Plot min, max
     'min'           :       np.zeros(1, dtype=np.int),
     'max'           :       np.ones(1, dtype=np.int) * 10000,
+    'xmin'          :       None,
+    'xmax'          :       None,
     # Show Fmask, CCDC fit, time series breaks
     'fmask'         :       True,
     'fit'           :       True,

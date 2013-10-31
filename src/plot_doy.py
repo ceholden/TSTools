@@ -24,41 +24,46 @@
 import os
 import datetime as dt
 
+import matplotlib as mpl
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt4agg \
     import FigureCanvasQTAgg as FigureCanvas
+import mpl_toolkits.axes_grid1 as mpl_grid
 
 import numpy as np
 
 import settings as setting
 
 # Note: FigureCanvas is also a QWidget
-class TSPlot(FigureCanvas):
-    
+class DOYPlot(FigureCanvas):
+
     def __str__(self):
-        return "Time Series Plot"
+        return "Stacked Day of Year Plot"
 
     def __init__(self, parent=None):
         ### Setup datasets
         # Actual data
         self.x = np.zeros(0)
+        self.year = np.zeros(0)
         self.y = np.zeros(0)
         # Modeled fitted data
         self.mx = np.zeros(0)
+        self.mx_year = np.zeros(0)
         self.my = np.zeros(0)
-        # Breaks
-        self.bx = np.zeros(0)
-        self.by = np.zeros(0)
         # Location of pixel plotted
         self.px = None
         self.py = None
-
+    
+        # Store colorbar so we know to delete
+        self.cbar = None
+        # Store range of data
+        self.yr_range = (0, 1)
+        
         # Setup plots
         self.setup_plots()
         self.plot()
 
     def setup_plots(self):
-        # matplotlib
         self.fig = Figure()
         self.axes = self.fig.add_subplot(111)
         FigureCanvas.__init__(self, self.fig)
@@ -67,20 +72,23 @@ class TSPlot(FigureCanvas):
         self.fig.tight_layout()
 
     def update_plot(self, ts):
-        """ Fetches new information and then calls to plot
+        """ Fetches new information and then calls plot
         """
-        
-        print 'Updating plot...'
-        
         self.px, self.py = ts.x + 1, ts.y + 1
-        self.x = ts.dates
+        self.x = np.array([int(d.strftime('%j')) for d in ts.dates])
+        self.year = np.array([d.year for d in ts.dates])
         self.y = ts.data[setting.plot['band'], :]
-
+        
         if setting.plot['fit'] is True and ts.reccg is not None:
             if len(ts.reccg) > 0:
                 self.mx, self.my = ts.get_prediction(setting.plot['band'])
             else:
                 self.mx, self.my = (np.zeros(0), np.zeros(0))
+            
+            self.mx_year = []
+            for _mx in self.mx:
+                self.mx_year.append(np.array([d.year for d in _mx]))
+
         if setting.plot['break'] is True and ts.reccg is not None:
             if len(ts.reccg) > 1:
                 self.bx, self.by = ts.get_breaks(setting.plot['band'])
@@ -89,47 +97,98 @@ class TSPlot(FigureCanvas):
         self.plot(ts)
 
     def plot(self, ts=None):
-        """ Matplotlib plot of time series
+        """ Matplotlib plot of time series stacked by DOY
         """
-        print 'Plotting...'
-        
         self.axes.clear()
 
-        title = 'Time series - row: %s col: %s' % (
-            str(self.py), str(self.px))
+        title = 'Time series - row: {r} col: {c}'.format(
+            r=str(self.py), c=str(self.px))
         self.axes.set_title(title)
 
-        self.axes.set_xlabel('Date')
+        self.axes.set_xlabel('Day of Year')
         if ts is None:
             self.axes.set_ylabel('Band')
         else:
             self.axes.set_ylabel(ts.band_names[setting.plot['band']])
         
         self.axes.grid(True)
-
-        self.axes.set_ylim([setting.plot['min'][setting.plot['band']], 
+        self.axes.set_ylim([setting.plot['min'][setting.plot['band']],
                             setting.plot['max'][setting.plot['band']]])
+        self.axes.set_xlim(0, 366)
+
 
         if setting.plot['xmin'] is not None \
                 and setting.plot['xmax'] is not None:
-            self.axes.set_xlim([dt.date(setting.plot['xmin'], 01, 01), 
-                                dt.date(setting.plot['xmax'], 12, 31)])
+            self.yr_range = np.arange(
+                np.where(self.year == setting.plot['xmin'])[0][0],
+                np.where(self.year == setting.plot['xmax'])[0][-1])
+        else:
+            self.yr_range = np.arange(0, self.year.shape[0])
+
+        # Specify the year min and max
+        yr_min = 0
+        yr_max = 1
+        if len(self.year) > 0:
+            yr_min = self.year.min()
+            yr_max = self.year.max()
         
-        # Plot time series data
-        line, = self.axes.plot(self.x, self.y, 
-                       marker='o', ls='', color='k',
-                       picker=setting.plot['picker_tol'])
-        
-        # Plot modeled fit
+        # Setup colormap and mapper
+        cmap = mpl.cm.get_cmap('RdYlBu_r')
+        norm = mpl.colors.Normalize(vmin=yr_min, vmax=yr_max) 
+        mapper = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
+
+        # Plot
+        sp = self.axes.scatter(self.x[self.yr_range], self.y[self.yr_range],
+                               cmap=cmap, c=self.year[self.yr_range],
+                               norm=norm,
+                               marker='o', edgecolors='none', s=25,
+                               picker=setting.plot['picker_tol'])
+
+        # Only put colorbar if we have data
+        if ts is not None:
+            # Setup layout to add space
+            # http://matplotlib.org/mpl_toolkits/axes_grid/users/overview.html#axesdivider
+            divider = mpl_grid.make_axes_locatable(self.axes)
+            cax = divider.append_axes('right', size='5%', pad=0.05)
+            # Reset colorbar so it doesn't overwrite itself...
+            if self.cbar is not None:
+                self.fig.delaxes(self.fig.axes[1])
+                self.fig.subplots_adjust(right=0.90)
+            self.cbar = self.fig.colorbar(sp, cax=cax)
+
         if setting.plot['fit'] is True:
-            for i in xrange(len(self.mx)):
-                self.axes.plot(self.mx[i], self.my[i], linewidth=2)
-        
-        # Plot break points
-        if setting.plot['break'] is True:
-            for i in xrange(len(self.bx)):
-                self.axes.plot(self.bx[i], self.by[i], 'ro',
-                    mec='r', mfc='none', ms=10, mew=5)
+            med_year = []
+            fit_plt = []
+            # Find median year and plot that result
+            for n, _yr in enumerate(self.mx_year):
+                # Determine median year
+                med = int(np.median(_yr))
+                # Make sure median year is in our current x-axis
+                if setting.plot['xmin'] > med or setting.plot['xmax'] < med:
+                    continue
+                med_year.append(med)
+
+                # Determine line color
+                col = mapper.to_rgba(med)
+
+                # Get index from mx predicted data for median year
+                fit_range = np.arange(
+                    np.where(_yr == med)[0][0],
+                    np.where(_yr == med)[0][-1])
+
+                # Recreate as DOY
+                mx_doy = np.array([int(d.strftime('%j')) for d in
+                                   self.mx[n][fit_range]])
+
+                # Plot
+                seg, = self.axes.plot(mx_doy, self.my[n][fit_range],
+                                      color=col, linewidth=2)
+                fit_plt.append(seg)
+
+            if len(med_year) > 0:
+                self.axes.legend(fit_plt,
+                             ['Fit {n}: {y}'.format(n=n + 1, y=y)
+                              for n, y in enumerate(med_year)])
         
         # Redraw
         self.fig.tight_layout()
@@ -158,7 +217,7 @@ class TSPlot(FigureCanvas):
         # Join and save
         filename = os.path.join(directory, filename)
 
-        self.fig.savefig(filename, format=fformat, 
+        self.fig.savefig(filename, format=fformat,
                          facecolor=facecolor, edgecolor=edgecolor,
                          transparent=transparent)
 

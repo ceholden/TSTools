@@ -34,6 +34,7 @@ from config import Config
 from controller import Controller
 from controls import ControlPanel
 from plot_ts import TSPlot
+from plot_doy import DOYPlot
 import settings as setting
 
 class TSTools:
@@ -63,7 +64,6 @@ class TSTools:
         self.image_pattern = 'LND*'
         self.stack_pattern = '*stack'
 
-        
         # Toolbar
         self.init_toolbar()
 
@@ -142,7 +142,7 @@ class TSTools:
 
     def init_controls(self):
         """ Initialize and add signals to the left side control widget """
-        print 'DEBUG %s : init_controls'
+        print 'DEBUG %s : init_controls' % __file__
         # Create widget
         self.ctrl = ControlPanel(self.iface)
         # Create dock & add control widget
@@ -158,11 +158,19 @@ class TSTools:
         # Create time series plot
         self.ts_plot = TSPlot(self.iface)
         # TODO more plots, tabs
-        
+        self.doy_plot = DOYPlot(self.iface)
+
         # Create dock and add
         self.plot_dock = QDockWidget('Plots', self.iface.mainWindow())
-        self.plot_dock.setObjectName('Plots') 
-        self.plot_dock.setWidget(self.ts_plot)
+        self.plot_dock.setObjectName('Plots')
+
+        # Create tab container
+        self.plot_tabs = QTabWidget(self.plot_dock)
+        self.plot_tabs.addTab(self.ts_plot, self.ts_plot.__str__())
+        self.plot_tabs.addTab(self.doy_plot, self.doy_plot.__str__())
+
+        # Add to dock widget
+        self.plot_dock.setWidget(self.plot_tabs)
         
         # Add to iface
         self.iface.addDockWidget(Qt.BottomDockWidgetArea, self.plot_dock)
@@ -174,8 +182,9 @@ class TSTools:
         """
         self.init_controls()
         self.init_plots()
-        # TODO plots
-        self.controller = Controller(self.iface, self.ctrl, self.ts_plot)
+        self.controller = Controller(self.iface, self.ctrl, 
+                                     self.ts_plot, self.doy_plot)
+        self.plot_tabs.currentChanged.connect(self.controller.changed_tab)
 
     def plot_request(self, pos, button=None):
         """ Request handler for QgsMapToolEmitPoint. Gets position and sends
