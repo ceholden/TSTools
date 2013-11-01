@@ -69,6 +69,9 @@ class Config(QDialog, Ui_Config):
 
     def accept_config(self):
         print 'Okay pressed!'
+        self.location = self.edit_location.text()
+        self.image_pattern = self.edit_image.text()
+        self.stack_pattern = self.edit_stack.text()
         self.accepted.emit()
 
     def cancel_config(self):
