@@ -133,7 +133,7 @@ class DOYPlot(FigureCanvas):
             yr_max = self.year.max()
         
         # Setup colormap and mapper
-        cmap = mpl.cm.get_cmap('RdYlBu_r')
+        cmap = mpl.cm.get_cmap('jet')
         norm = mpl.colors.Normalize(vmin=yr_min, vmax=yr_max) 
         mapper = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
 
