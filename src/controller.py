@@ -445,10 +445,6 @@ class Controller(object):
         """
         Receives matplotlib event and adds layer for data point picked
 
-        Note:   It's either VERY annoying or I'm just clueless to grab the
-                correct index when using matplotlib's scatterplot because the
-                artist is "mpl.collections.PathCollection"
-        
         Reference:
             http://matplotlib.org/users/event_handling.html
         """
@@ -458,13 +454,15 @@ class Controller(object):
             self.add_map_layer(ind)
         # doy_plot
         elif type(event.artist) == mpl.collections.PathCollection:
-            print self.doy_plot.x[self.doy_plot.yr_range[ind]]
-            doy = str(self.doy_plot.x[self.doy_plot.yr_range[ind]][0])
-            doy = (3 - len(doy)) * '0' + doy
-            year = str(self.doy_plot.year[self.doy_plot.yr_range[ind]][0])
-            date = dt.datetime.strptime(year + doy, '%Y%j')
-            ind = np.where(self.ts.dates == date)[0][0]
-            self.add_map_layer(ind)
+            # Scatter indexes based on self.ts.data.compressed() so check if
+            #   we've applied a mask and adjust index we add accordingly
+            if type(self.ts.data) == np.ma.core.MaskedArray:
+                date = self.ts.dates[~self.ts.data.mask[0,
+                                        self.doy_plot.yr_range]][ind]
+                ind = np.where(self.ts.dates == date)[0][0]
+                self.add_map_layer(ind)
+            else:
+                self.add_map_layer(ind)
         else:
             print 'Unrecognized plot type. Cannot add image.'
 
