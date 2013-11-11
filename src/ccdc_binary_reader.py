@@ -33,12 +33,12 @@ class CCDCBinaryReader:
 
 	http://osdir.com/ml/gdal-development-gis-osgeo/2007-04/msg00345.html
 
-	Keyword arguments:
-	filename -- the filename of the raster to read from
-	fformat -- the file format of the raster
-	dt -- numpy datatype
-	size -- list of [nrow, ncol]
-
+    Args:
+	filename                    filename of the raster to read from
+	fformat                     file format of the raster
+	dt                          numpy datatype
+	size                        list of [nrow, ncol]
+    n_band                      number of bands in image
 	"""
 	def __init__(self, filename, fformat, dt, size, n_band):
 		self.filename = filename
