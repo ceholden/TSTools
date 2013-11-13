@@ -40,63 +40,80 @@ import numpy as np
 from timeseries_ccdc import CCDCTimeSeries
 import settings as setting
 
-class DataRetriever(QtCore.QThread):
+class DataRetriever(QtCore.QObject):
 
     retrieve_update = QtCore.pyqtSignal(int)
     retrieve_complete = QtCore.pyqtSignal()
 
     def __init__(self, ts=None):
-        QtCore.QThread.__init__(self)
+        QtCore.QObject.__init__(self)
         self.running = False
-        self.ts = ts
+        self.can_readcache = False
+        self.can_writecache = False
+        self.index = 0
 
-    def run(self):
-        while self.running is True and self.ts is not None:
-            self.get_ts_pixel()
+    def _retrieve_ts_pixel(self):
+        """ If we can't just get from cache, grab from images """
+        print '{c}: _retrieve_ts_pixel {i}'.format(c=self.__class__.__name__,
+                                                   i=self.index)
+        t = QtCore.QTime()
+        t.start()
+
+        while (t.elapsed() < 150):
+            # Are we done?
+            if self.index == self.ts.length:
+                print '_retrieve_ts_pixel: we are index == length'
+                self.retrieve_complete.emit()
+                self.running = False
+                return
+            
+            print '_retrieve_ts_pixel: we are getting new data'
+            # If not, get pixel and index++
+            self.ts.retrieve_pixel(self.index)
+            self.index += 1
+            if self.index % 10 == 0:
+                self.retrieve_update.emit(self.index)
+
+        # Use QTimer to call this again
+        if self.running is True:
+            print 'single shot'
+            QTimer.singleShot(0, self._retrieve_ts_pixel)
 
     def get_ts_pixel(self):
         """ Retrieves time series, emitting status updates """
-        # Status
-        read_data = False
-        wrote_data = False
-
+        print '{c}: get_ts_pixel'.format(c=self.__class__.__name__)
         # First check if time series has a readable cache
         if self.ts.has_cache is True and self.ts.cache_folder is not None:
-            read_data = self.ts.retrieve_from_cache()
-    
-        if read_data is True:
-            self.ts.apply_mask()
-            self.ts.retrieve_result()
-            self.retrieve_complete.emit()
+            self.can_readcache = self.ts.retrieve_from_cache()
 
-        # Couldn't pull from cache - read from pixel
-        for i in xrange(self.ts.length):
-            self.ts.retrieve_pixel(i)
-            if i % 5 == 0:
-                self.retrieve_update.emit(i)
-                print 'got one'
-#                time.sleep(0.01)
-    
+
+        # If not, read from images
+        if self.can_readcache is False:
+            print '{c}: could not read cache'.format(c=self.__class__.__name__)
+            self.index = 0
+            self.running = True
+            self._retrieve_ts_pixel()
+
+        # Apply mask
         self.ts.apply_mask()
 
         # Try to cache result
         if self.ts.has_cache is True and self.ts.can_cache is True:
             try:
-                wrote_data = self.ts.write_to_cache()
+                self.can_writecache = self.ts.write_to_cache()
             except:
                 # TODO QgsMessageBar notification WARNING
                 print 'Could not write to cache file'
             else:
-                if wrote_data is True:
+                if self.can_writecache is True:
                     # TODO QgsMessageBar notification INFO
                     print 'Wrote to cache file'
 
-        # Fetch results
+        # Fetch time series results
         self.ts.retrieve_result()
 
         # Emit that we're done
         self.retrieve_complete.emit()
-        self.running = False
 
 
 class Controller(QtCore.QObject):
@@ -111,8 +128,6 @@ class Controller(QtCore.QObject):
         """
         super(Controller, self).__init__()
 
-        print type(iface)
-
         self.iface = iface
         self.ctrl = control
         self.ts_plot = ts_plot
@@ -124,10 +139,12 @@ class Controller(QtCore.QObject):
         # Are we configured with a time series?
         self.configured = False
         
+        self.progress = QProgressBar()
+
         # Setup threading for data retrieval
-#        self.retrieve_thread = QtCore.QThread(parent=self.iface.mainWindow())
-#        self.retriever = DataRetriever(parent=None)
-#        self.retriever.moveToThread(self.retrieve_thread)
+        self.retrieve_thread = QtCore.QThread()
+        self.retriever = DataRetriever()
+        self.retriever.moveToThread(self.retrieve_thread)
 
 ### Setup
     def get_time_series(self, location, image_pattern, stack_pattern):
@@ -147,11 +164,15 @@ class Controller(QtCore.QObject):
             self.ctrl.init_symbology(self.ts)
             self.ctrl.update_table(self.ts)
 
-            self.retriever = DataRetriever(self.ts)
-            
-            # Wire signals
+            # Wire signals for GUI
             self.add_signals()
-#            self.retrieve_thread.start()
+
+            self.retriever.ts = self.ts
+            self.retriever.retrieve_update.connect(
+                self.retrieval_progress_update)
+            self.retriever.retrieve_complete.connect(
+                self.retrieval_progress_complete)
+            self.retrieve_thread.start()
 
             self.configured = True
             return True
@@ -296,13 +317,7 @@ class Controller(QtCore.QObject):
 
         ### Image tab panel
         self.ctrl.image_table.itemClicked.connect(self.get_tablerow_clicked)
-
-        # Wire worker on thread to slots in controller
-        self.retriever.retrieve_update.connect(
-            self.retrieval_progress_update)
-        self.retriever.retrieve_complete.connect(
-            self.retrieval_progress_complete)
-
+        
 ### Slots for signals
 
 ### Slot for plot tab management
@@ -337,7 +352,7 @@ class Controller(QtCore.QObject):
                 self.ts.set_py(py)
 
                 # Start fetching data and disable tool
-                self.retriever.running = True
+#                self.retriever.running = True
                 self.disable_tool.emit()
 
                 # Init progress bar - updated by self.update_progress slot
@@ -356,14 +371,15 @@ class Controller(QtCore.QObject):
                 print 'ABOUT TO TRY FETCHING'
 
                 # Fetch pixel values
-#                self.retriever.get_ts_pixel(self.ts)
-                self.retriever.start()
+                self.retriever.get_ts_pixel()
+                # self.retriever.start()
     
     @QtCore.pyqtSlot(int)
     def retrieval_progress_update(self, i):
         """ Update self.progress with value from DataRetriever """
         if self.retriever.running is True:
-            self.progress.setValue(i + 1)
+#            self.progress.setValue(i + 1)
+            print 'progress updaet {i}'.format(i=i)
 
     @QtCore.pyqtSlot()
     def retrieval_progress_complete(self):
@@ -377,11 +393,11 @@ class Controller(QtCore.QObject):
     def retrieval_cancel(self):
         """ Slot to cancel retrieval process """
         print 'DEBUG: CANCELING'
-        self.retriever.running = False
-        self.retriever.terminate()
-        self.retriever.wait()
-        self.enable_tool.emit()
-        self.iface.messageBar().clearWidgets()
+#        self.retriever.running = False
+#        self.retriever.terminate()
+#        self.retriever.wait()
+#        self.enable_tool.emit()
+#        self.iface.messageBar().clearWidgets()
 
     def show_click(self, pos):
         """
