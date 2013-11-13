@@ -28,32 +28,106 @@ from qgis.gui import QgsMessageBar
 import datetime as dt
 from functools import partial
 import itertools
+import os
+import sys
 
 import matplotlib as mpl
 import numpy as np
 
-from ccdc_timeseries import CCDCTimeSeries
+from timeseries_ccdc import CCDCTimeSeries
 import settings as setting
 
+class FetchThread(QThread):
 
-class Controller(object):
+    fetch_update = pyqtSignal(int)
+    fetch_complete = pyqtSignal()
+
+    def __init__(self, ts, px, py):
+        QThread.__init__(self)
+        self.ts = ts
+        self.px = px
+        self.py = py
+
+        self.running = False
+    
+    def run(self):
+        """ Retrieves time series, emitting status updates """
+        self.running = True
+        # Set current pixel
+        self.ts.set_px(self.px)
+        self.ts.set_py(self.py)
+       
+        # Status
+        read_data = False
+        wrote_data = False
+
+        # First check if time series has a readable cache
+        if self.ts.has_cache is True and self.ts.cache_folder is not None:
+            read_data = self.ts.retrieve_from_cache()
+        
+        if read_data is True:
+            self.running = False
+            self.ts.apply_mask()
+            self.ts.retrieve_result()
+            self.fetch_complete.emit()
+            return
+
+        print 'FETCH THREAD: TRYING TO READ FROM IMAGES'
+        # Couldn't pull from cache - read from pixel
+        for i in xrange(self.ts.length):
+            self.ts.retrieve_pixel(i)
+            self.fetch_update.emit(i)
+        
+        self.ts.apply_mask()
+
+        # Try to cache result
+        if self.ts.has_cache is True and self.ts.can_cache is True:
+            try:
+                wrote_data = self.ts.write_to_cache()
+            except:
+                # TODO QgsMessageBar notification WARNING
+                print 'Could not write to cache file'
+            else:
+                if wrote_data is True:
+                    # TODO QgsMessageBar notification INFO
+                    print 'Wrote to cache file'
+
+        # Fetch results
+        self.ts.retrieve_result()
+
+        # Emit that we're done
+        self.fetch_complete.emit()
+        self.running = False
+
+    def stop(self):
+        # TODO
+        self.running = False
+
+class Controller(QObject):
+
+    enable_tool = pyqtSignal()
+    disable_tool = pyqtSignal()
 
     def __init__(self, iface, control, ts_plot, doy_plot):
         """
         Controller stores options specified in control panel & makes them
         available for plotter by handling all signals...
         """
+        super(Controller, self).__init__()
         self.iface = iface
         self.ctrl = control
         self.ts_plot = ts_plot
         self.doy_plot = doy_plot
 
+        # Which tab do we have open?
         self.active_plot = None
-
+        # Are we configured with a time series?
         self.configured = False
+        # Are we currently running a thread to get data?
+        self.fetching = False
+        self.fetch_thread = None
 
 ### Setup
-
     def get_time_series(self, location, image_pattern, stack_pattern):
         """
         Loads the time series class when called by ccdctools and feeds
@@ -65,10 +139,15 @@ class Controller(object):
             return False
 
         if self.ts:
+            # Control panel
             self.ctrl.init_plot_options(self.ts)
             self.ctrl.init_options()
             self.ctrl.init_symbology(self.ts)
             self.ctrl.update_table(self.ts)
+
+            # Setup fetching thread
+            self.fetch_thread = FetchThread(self.ts, None, None)
+            # Wire signals
             self.add_signals()
             self.configured = True
             return True
@@ -86,13 +165,6 @@ class Controller(object):
         self.ts_plot.update_plot(self.ts)
         self.doy_plot.update_plot(self.ts)
 
-    def update_data(self):
-        """
-        Calls ts to refetch the dataset and then displays the update
-        """
-        self.ts.get_ts_pixel(self.ts.x, self.ts.y, setting.plot['fmask'])
-        self.update_display()
-
 ### Common layer manipulation
     def add_map_layer(self, index):
         """
@@ -102,13 +174,13 @@ class Controller(object):
         reg = QgsMapLayerRegistry.instance()
 
         # Which layer are we adding?
-        added = [(self.ts.stacks[index] == layer.source(), layer)
+        added = [(self.ts.filepaths[index] == layer.source(), layer)
                  for layer in reg.mapLayers().values()]
         # Check if we haven't already added it
         if all(not add[0] for add in added) or len(added) == 0:
             # Create
-            rlayer = QgsRasterLayer(self.ts.stacks[index],
-                                    self.ts.image_ids[index])
+            rlayer = QgsRasterLayer(self.ts.filepaths[index],
+                                    self.ts.image_names[index])
             if rlayer.isValid():
                 reg.addMapLayer(rlayer)
            # Add to settings "registry"
@@ -123,14 +195,14 @@ class Controller(object):
 
     def map_layers_added(self, layers):
         """
-        Check if newly added layer is part of stacks; if so, make sure image
+        Check if newly added layer is part of filepaths; if so, make sure image
         checkbox is clicked in the images tab. Also ensure
         setting.canvas['click_layer_id'] gets moved to the top
         """
         print 'Added a map layer'
         for layer in layers:
-            rows_added = [row for (row, stack) in enumerate(self.ts.stacks)
-                          if layer.source() == stack]
+            rows_added = [row for (row, imgfile) in enumerate(self.ts.filepaths)
+                          if layer.source() == imgfile]
             print 'Added these rows: %s' % str(rows_added)
             for row in rows_added:
                 item = self.ctrl.image_table.item(row, 0)
@@ -163,9 +235,10 @@ class Controller(object):
                 print '    <----- removed a map layer from settting'
 
             # Find corresponding row in table
-            rows_removed = [row for row, (image_id, fname) in
-                enumerate(itertools.izip(self.ts.image_ids, self.ts.files))
-                if image_id in layer_id or fname in layer_id]
+            rows_removed = [row for row, (image_name, fname) in
+                enumerate(itertools.izip(self.ts.image_names, 
+                                         self.ts.filenames))
+                if image_name in layer_id or fname in layer_id]
 
             print 'Removed these rows %s' % str(rows_removed)
 
@@ -194,8 +267,6 @@ class Controller(object):
         ### Plot tab
         # Catch signal from plot options that we need to update
         self.ctrl.plot_options_changed.connect(self.update_display)
-        # Catch signal from Fmask plot option to fetch new data
-        self.ctrl.refetch_data.connect(self.update_data)
         # Catch signal to save the figure 
         self.ctrl.plot_save_request.connect(self.save_plot)
         # Add layer from time series plot points
@@ -237,27 +308,60 @@ class Controller(object):
 
 ## Slots for map tool
     def fetch_data(self, pos):
+        """ Receives QgsPoint, transforms into pixel coordinates, and begins
+        thread that retrieves data
         """
-        Receives QgsPoint, transforms into pixel coordinates, retrieves data,
-        and updates plot
-        """
-        print 'Pos {p}'.format(p=str(pos))
-        # Convert position into pixel location
-        px = int((pos[0] - self.ts.geo_transform[0]) /
-                 self.ts.geo_transform[1] + 0.5)
-        py = int((pos[1] - self.ts.geo_transform[3]) /
-                 self.ts.geo_transform[5] + 0.5)
+        print 'TRYING TO FETCH'
+        if self.fetching is True:
+            print 'Currently fetching data. Please wait'
+        else:
+            # Convert position into pixel location
+            px = int((pos[0] - self.ts.geo_transform[0]) /
+                        self.ts.geo_transform[1] + 0.5)
+            py = int((pos[1] - self.ts.geo_transform[3]) /
+                     self.ts.geo_transform[5] + 0.5)
+            
+            if px < self.ts.x_size and py < self.ts.y_size:
+                # Start fetching data and disable tool
+                self.fetching = True
+                self.disable_tool.emit()
 
-        print 'Pixel X/Y: {x}/{y}'.format(x=px, y=py)
+                # Init progress bar - updated by self.update_progress slot
+                self.progress_bar = self.iface.messageBar().createMessage(
+                    'Retrieving data for pixel x={x}, y={y}'.format(
+                    x=px, y=py))
+                self.progress = QProgressBar()
+                self.progress.setMaximum(self.ts.length)
+                self.progress.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+                self.progress_bar.layout().addWidget(self.progress)
+                self.iface.messageBar().pushWidget(self.progress_bar,
+                                                self.iface.messageBar().INFO)
+                
+                # Fetch pixel values
+                self.fetch_thread = FetchThread(self.ts, px, py)
 
-        if px < self.ts.x_size and py < self.ts.y_size:
-            # Fetch pixel values
-            self.ts.get_ts_pixel(px, py, mask=setting.plot['fmask'])
-            # Fetch CCDC fit
-            self.ts.get_reccg_pixel(px, py)
-            # Update plots
-            self.ts_plot.update_plot(self.ts)
-            self.doy_plot.update_plot(self.ts)
+                # Wire thread
+                self.fetch_thread.fetch_update.connect(
+                    self.fetch_progress_update)
+                self.fetch_thread.fetch_complete.connect(
+                    self.fetch_progress_complete)
+
+                self.fetch_thread.start()
+                print 'FETCH THREAD STARTED'
+    
+    @pyqtSlot(int)
+    def fetch_progress_update(self, i):
+        """ Update self.progress with value from FetchThread """
+        self.progress.setValue(i + 1)
+
+    @pyqtSlot()
+    def fetch_progress_complete(self):
+        """ Updates plot and clears messages after FetchThread completes """
+        print 'DEBUG: FETCH THREAD COMPLETE'
+        self.fetching = False
+        self.iface.messageBar().clearWidgets()
+        self.update_display()
+        self.enable_tool.emit()
 
     def show_click(self, pos):
         """
@@ -267,7 +371,7 @@ class Controller(object):
         last_selected = self.iface.activeLayer()
         # Get raster pixel px py for pos
         gt = self.ts.geo_transform
-        px = int((pos[0] - gt[0]) / gt[1] + 0.5)
+        px = int((pos[0] - gt[0]) / gt[1])
         py = int((pos[1] - gt[3]) / gt[5])
 
         # Upper left coordinates of raster
@@ -360,7 +464,7 @@ class Controller(object):
             for layer in setting.image_layers:
                 print layer
                 print setting.image_layers
-                if self.ts.stacks[item.row()] == layer.source():
+                if self.ts.filepaths[item.row()] == layer.source():
                     QgsMapLayerRegistry.instance().removeMapLayer(layer.id())
 
 ## Symbology tab
@@ -454,10 +558,12 @@ class Controller(object):
             self.add_map_layer(ind)
         # doy_plot
         elif type(event.artist) == mpl.collections.PathCollection:
-            # Scatter indexes based on self.ts.data.compressed() so check if
+            # Scatter indexes based on self.ts._data.compressed() so check if
             #   we've applied a mask and adjust index we add accordingly
-            if type(self.ts.data) == np.ma.core.MaskedArray:
-                date = self.ts.dates[~self.ts.data.mask[0,
+            if (type(self.ts.get_data(setting.plot['mask'])) ==
+                    np.ma.core.MaskedArray):
+                
+                date = self.ts.dates[~self.ts.get_data().mask[0,
                                         self.doy_plot.yr_range]][ind]
                 ind = np.where(self.ts.dates == date)[0][0]
                 self.add_map_layer(ind)
@@ -474,15 +580,18 @@ class Controller(object):
         """
         print 'Calculating scaling'
         setting.plot['min'] = [np.percentile(np.ma.compressed(band), 2)
-                                for band in self.ts.data[:, ]]
+                                for band in 
+                               self.ts.get_data(setting.plot['mask'])[:, ]]
         setting.plot['max'] = [np.percentile(np.ma.compressed(band), 98)
-                                for band in self.ts.data[:, ]]
+                                for band in
+                               self.ts.get_data(setting.plot['mask'])[:, ]]
+
 #        setting.plot['min'] = [min(0, np.min(band) * 
 #                                   (1 - setting.plot['scale_factor']))
-#                           for band in self.ts.data[:, ]]
+#                           for band in self.ts.get_data()[:, ]]
 #        setting.plot['max'] = [max(10000, np.max(band) * 
 #                                   (1 + setting.plot['scale_factor']))
-#                           for band in self.ts.data[:, ]]
+#                           for band in self.ts.get_data()[:, ]]
 
     def disconnect(self):
         """
@@ -493,7 +602,6 @@ class Controller(object):
             self.ctrl.image_table.itemClicked.disconnect()
             self.ctrl.cbox_showclick.stateChanged.disconnect()              
             self.ctrl.plot_options_changed.disconnect()
-            self.ctrl.refetch_data.disconnect()
             self.ctrl.plot_save_request.disconnect()
             self.ctrl.cbox_plotlayer.stateChanged.disconnect()
     
