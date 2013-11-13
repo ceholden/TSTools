@@ -379,9 +379,14 @@ class CCDCTimeSeries(AbstractTimeSeries):
         self.location = self.location.rstrip(os.path.sep)
         num_sep = self.location.count(os.path.sep)
         for root, dnames, fnames in os.walk(self.location, followlinks=True):
+            # Remove results folder
+            dnames[:] = [d for d in dnames if d != self.results_folder]
+
+            # Force only 1 level
             num_sep_this = root.count(os.path.sep)
             if num_sep + 1 <= num_sep_this:
                 del dnames[:]
+
             # Directory names as image IDs
             for dname in fnmatch.filter(dnames, self.image_pattern):
                 self.image_names.append(dname)
