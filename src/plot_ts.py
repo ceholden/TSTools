@@ -71,18 +71,18 @@ class TSPlot(FigureCanvas):
         """
         
         print 'Updating plot...'
-        
-        self.px, self.py = ts.x + 1, ts.y + 1
-        self.x = ts.dates
-        self.y = ts.data[setting.plot['band'], :]
 
-        if setting.plot['fit'] is True and ts.reccg is not None:
-            if len(ts.reccg) > 0:
+        self.px, self.py = ts.get_px() + 1, ts.get_py() + 1
+        self.x = ts.dates
+        self.y = ts.get_data(setting.plot['mask'])[setting.plot['band'], :]
+
+        if setting.plot['fit'] is True and ts.result is not None:
+            if len(ts.result) > 0:
                 self.mx, self.my = ts.get_prediction(setting.plot['band'])
             else:
                 self.mx, self.my = (np.zeros(0), np.zeros(0))
-        if setting.plot['break'] is True and ts.reccg is not None:
-            if len(ts.reccg) > 1:
+        if setting.plot['break'] is True and ts.result is not None:
+            if len(ts.result) > 1:
                 self.bx, self.by = ts.get_breaks(setting.plot['band'])
             else:
                 self.bx, self.by = (np.zeros(0), np.zeros(0))
@@ -91,8 +91,6 @@ class TSPlot(FigureCanvas):
     def plot(self, ts=None):
         """ Matplotlib plot of time series
         """
-        print 'Plotting...'
-        
         self.axes.clear()
 
         title = 'Time series - row: %s col: %s' % (

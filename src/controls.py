@@ -47,7 +47,6 @@ class ControlPanel(QWidget, Ui_Widget):
 
     symbology_applied = pyqtSignal()
     plot_options_changed = pyqtSignal()
-    refetch_data = pyqtSignal()
     plot_save_request = pyqtSignal()
 
     def __init__(self, iface):
@@ -106,7 +105,7 @@ class ControlPanel(QWidget, Ui_Widget):
         self.scroll_xmax.sliderMoved.connect(self.xmax_moved)
 
         ### Fmask, fit & breaks on/off
-        self.cbox_fmask.setChecked(setting.plot['fmask'])
+        self.cbox_fmask.setChecked(setting.plot['mask'])
         self.cbox_fmask.stateChanged.connect(self.set_plot_fmask)
 
         self.cbox_modelfit.setChecked(setting.plot['fit'])
@@ -180,10 +179,9 @@ class ControlPanel(QWidget, Ui_Widget):
     def set_plot_fmask(self, state):
         """ Slot for enabling/disabling masking of data by Fmask """
         if state == Qt.Checked:
-            setting.plot['fmask'] = True
+            setting.plot['mask'] = True
         elif state == Qt.Unchecked:
-            setting.plot['fmask'] = False
-        self.refetch_data.emit()
+            setting.plot['mask'] = False
         self.plot_options_changed.emit()
 
     def set_model_fit(self, state):
@@ -377,7 +375,7 @@ class ControlPanel(QWidget, Ui_Widget):
         
         # Propagate table
         self.image_table.setRowCount(ts.length)
-        for row, (date, img) in enumerate(izip(ts.dates, ts.image_ids)):
+        for row, (date, img) in enumerate(izip(ts.dates, ts.image_names)):
             cbox = QTableWidgetItem()
             cbox.setFlags(Qt.ItemIsUserCheckable |
                           Qt.ItemIsEnabled)

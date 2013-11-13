@@ -37,9 +37,10 @@ from plot_ts import TSPlot
 from plot_doy import DOYPlot
 import settings as setting
 
-class TSTools:
+class TSTools(QObject):
 
     def __init__(self, iface):
+        super(TSTools, self).__init__()
         # Save reference to the QGIS interface
         self.iface = iface
         self.canvas = self.iface.mapCanvas()    
@@ -67,6 +68,8 @@ class TSTools:
         # Toolbar
         self.init_toolbar()
 
+        self.tool_enabled = True
+
     def init_toolbar(self):
         """ Creates and populates the toolbar for plugin """
         # MapTool button
@@ -86,9 +89,17 @@ class TSTools:
         self.tool_ts.setAction(self.action)
         self.tool_ts.canvasClicked.connect(self.plot_request)
 
+    @pyqtSlot()
     def set_tool(self):
         """ Sets the time series tool as current map tool """
+        self.tool_enabled = True
         self.canvas.setMapTool(self.tool_ts)
+
+    @pyqtSlot()
+    def unset_tool(self):
+        """ Unsets the time series tool as current map tool """
+        self.tool_enabled = False
+        self.canvas.setMapTool(None)
 
     def handle_config(self):
         """ Handles configuration menu for initializing the time series """
@@ -184,12 +195,20 @@ class TSTools:
         self.init_plots()
         self.controller = Controller(self.iface, self.ctrl, 
                                      self.ts_plot, self.doy_plot)
+
+        self.controller.enable_tool.connect(self.set_tool)
+        self.controller.disable_tool.connect(self.unset_tool)
+
         self.plot_tabs.currentChanged.connect(self.controller.changed_tab)
 
     def plot_request(self, pos, button=None):
         """ Request handler for QgsMapToolEmitPoint. Gets position and sends
         signal to controller to grab data & plot 
         """
+        if self.controller.fetching is True or self.tool_enabled is False:
+            print 'NO PLOT FOR YOU'
+            return
+
         # Check if user has a layer added
         if self.canvas.layerCount() == 0 or pos is None:
             self.iface.messageBar().pushMessage('Error',
@@ -232,22 +251,11 @@ class TSTools:
         
         # Fetch data if inside raster
         if layer and layer.extent().contains(pos):        
-            # Display message
-            self.iface.messageBar().pushMessage('Info', 
-                'Fetching time series',
-                level=QgsMessageBar.INFO,
-                duration=5)           
-            
-            # Fetch data and update
+            # Fetch data
             self.controller.fetch_data(pos)
-            self.controller.update_display()
 
             if setting.canvas['show_click']:
                 self.controller.show_click(pos)
-
-            # Clear message
-            self.iface.messageBar().clearWidgets()
-
         else:
             self.iface.messageBar().pushMessage('Warning',
                 'Please select a point within the time series image',
@@ -260,6 +268,9 @@ class TSTools:
         # Remove toolbar icons
         self.iface.removeToolBarIcon(self.action)
         self.iface.removeToolBarIcon(self.action_cfg)
+        # Remove panels
+        self.iface.removeDockWidget(self.plot_dock)
+        self.iface.removeDockWidget(self.ctrl_dock)
         # Disconnect signals
         self.controller.disconnect()
 

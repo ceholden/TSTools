@@ -41,11 +41,11 @@ plot = {
     'xmin'          :       None,
     'xmax'          :       None,
     # Show Fmask, CCDC fit, time series breaks
-    'fmask'         :       True,
+    'mask'         :        True,
     'fit'           :       True,
     'break'         :       True,
     # Fmask values
-    'mask_val'      :       [2, 3, 4, 255],
+    'mask_val'      :       None,
     # Tolerance for clicking data points
     'picker_tol'    :       2
 }
