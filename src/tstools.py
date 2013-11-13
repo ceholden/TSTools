@@ -194,7 +194,7 @@ class TSTools(QObject):
         self.init_controls()
         self.init_plots()
         self.controller = Controller(self.iface, self.ctrl, 
-                                     self.ts_plot, self.doy_plot)
+                                     self.ts_plot, self.doy_plot, parent=self)
 
         self.controller.enable_tool.connect(self.set_tool)
         self.controller.disable_tool.connect(self.unset_tool)
@@ -205,7 +205,7 @@ class TSTools(QObject):
         """ Request handler for QgsMapToolEmitPoint. Gets position and sends
         signal to controller to grab data & plot 
         """
-        if self.controller.fetching is True or self.tool_enabled is False:
+        if self.tool_enabled is False:
             print 'NO PLOT FOR YOU'
             return
 
@@ -273,5 +273,3 @@ class TSTools(QObject):
         self.iface.removeDockWidget(self.ctrl_dock)
         # Disconnect signals
         self.controller.disconnect()
-
-

@@ -20,8 +20,10 @@
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from PyQt4.QtCore import * # TODO remove *
+from PyQt4.QtGui import * #TODO 
+from PyQt4 import QtCore
+from PyQt4 import QtGui
 from qgis.core import *
 from qgis.gui import QgsMessageBar
 
@@ -30,6 +32,7 @@ from functools import partial
 import itertools
 import os
 import sys
+import time
 
 import matplotlib as mpl
 import numpy as np
@@ -37,26 +40,22 @@ import numpy as np
 from timeseries_ccdc import CCDCTimeSeries
 import settings as setting
 
-class FetchThread(QThread):
+class DataRetriever(QtCore.QThread):
 
-    fetch_update = pyqtSignal(int)
-    fetch_complete = pyqtSignal()
+    retrieve_update = QtCore.pyqtSignal(int)
+    retrieve_complete = QtCore.pyqtSignal()
 
-    def __init__(self, ts, px, py):
-        QThread.__init__(self)
-        self.ts = ts
-        self.px = px
-        self.py = py
-
+    def __init__(self, ts=None):
+        QtCore.QThread.__init__(self)
         self.running = False
-    
+        self.ts = ts
+
     def run(self):
+        while self.running is True and self.ts is not None:
+            self.get_ts_pixel()
+
+    def get_ts_pixel(self):
         """ Retrieves time series, emitting status updates """
-        self.running = True
-        # Set current pixel
-        self.ts.set_px(self.px)
-        self.ts.set_py(self.py)
-       
         # Status
         read_data = False
         wrote_data = False
@@ -64,20 +63,20 @@ class FetchThread(QThread):
         # First check if time series has a readable cache
         if self.ts.has_cache is True and self.ts.cache_folder is not None:
             read_data = self.ts.retrieve_from_cache()
-        
+    
         if read_data is True:
-            self.running = False
             self.ts.apply_mask()
             self.ts.retrieve_result()
-            self.fetch_complete.emit()
-            return
+            self.retrieve_complete.emit()
 
-        print 'FETCH THREAD: TRYING TO READ FROM IMAGES'
         # Couldn't pull from cache - read from pixel
         for i in xrange(self.ts.length):
             self.ts.retrieve_pixel(i)
-            self.fetch_update.emit(i)
-        
+            if i % 5 == 0:
+                self.retrieve_update.emit(i)
+                print 'got one'
+#                time.sleep(0.01)
+    
         self.ts.apply_mask()
 
         # Try to cache result
@@ -96,24 +95,24 @@ class FetchThread(QThread):
         self.ts.retrieve_result()
 
         # Emit that we're done
-        self.fetch_complete.emit()
+        self.retrieve_complete.emit()
         self.running = False
 
-    def stop(self):
-        # TODO
-        self.running = False
 
-class Controller(QObject):
+class Controller(QtCore.QObject):
 
-    enable_tool = pyqtSignal()
-    disable_tool = pyqtSignal()
+    enable_tool = QtCore.pyqtSignal()
+    disable_tool = QtCore.pyqtSignal()
 
-    def __init__(self, iface, control, ts_plot, doy_plot):
+    def __init__(self, iface, control, ts_plot, doy_plot, parent=None):
         """
         Controller stores options specified in control panel & makes them
         available for plotter by handling all signals...
         """
         super(Controller, self).__init__()
+
+        print type(iface)
+
         self.iface = iface
         self.ctrl = control
         self.ts_plot = ts_plot
@@ -121,11 +120,14 @@ class Controller(QObject):
 
         # Which tab do we have open?
         self.active_plot = None
+
         # Are we configured with a time series?
         self.configured = False
-        # Are we currently running a thread to get data?
-        self.fetching = False
-        self.fetch_thread = None
+        
+        # Setup threading for data retrieval
+#        self.retrieve_thread = QtCore.QThread(parent=self.iface.mainWindow())
+#        self.retriever = DataRetriever(parent=None)
+#        self.retriever.moveToThread(self.retrieve_thread)
 
 ### Setup
     def get_time_series(self, location, image_pattern, stack_pattern):
@@ -145,10 +147,12 @@ class Controller(QObject):
             self.ctrl.init_symbology(self.ts)
             self.ctrl.update_table(self.ts)
 
-            # Setup fetching thread
-            self.fetch_thread = FetchThread(self.ts, None, None)
+            self.retriever = DataRetriever(self.ts)
+            
             # Wire signals
             self.add_signals()
+#            self.retrieve_thread.start()
+
             self.configured = True
             return True
 
@@ -183,14 +187,15 @@ class Controller(QObject):
                                     self.ts.image_names[index])
             if rlayer.isValid():
                 reg.addMapLayer(rlayer)
-           # Add to settings "registry"
+
+            # Add to settings "registry"
             setting.image_layers.append(rlayer)
             # Handle symbology
             self.apply_symbology(rlayer)
-        # If we have already added it, move it to top
-        elif any(add[0] for add in added):
-            print 'Have added layer, moving to top!'
-            index = [i for i, tup in enumerate(added) if tup[0] == True][0]
+
+#        # If we have already added it, move it to top
+#        elif any(add[0] for add in added):
+#            index = [i for i, tup in enumerate(added) if tup[0] == True][0]
 #            self.move_layer_top(added[index][1].id())
 
     def map_layers_added(self, layers):
@@ -292,6 +297,11 @@ class Controller(QObject):
         ### Image tab panel
         self.ctrl.image_table.itemClicked.connect(self.get_tablerow_clicked)
 
+        # Wire worker on thread to slots in controller
+        self.retriever.retrieve_update.connect(
+            self.retrieval_progress_update)
+        self.retriever.retrieve_complete.connect(
+            self.retrieval_progress_complete)
 
 ### Slots for signals
 
@@ -312,7 +322,7 @@ class Controller(QObject):
         thread that retrieves data
         """
         print 'TRYING TO FETCH'
-        if self.fetching is True:
+        if self.retriever.running is True:
             print 'Currently fetching data. Please wait'
         else:
             # Convert position into pixel location
@@ -322,8 +332,12 @@ class Controller(QObject):
                      self.ts.geo_transform[5] + 0.5)
             
             if px < self.ts.x_size and py < self.ts.y_size:
+                # Set pixel
+                self.ts.set_px(px)
+                self.ts.set_py(py)
+
                 # Start fetching data and disable tool
-                self.fetching = True
+                self.retriever.running = True
                 self.disable_tool.emit()
 
                 # Init progress bar - updated by self.update_progress slot
@@ -334,34 +348,40 @@ class Controller(QObject):
                 self.progress.setMaximum(self.ts.length)
                 self.progress.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
                 self.progress_bar.layout().addWidget(self.progress)
+                self.cancel_retrieval = QPushButton('Cancel')
+                self.cancel_retrieval.pressed.connect(self.retrieval_cancel)
+                self.progress_bar.layout().addWidget(self.cancel_retrieval)
                 self.iface.messageBar().pushWidget(self.progress_bar,
-                                                self.iface.messageBar().INFO)
-                
+                                                self.iface.messageBar().INFO)    
+                print 'ABOUT TO TRY FETCHING'
+
                 # Fetch pixel values
-                self.fetch_thread = FetchThread(self.ts, px, py)
-
-                # Wire thread
-                self.fetch_thread.fetch_update.connect(
-                    self.fetch_progress_update)
-                self.fetch_thread.fetch_complete.connect(
-                    self.fetch_progress_complete)
-
-                self.fetch_thread.start()
-                print 'FETCH THREAD STARTED'
+#                self.retriever.get_ts_pixel(self.ts)
+                self.retriever.start()
     
-    @pyqtSlot(int)
-    def fetch_progress_update(self, i):
-        """ Update self.progress with value from FetchThread """
-        self.progress.setValue(i + 1)
+    @QtCore.pyqtSlot(int)
+    def retrieval_progress_update(self, i):
+        """ Update self.progress with value from DataRetriever """
+        if self.retriever.running is True:
+            self.progress.setValue(i + 1)
 
-    @pyqtSlot()
-    def fetch_progress_complete(self):
-        """ Updates plot and clears messages after FetchThread completes """
+    @QtCore.pyqtSlot()
+    def retrieval_progress_complete(self):
+        """ Updates plot and clears messages after DataRetriever completes """
         print 'DEBUG: FETCH THREAD COMPLETE'
-        self.fetching = False
         self.iface.messageBar().clearWidgets()
         self.update_display()
         self.enable_tool.emit()
+
+    @QtCore.pyqtSlot()
+    def retrieval_cancel(self):
+        """ Slot to cancel retrieval process """
+        print 'DEBUG: CANCELING'
+        self.retriever.running = False
+        self.retriever.terminate()
+        self.retriever.wait()
+        self.enable_tool.emit()
+        self.iface.messageBar().clearWidgets()
 
     def show_click(self, pos):
         """
