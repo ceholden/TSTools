@@ -331,9 +331,9 @@ class Controller(QtCore.QObject):
         else:
             # Convert position into pixel location
             px = int((pos[0] - self.ts.geo_transform[0]) /
-                        self.ts.geo_transform[1] + 0.5)
+                        self.ts.geo_transform[1])
             py = int((pos[1] - self.ts.geo_transform[3]) /
-                     self.ts.geo_transform[5] + 0.5)
+                     self.ts.geo_transform[5])
             
             if px < self.ts.x_size and py < self.ts.y_size:
                 # Set pixel
