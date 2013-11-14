@@ -120,8 +120,8 @@ class DOYPlot(FigureCanvas):
         if setting.plot['xmin'] is not None \
                 and setting.plot['xmax'] is not None:
             self.yr_range = np.arange(
-                np.where(self.year == setting.plot['xmin'])[0][0],
-                np.where(self.year == setting.plot['xmax'])[0][-1])
+                np.where(self.year >= setting.plot['xmin'])[0][0],
+                np.where(self.year <= setting.plot['xmax'])[0][-1])
         else:
             self.yr_range = np.arange(0, self.year.shape[0])
 
