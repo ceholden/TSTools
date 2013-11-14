@@ -54,66 +54,57 @@ class DataRetriever(QtCore.QObject):
 
     def _retrieve_ts_pixel(self):
         """ If we can't just get from cache, grab from images """
-        print '{c}: _retrieve_ts_pixel {i}'.format(c=self.__class__.__name__,
-                                                   i=self.index)
         t = QtCore.QTime()
         t.start()
 
         while (t.elapsed() < 150):
             # Are we done?
             if self.index == self.ts.length:
-                print '_retrieve_ts_pixel: we are index == length'
-                self.retrieve_complete.emit()
                 self.running = False
+                self._got_ts_pixel()
                 return
             
-            print '_retrieve_ts_pixel: we are getting new data'
             # If not, get pixel and index++
             self.ts.retrieve_pixel(self.index)
             self.index += 1
-            if self.index % 10 == 0:
-                self.retrieve_update.emit(self.index)
+            QtGui.QApplication.instance().processEvents()
 
-        # Use QTimer to call this again
+        self.retrieve_update.emit(self.index + 1)
+
+        # Use QTimer to call this method again
         if self.running is True:
-            print 'single shot'
             QTimer.singleShot(0, self._retrieve_ts_pixel)
 
-    def get_ts_pixel(self):
-        """ Retrieves time series, emitting status updates """
-        print '{c}: get_ts_pixel'.format(c=self.__class__.__name__)
-        # First check if time series has a readable cache
-        if self.ts.has_cache is True and self.ts.cache_folder is not None:
-            self.can_readcache = self.ts.retrieve_from_cache()
-
-
-        # If not, read from images
-        if self.can_readcache is False:
-            print '{c}: could not read cache'.format(c=self.__class__.__name__)
-            self.index = 0
-            self.running = True
-            self._retrieve_ts_pixel()
-
-        # Apply mask
+    def _got_ts_pixel(self):
+        """ Finish off rest of process when getting pixel data """
         self.ts.apply_mask()
-
-        # Try to cache result
         if self.ts.has_cache is True and self.ts.can_cache is True:
             try:
                 self.can_writecache = self.ts.write_to_cache()
             except:
-                # TODO QgsMessageBar notification WARNING
-                print 'Could not write to cache file'
+                print 'Debug: could not write to cache file'
             else:
                 if self.can_writecache is True:
-                    # TODO QgsMessageBar notification INFO
-                    print 'Wrote to cache file'
+                    print 'Debug: wrote to cache file'
 
-        # Fetch time series results
-        self.ts.retrieve_result()
+            self.ts.retrieve_result()
 
-        # Emit that we're done
-        self.retrieve_complete.emit()
+            self.retrieve_complete.emit()
+
+    def get_ts_pixel(self):
+        """ Retrieves time series, emitting status updates """
+        # First check if time series has a readable cache
+        if self.ts.has_cache is True and self.ts.cache_folder is not None:
+            self.can_readcache = self.ts.retrieve_from_cache()
+
+        if self.can_readcache is True:
+            # We've read from cache - finish process
+            self._got_ts_pixel()
+        if self.can_readcache is False:
+            # We can't read from or there is no cache - retrieve from images
+            self.index = 0
+            self.running = True
+            QTimer.singleShot(0, self._retrieve_ts_pixel)
 
 
 class Controller(QtCore.QObject):
@@ -139,12 +130,10 @@ class Controller(QtCore.QObject):
         # Are we configured with a time series?
         self.configured = False
         
-        self.progress = QProgressBar()
-
         # Setup threading for data retrieval
-        self.retrieve_thread = QtCore.QThread()
+#        self.retrieve_thread = QtCore.QThread()
         self.retriever = DataRetriever()
-        self.retriever.moveToThread(self.retrieve_thread)
+#        self.retriever.moveToThread(self.retrieve_thread)
 
 ### Setup
     def get_time_series(self, location, image_pattern, stack_pattern):
@@ -172,7 +161,7 @@ class Controller(QtCore.QObject):
                 self.retrieval_progress_update)
             self.retriever.retrieve_complete.connect(
                 self.retrieval_progress_complete)
-            self.retrieve_thread.start()
+#            self.retrieve_thread.start()
 
             self.configured = True
             return True
@@ -360,6 +349,7 @@ class Controller(QtCore.QObject):
                     'Retrieving data for pixel x={x}, y={y}'.format(
                     x=px, y=py))
                 self.progress = QProgressBar()
+                self.progress.setValue(0)
                 self.progress.setMaximum(self.ts.length)
                 self.progress.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
                 self.progress_bar.layout().addWidget(self.progress)
@@ -368,8 +358,6 @@ class Controller(QtCore.QObject):
                 self.progress_bar.layout().addWidget(self.cancel_retrieval)
                 self.iface.messageBar().pushWidget(self.progress_bar,
                                                 self.iface.messageBar().INFO)    
-                print 'ABOUT TO TRY FETCHING'
-
                 # Fetch pixel values
                 self.retriever.get_ts_pixel()
                 # self.retriever.start()
@@ -378,13 +366,12 @@ class Controller(QtCore.QObject):
     def retrieval_progress_update(self, i):
         """ Update self.progress with value from DataRetriever """
         if self.retriever.running is True:
-#            self.progress.setValue(i + 1)
-            print 'progress updaet {i}'.format(i=i)
+            self.progress.setValue(i + 1)
+            # time.sleep(0.1)
 
     @QtCore.pyqtSlot()
     def retrieval_progress_complete(self):
         """ Updates plot and clears messages after DataRetriever completes """
-        print 'DEBUG: FETCH THREAD COMPLETE'
         self.iface.messageBar().clearWidgets()
         self.update_display()
         self.enable_tool.emit()
