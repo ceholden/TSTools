@@ -158,6 +158,8 @@ class CCDCTimeSeries(AbstractTimeSeries):
         record = self.results_pattern.replace('*', str(self._py + 1)) + '.mat'
         record = os.path.join(self.location, self.results_folder, record)
         
+        print 'Opening: {r}'.format(r=record)
+
         if not os.path.exists(record):
             print 'Warning: cannot find record for row {r}: {f}'.format(
                 r=self._py + 1, f=record)
@@ -165,6 +167,8 @@ class CCDCTimeSeries(AbstractTimeSeries):
 
         # Calculate MATLAB position for x, y
         pos = (self._py * self.x_size) + self._px + 1
+
+        print '    position: {p}'.format(p=pos)
 
         # Read .mat file as ndarray of scipy.io.matlab.mio5_params.mat_struct
         mat = scipy.io.loadmat(record, squeeze_me=True, 
@@ -380,7 +384,7 @@ class CCDCTimeSeries(AbstractTimeSeries):
         num_sep = self.location.count(os.path.sep)
         for root, dnames, fnames in os.walk(self.location, followlinks=True):
             # Remove results folder
-            dnames[:] = [d for d in dnames if d != self.results_folder]
+            dnames[:] = [d for d in dnames if self.results_folder not in d]
 
             # Force only 1 level
             num_sep_this = root.count(os.path.sep)
