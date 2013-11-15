@@ -74,7 +74,12 @@ class DOYPlot(FigureCanvas):
     def update_plot(self, ts):
         """ Fetches new information and then calls plot
         """
-        self.px, self.py = ts.get_px() + 1, ts.get_py() + 1
+        self.px, self.py = ts.get_px(), ts.get_py()
+        if self.px is not None and self.py is not None:
+            # Add + 1 so we index on 1,1 instead of 0,0 (as in ENVI/MATLAB)
+            self.px, self.py = self.px + 1,
+            self.py + 1
+
         self.x = np.array([int(d.strftime('%j')) for d in ts.dates])
         self.year = np.array([d.year for d in ts.dates])
         self.y = ts.get_data(setting.plot['mask'])[setting.plot['band'], :]
@@ -119,6 +124,7 @@ class DOYPlot(FigureCanvas):
 
         if setting.plot['xmin'] is not None \
                 and setting.plot['xmax'] is not None:
+            # Find array indexes for year range
             self.yr_range = np.arange(
                 np.where(self.year >= setting.plot['xmin'])[0][0],
                 np.where(self.year <= setting.plot['xmax'])[0][-1])
