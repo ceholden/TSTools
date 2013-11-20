@@ -21,6 +21,8 @@
 HOST=$(shell hostname)
 ifeq ($(HOST),geo)
     LOC=/project/earth/packages/CCDCTools
+else ifeq ($(HOST),scc1)
+	LOC=/project/earth/packages/CCDCTools
 else
     LOC=$(HOME)/.qgis2/python/plugins
 endif
@@ -41,7 +43,7 @@ PLUGINNAME = tstools
 
 PY_FILES = src/*.py
 
-EXTRAS = icon.png metadata.txt
+EXTRAS = tstools_click.png tstools_config.png metadata.txt
 
 UI_FILES = ui/ui_config.py ui/ui_controls.py ui/ui_plotsave.py
 

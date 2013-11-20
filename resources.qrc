@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/plugins/tstools" >
-        <file>icon.png</file>
+        <file>tstools_click.png</file>
+        <file>tstools_config.png</file>
     </qresource>
 </RCC>
