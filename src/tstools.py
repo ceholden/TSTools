@@ -73,13 +73,13 @@ class TSTools(QObject):
     def init_toolbar(self):
         """ Creates and populates the toolbar for plugin """
         # MapTool button
-        self.action = QAction(QIcon(':/plugins/tstools/icon.png'),
+        self.action = QAction(QIcon(':/plugins/tstools/tstools_click.png'),
                               'Time Series Tools', self.iface.mainWindow())
         self.action.triggered.connect(self.set_tool)
         self.iface.addToolBarIcon(self.action)
 
         # Configuration menu button
-        self.action_cfg = QAction(QIcon(':/plugins/tstools/icon.png'),
+        self.action_cfg = QAction(QIcon(':/plugins/tstools/tstools_config.png'),
                                   'Configure', self.iface.mainWindow())
         self.action_cfg.triggered.connect(self.handle_config)
         self.iface.addToolBarIcon(self.action_cfg)
@@ -220,7 +220,8 @@ class TSTools(QObject):
         layer = self.canvas.currentLayer()
         if (layer is None or
                 not layer.isValid() or
-                layer.type() != QgsMapLayer.RasterLayer):
+                layer.type() != QgsMapLayer.RasterLayer or
+                layer not in setting.image_layers):
             self.iface.messageBar().pushMessage('Info',
                 'Please select a layer from time series before clicking',
                 level=QgsMessageBar.WARNING,

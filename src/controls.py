@@ -72,9 +72,12 @@ class ControlPanel(QWidget, Ui_Widget):
         self.combox_band.currentIndexChanged.connect(partial(
             self.set_band_select))
 
-        # Ylim min and max - Auto scale
+        # Ylim min and max
         self.cbox_scale.setChecked(setting.plot['auto_scale'])
         self.cbox_scale.stateChanged.connect(self.set_auto_scale)
+        self.cbox_yscale_all.setChecked(setting.plot['yscale_all'])
+        self.cbox_yscale_all.stateChanged.connect(self.set_yscale_all)
+
         # Manual scale & auto-scale display
         self.edit_min.setText(str(setting.plot['min'][setting.plot['band']]))
         self.edit_max.setText(str(setting.plot['max'][setting.plot['band']]))
@@ -98,11 +101,14 @@ class ControlPanel(QWidget, Ui_Widget):
         self.scroll_xmax.setSingleStep(1)
         self.scroll_xmin.setPageStep(1)
         self.scroll_xmax.setPageStep(1)
-
+        
         self.scroll_xmin.valueChanged.connect(self.set_plot_xmin)
         self.scroll_xmin.sliderMoved.connect(self.xmin_moved) 
         self.scroll_xmax.valueChanged.connect(self.set_plot_xmax)
         self.scroll_xmax.sliderMoved.connect(self.xmax_moved)
+
+        self.cbox_xscale_fix.setChecked(setting.plot['xscale_fix'])
+        self.cbox_xscale_fix.stateChanged.connect(self.set_xscale_fix)
 
         ### Fmask, fit & breaks on/off
         self.cbox_fmask.setChecked(setting.plot['mask'])
@@ -141,16 +147,38 @@ class ControlPanel(QWidget, Ui_Widget):
             setting.plot['auto_scale'] = False
         self.plot_options_changed.emit()
 
+    def set_yscale_all(self, state):
+        """ Slot for turning on/off ability to apply ylim to all bands """
+        if state == Qt.Checked:
+            setting.plot['yscale_all'] = True
+            print 'DEBUG: yscale_all on'
+        elif state == Qt.Unchecked:
+            setting.plot['yscale_all'] = False
+            print 'DEBUG: yscale_all off'
+
     def set_plot_min(self):
         """ Slot for setting plot Y-axis minimum """
-        setting.plot['min'][setting.plot['band']] = str2num(
-            self.edit_min.text())
+        ymin = str2num(self.edit_min.text())
+
+        if setting.plot['yscale_all']:
+            print 'DEBUG: applying ymin to all'
+            setting.plot['min'][:] = ymin
+        else:     
+            setting.plot['min'][setting.plot['band']] = ymin
         self.plot_options_changed.emit()
 
     def set_plot_max(self):
         """ Slot for setting plot Y-axis maximum """
-        setting.plot['max'][setting.plot['band']] = str2num(
-            self.edit_max.text())
+        ymax = str2num(self.edit_max.text())
+
+        print type(setting.plot['max'])
+
+        if setting.plot['yscale_all']:
+            print 'DEBUG: applying ymax to all'
+            setting.plot['max'][:] = ymax 
+        else:
+            setting.plot['max'][setting.plot['band']] = ymax
+
         self.plot_options_changed.emit()
 
     def xmin_moved(self, xmin):
@@ -159,9 +187,21 @@ class ControlPanel(QWidget, Ui_Widget):
 
     def set_plot_xmin(self, xmin):
         """ Slot for setting plot X-axis minimum """
+        # Set value and label
         setting.plot['xmin'] = xmin
         self.lab_xmin.setText(str(xmin))
-        self.scroll_xmax.setMinimum(xmin + self.scroll_xmax.singleStep())
+        
+        # Reconfigure range
+        if setting.plot['xscale_fix']:
+            setting.plot['xmax'] = xmin + setting.plot['xscale_range']
+            self.scroll_xmax.blockSignals(True)
+            self.scroll_xmax.setValue(setting.plot['xmax'])
+            self.scroll_xmax.blockSignals(False)
+            self.lab_xmax.setText(str(setting.plot['xmax']))
+        else:
+            self.scroll_xmax.setMinimum(xmin + self.scroll_xmax.singleStep())
+
+        # Emit update to plot
         self.plot_options_changed.emit()
 
     def xmax_moved(self, xmax):
@@ -170,12 +210,47 @@ class ControlPanel(QWidget, Ui_Widget):
 
     def set_plot_xmax(self, xmax):
         """ Slot for setting plot X-axis maximum """
+        # Set value and label
         setting.plot['xmax'] = xmax
         self.lab_xmax.setText(str(xmax))
-        self.scroll_xmin.setMaximum(xmax - self.scroll_xmin.singleStep())
+
+        if setting.plot['xscale_fix']:
+            setting.plot['xmin'] = xmax - setting.plot['xscale_range']
+            self.scroll_xmin.blockSignals(True)
+            self.scroll_xmin.setValue(setting.plot['xmin'])
+            self.scroll_xmin.blockSignals(False)
+            self.lab_xmin.setText(str(setting.plot['xmin']))
+        else:
+            self.scroll_xmin.setMaximum(xmax - self.scroll_xmin.singleStep())
+
         self.plot_options_changed.emit()
         
-    
+    def set_xscale_fix(self, state):
+        """ Slot for turning on/off fixing date range for x axis """
+        if state == Qt.Checked:
+            setting.plot['xscale_fix'] = True
+            setting.plot['xscale_range'] = (self.scroll_xmax.value() -
+                self.scroll_xmin.value())
+            # Set new min/max ranges
+            self.scroll_xmin.setMaximum(self.scroll_xmax.maximum() -
+                                        setting.plot['xscale_range'])
+            self.scroll_xmax.setMinimum(self.scroll_xmin.minimum() +
+                                        setting.plot['xscale_range'])
+            # Display range
+            self.cbox_xscale_fix.setText(
+                'Fixed date range [range: {r}]'.format(
+                    r=setting.plot['xscale_range']))
+        elif state == Qt.Unchecked:
+            print 'DEBUG: undoing fixed scale'
+            setting.plot['xscale_fix'] = False
+            setting.plot['xscale_range'] = None
+            # Restore original min/max ranges
+            self.scroll_xmin.setMaximum(self.scroll_xmax.value() -
+                                        self.scroll_xmax.singleStep())
+            self.scroll_xmax.setMinimum(self.scroll_xmin.value() +
+                                        self.scroll_xmin.singleStep())
+            self.cbox_xscale_fix.setText('Fixed date range')
+
     def set_plot_fmask(self, state):
         """ Slot for enabling/disabling masking of data by Fmask """
         if state == Qt.Checked:

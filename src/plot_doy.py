@@ -77,8 +77,7 @@ class DOYPlot(FigureCanvas):
         self.px, self.py = ts.get_px(), ts.get_py()
         if self.px is not None and self.py is not None:
             # Add + 1 so we index on 1,1 instead of 0,0 (as in ENVI/MATLAB)
-            self.px, self.py = self.px + 1,
-            self.py + 1
+            self.px, self.py = self.px + 1, self.py + 1
 
         self.x = np.array([int(d.strftime('%j')) for d in ts.dates])
         self.year = np.array([d.year for d in ts.dates])

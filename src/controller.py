@@ -380,11 +380,11 @@ class Controller(QtCore.QObject):
     def retrieval_cancel(self):
         """ Slot to cancel retrieval process """
         print 'DEBUG: CANCELING'
-#        self.retriever.running = False
+        self.retriever.running = False
 #        self.retriever.terminate()
 #        self.retriever.wait()
-#        self.enable_tool.emit()
-#        self.iface.messageBar().clearWidgets()
+        self.enable_tool.emit()
+        self.iface.messageBar().clearWidgets()
 
     def show_click(self, pos):
         """
@@ -602,12 +602,12 @@ class Controller(QtCore.QObject):
         2nd and 98th percentile of each band's time series
         """
         print 'Calculating scaling'
-        setting.plot['min'] = [np.percentile(np.ma.compressed(band), 2)
-                                for band in 
-                               self.ts.get_data(setting.plot['mask'])[:, ]]
-        setting.plot['max'] = [np.percentile(np.ma.compressed(band), 98)
-                                for band in
-                               self.ts.get_data(setting.plot['mask'])[:, ]]
+        setting.plot['min'] = np.array([
+            np.percentile(np.ma.compressed(band), 2) for band in
+            self.ts.get_data(setting.plot['mask'])[:, ]])
+        setting.plot['max'] = np.array([
+            np.percentile(np.ma.compressed(band), 98) for band in 
+            self.ts.get_data(setting.plot['mask'])[:, ]])
 
 #        setting.plot['min'] = [min(0, np.min(band) * 
 #                                   (1 - setting.plot['scale_factor']))

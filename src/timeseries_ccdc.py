@@ -46,6 +46,7 @@ class CCDCTimeSeries(AbstractTimeSeries):
     dates = np.array([])
     n_band = 0
     _data = np.array([])
+#    _tmp_data = np.array([])
     result = []
 
     has_results = False
@@ -139,9 +140,19 @@ class CCDCTimeSeries(AbstractTimeSeries):
             index                   index of image in time series
 
         """
+#        if self._tmp_data.shape[0] == 0:
+#            self._tmp_data = np.zeros_like(self._data)
+
         # Read in from images
+#        self._tmp_data[:, index] = self.readers[index].get_pixel(
+#            self._py, self._px)
         self._data[:, index] = self.readers[index].get_pixel(
             self._py, self._px)
+        
+        if index == self.length - 1:
+            print 'Last result coming in!'
+#            self._data = self._tmp_data
+#            self._tmp_data = np.array([])
 
     def retrieve_result(self):
         """ Returns the record changes for the current pixel
@@ -510,10 +521,12 @@ class CCDCTimeSeries(AbstractTimeSeries):
     def _open_ts(self):
         """ Open timeseries as list of CCDCBinaryReaders """
         self.readers = []
-        for stack in self.filepaths:
-            self.readers.append(
-                CCDCBinaryReader(stack, self.fformat, self.datatype,
-                                 (self.y_size, self.x_size), self.n_band))
+        if (self.fformat == 'ENVI' or self.fformat == 'BIP' or self.fformat == 
+                'BSQ'):
+            for stack in self.filepaths:
+                self.readers.append(
+                    CCDCBinaryReader(stack, self.fformat, self.datatype, 
+                                     (self.y_size, self.x_size), self.n_band))
 
 
 ### Additional methods dealing with caching

@@ -34,6 +34,9 @@ plot = {
     'band'          :       0,
     # Plot scaling options
     'auto_scale'    :       True,
+    'yscale_all'    :       False,
+    'xscale_fix'    :       False,
+    'xscale_range'  :       None,
     'scale_factor'  :       0.25,
     # Plot min, max
     'min'           :       np.zeros(1, dtype=np.int),
