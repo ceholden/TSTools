@@ -78,6 +78,7 @@ class DataRetriever(QtCore.QObject):
     def _got_ts_pixel(self):
         """ Finish off rest of process when getting pixel data """
         self.ts.apply_mask()
+
         if self.ts.has_cache is True and self.ts.can_cache is True:
             try:
                 self.can_writecache = self.ts.write_to_cache()
@@ -87,9 +88,9 @@ class DataRetriever(QtCore.QObject):
                 if self.can_writecache is True:
                     print 'Debug: wrote to cache file'
 
-            self.ts.retrieve_result()
+        self.ts.retrieve_result()
 
-            self.retrieve_complete.emit()
+        self.retrieve_complete.emit()
 
     def get_ts_pixel(self):
         """ Retrieves time series, emitting status updates """
@@ -372,6 +373,7 @@ class Controller(QtCore.QObject):
     @QtCore.pyqtSlot()
     def retrieval_progress_complete(self):
         """ Updates plot and clears messages after DataRetriever completes """
+        print 'Completed data retrieval!'
         self.iface.messageBar().clearWidgets()
         self.update_display()
         self.enable_tool.emit()

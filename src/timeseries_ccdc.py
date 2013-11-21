@@ -46,7 +46,7 @@ class CCDCTimeSeries(AbstractTimeSeries):
     dates = np.array([])
     n_band = 0
     _data = np.array([])
-#    _tmp_data = np.array([])
+    _tmp_data = np.array([])
     result = []
 
     has_results = False
@@ -140,19 +140,19 @@ class CCDCTimeSeries(AbstractTimeSeries):
             index                   index of image in time series
 
         """
-#        if self._tmp_data.shape[0] == 0:
-#            self._tmp_data = np.zeros_like(self._data)
+        if self._tmp_data.shape[0] == 0:
+            self._tmp_data = np.zeros_like(self._data)
 
         # Read in from images
-#        self._tmp_data[:, index] = self.readers[index].get_pixel(
-#            self._py, self._px)
+        self._tmp_data[:, index] = self.readers[index].get_pixel(
+            self._py, self._px)
         self._data[:, index] = self.readers[index].get_pixel(
             self._py, self._px)
         
         if index == self.length - 1:
             print 'Last result coming in!'
-#            self._data = self._tmp_data
-#            self._tmp_data = np.array([])
+            self._data = self._tmp_data
+            self._tmp_data = np.array([])
 
     def retrieve_result(self):
         """ Returns the record changes for the current pixel
@@ -507,8 +507,13 @@ class CCDCTimeSeries(AbstractTimeSeries):
         if os.path.exists(cache) and os.path.isdir(cache):
             if os.access(cache, os.R_OK):
                 self.has_cache = True
+            else:
+                self.has_cache = False
+            
             if os.access(cache, os.W_OK):
                 self.can_cache = True
+            else:
+                self.can_cache = False
         else:
             try:
                 os.mkdir(cache)
@@ -517,6 +522,9 @@ class CCDCTimeSeries(AbstractTimeSeries):
             else:
                 self.has_cache = True
                 self.can_cache = True
+
+        print 'Has cache?: {b}'.format(b=self.has_cache)
+        print 'Can cache?: {b}'.format(b=self.can_cache)
 
     def _open_ts(self):
         """ Open timeseries as list of CCDCBinaryReaders """
