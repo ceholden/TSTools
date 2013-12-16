@@ -88,6 +88,7 @@ class CCDCTimeSeries(AbstractTimeSeries):
         self._find_stacks()
         self._get_attributes()
         self._get_dates()
+        self._check_results()
         self._check_cache()
         self._open_ts()
 
@@ -246,6 +247,14 @@ class CCDCTimeSeries(AbstractTimeSeries):
                             coef[1] * _mx +
                             coef[2] * np.cos(w * _mx) +
                             coef[3] * np.sin(w * _mx))
+                elif coef.shape[0] == 6:
+                    # 6 coefficient model
+                    _my = (coef[0] + 
+                           coef[1] * _mx + 
+                           coef[2] * np.cos(w * _mx) + 
+                           coef[3] * np.sin(w * _mx) +
+                           coef[4] * np.cos(2 * w * _mx) +
+                           coef[5] * np.sin(2 * w * _mx))
                 elif coef.shape[0] == 8:
                     # 8 coefficient model
                     _my = (coef[0] +
@@ -497,6 +506,7 @@ class CCDCTimeSeries(AbstractTimeSeries):
             for root, dname, fname in os.walk(results):
                 for f in fnmatch.filter(fname, self.results_pattern):
                     self.has_results = True
+                    self.results_folder = root 
                     return
 
     def _check_cache(self):
