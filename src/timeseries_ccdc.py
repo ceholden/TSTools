@@ -332,8 +332,11 @@ class CCDCTimeSeries(AbstractTimeSeries):
         if mask_val is None:
             mask_val = list(self.mask_val)
 
+        self._data = np.array(self._data)
+
         mask = np.ones_like(self._data) * np.logical_or.reduce(
             [self._data[mask_band, :] == mv for mv in mask_val])
+
         self._data = np.ma.MaskedArray(self._data, mask=mask)
 
     def retrieve_from_cache(self):

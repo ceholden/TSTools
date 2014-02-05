@@ -470,13 +470,6 @@
             </property>
            </widget>
           </item>
-          <item row="2" column="2">
-           <widget class="QLineEdit" name="edit_values">
-            <property name="text">
-             <string>2, 3, 4, 255</string>
-            </property>
-           </widget>
-          </item>
           <item row="2" column="0">
            <widget class="QCheckBox" name="cbox_fmask">
             <property name="text">
@@ -488,6 +481,13 @@
            <widget class="QCheckBox" name="cbox_breakpoint">
             <property name="text">
              <string>Break Points</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="2">
+           <widget class="QLineEdit" name="edit_values">
+            <property name="text">
+             <string/>
             </property>
            </widget>
           </item>

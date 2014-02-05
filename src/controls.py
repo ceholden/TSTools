@@ -48,6 +48,7 @@ class ControlPanel(QWidget, Ui_Widget):
     symbology_applied = pyqtSignal()
     plot_options_changed = pyqtSignal()
     plot_save_request = pyqtSignal()
+    mask_updated = pyqtSignal()
 
     def __init__(self, iface):
         # Qt setup
@@ -64,7 +65,6 @@ class ControlPanel(QWidget, Ui_Widget):
         # Click a point, add the layer
         self.cbox_plotlayer.setChecked(setting.plot['plot_layer'])
         # Signal handled by CCDCController
-
         # Raster band select
         if self.combox_band.count() == 0:
             self.combox_band.addItems(ts.band_names)
@@ -113,6 +113,11 @@ class ControlPanel(QWidget, Ui_Widget):
         ### Fmask, fit & breaks on/off
         self.cbox_fmask.setChecked(setting.plot['mask'])
         self.cbox_fmask.stateChanged.connect(self.set_plot_fmask)
+
+        setting.plot['mask_val'] = ts.mask_val
+        self.edit_values.setText(
+            ', '.join(map(str, setting.plot['mask_val'])))
+        self.edit_values.editingFinished.connect(self.set_mask_vals)
 
         self.cbox_modelfit.setChecked(setting.plot['fit'])
         self.cbox_modelfit.stateChanged.connect(self.set_model_fit)
@@ -258,6 +263,18 @@ class ControlPanel(QWidget, Ui_Widget):
         elif state == Qt.Unchecked:
             setting.plot['mask'] = False
         self.plot_options_changed.emit()
+
+    def set_mask_vals(self):
+        """ Sets mask values from line edit """
+        try:
+            values = map(int, 
+                         self.edit_values.text().replace(' ', '').split(','))
+            setting.plot['mask_val'] = values
+            self.mask_updated.emit()
+        except:
+            print 'Error: could not set mask values'
+            self.edit_values.setText(
+                ', '.join(map(str, setting.plot['mask_val'])))
 
     def set_model_fit(self, state):
         """ Slot for enabling/disabling model fit on plot """

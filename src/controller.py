@@ -180,7 +180,14 @@ class Controller(QtCore.QObject):
         self.ts_plot.update_plot(self.ts)
         self.doy_plot.update_plot(self.ts)
 
+    def update_masks(self):
+        """ Signal to TS to update the mask and reapply """
+        self.ts.mask_val = setting.plot['mask_val']
+        self.ts.apply_mask(mask_val=setting.plot['mask_val'])
+        self.update_display()
+
 ### Common layer manipulation
+
     def add_map_layer(self, index):
         """
         Method called when adding an image via the table or plot.
@@ -289,6 +296,9 @@ class Controller(QtCore.QObject):
         self.ctrl.cbox_plotlayer.stateChanged.connect(self.set_plotlayer)
         # Connect/disconnect matplotlib event signal based on checkbox default
         self.set_plotlayer(self.ctrl.cbox_plotlayer.checkState())
+        
+        # Fmask mask values updated
+        self.ctrl.mask_updated.connect(self.update_masks)
 
         ### Symbology tab
         # Signal for having applied symbology settings
@@ -603,13 +613,30 @@ class Controller(QtCore.QObject):
         Automatically calculate the min/max for time series plotting as the
         2nd and 98th percentile of each band's time series
         """
-        print 'Calculating scaling'
+        # Get data with mask option
+        data = self.ts.get_data(setting.plot['mask'])
+        
+        # Check for case where all data is masked
+        if hasattr(data, 'mask'):
+            if np.ma.compressed(data[:, 0]).shape[0] == 0:
+                print 'Cannot scale 100% masked data'
+                return
+        else:
+            print 'Data has no mask'
+
         setting.plot['min'] = np.array([
-            np.percentile(np.ma.compressed(band), 2) for band in
-            self.ts.get_data(setting.plot['mask'])[:, ]])
-        setting.plot['max'] = np.array([
-            np.percentile(np.ma.compressed(band), 98) for band in 
-            self.ts.get_data(setting.plot['mask'])[:, ]])
+            max(0, np.percentile(np.ma.compressed(band), 2) - 500) 
+            for band in data[:, ]])
+        setting.plot['max'] = np.array([                                      
+            min(10000, np.percentile(np.ma.compressed(band), 98) + 500)
+            for band in data[:, ]])
+
+#        setting.plot['min'] = np.array([
+#            np.percentile(np.ma.compressed(band), 2) for band in
+#            data[:, ]])
+#        setting.plot['max'] = np.array([
+#            np.percentile(np.ma.compressed(band), 98) for band in 
+#            data[:, ]])
 
 #        setting.plot['min'] = [min(0, np.min(band) * 
 #                                   (1 - setting.plot['scale_factor']))
