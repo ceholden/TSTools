@@ -618,8 +618,9 @@ class Controller(QtCore.QObject):
         
         # Check for case where all data is masked
         if hasattr(data, 'mask'):
-            if np.ma.compressed(data[:, 0]).shape[0] == 0:
-                print 'Cannot scale 100% masked data'
+            if np.ma.compressed(data[0, :]).shape[0] == 0:
+                print 'Cannot scale 100% masked data. Shape of data: '
+                print data[0, :].shape
                 return
         else:
             print 'Data has no mask'
