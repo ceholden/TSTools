@@ -195,6 +195,10 @@ class Controller(QtCore.QObject):
         print 'DEBUG %s : add_map_layer' % __file__
         reg = QgsMapLayerRegistry.instance()
 
+        if len(index) > 1:
+            print '    DEBUG: more than one index clicked - taking first'
+            index = index[0]
+
         # Which layer are we adding?
         added = [(self.ts.filepaths[index] == layer.source(), layer)
                  for layer in reg.mapLayers().values()]
