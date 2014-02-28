@@ -500,6 +500,12 @@ class CCDCTimeSeries(AbstractTimeSeries):
                               dt.timedelta(int(image_name[13:16]) - 1))
         self.dates = np.array(self.dates)
 
+        # Sort images by date
+        self.dates, self.image_names, self.filenames, self.filepaths = (
+            list(t) for t in zip(*sorted(zip(
+                self.dates, self.image_names, self.filenames, self.filepaths)))
+        )
+
     def _check_results(self):
         """ Checks for results """
         results = os.path.join(self.location, self.results_folder)
