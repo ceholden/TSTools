@@ -505,6 +505,7 @@ class CCDCTimeSeries(AbstractTimeSeries):
             list(t) for t in zip(*sorted(zip(
                 self.dates, self.image_names, self.filenames, self.filepaths)))
         )
+        self.dates = np.array(self.dates)
 
     def _check_results(self):
         """ Checks for results """
