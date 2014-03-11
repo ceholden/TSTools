@@ -21,7 +21,6 @@
  This script initializes the plugin, making it known to QGIS.
 """
 
-
 def name():
     return "TSTools"
 

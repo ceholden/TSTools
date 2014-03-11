@@ -20,6 +20,7 @@
  ***************************************************************************/
 """
 import os
+import pkgutil
 
 # Import the PyQt and QGIS libraries
 from PyQt4.QtCore import *
@@ -30,11 +31,15 @@ from qgis.gui import QgsMapToolEmitPoint, QgsMessageBar
 # Initialize Qt resources from file resources.py
 import resources_rc
 
+import timeseries
+
 from config import Config
 from controller import Controller
 from controls import ControlPanel
+
 from plot_ts import TSPlot
 from plot_doy import DOYPlot
+
 import settings as setting
 
 class TSTools(QObject):
@@ -62,13 +67,26 @@ class TSTools(QObject):
 
         # Location info - define these elsewhere #TODO
         self.location = os.getcwd()
-        self.image_pattern = 'LND*'
+        self.image_pattern = 'L*'
         self.stack_pattern = '*stack'
+        self.results_folder = 'TSFitMap'
 
         # Toolbar
         self.init_toolbar()
 
+        # Map tool on/off
         self.tool_enabled = True
+
+        # Find TimeSeries data model classes
+        #   (subclassers to AbstractTimeSeries)
+        # Better way of doing this?
+        for loader, modname, ispkg in pkgutil.iter_modules([self.plugin_dir]):
+            module = loader.find_module(modname).load_module(
+                os.path.basename(self.plugin_dir) + '.' + modname)
+        self.ts_data_models = timeseries.AbstractTimeSeries.__subclasses__()
+
+        print 'DEBUG {f}: found {i} TS data models'.format(
+            f=__file__, i=len(self.ts_data_models))
 
     def init_toolbar(self):
         """ Creates and populates the toolbar for plugin """
@@ -104,9 +122,12 @@ class TSTools(QObject):
     def handle_config(self):
         """ Handles configuration menu for initializing the time series """
         print 'DEBUG %s : show/hide config' % __file__
+
         # Init the dialog
         self.config = Config(self, self.location, 
-                             self.image_pattern, self.stack_pattern)
+                             self.image_pattern, self.stack_pattern,
+                             self.results_folder,
+                             [_ts.__str__ for _ts in self.ts_data_models])
         # Connect signals
         self.config.accepted.connect(self.config_accepted)
         self.config.canceled.connect(self.config_closed)
@@ -117,20 +138,24 @@ class TSTools(QObject):
         """ Handles 'OK' button from Config dialog and tries to add
         time series
         """
-        print 'DEBUG %s : config accepted' % __file__
         # Try new values
         location = str(self.config.location)
         image_pattern = str(self.config.image_pattern)
         stack_pattern = str(self.config.stack_pattern)
+        results_folder = str(self.config.results_folder)
+        model_index = int(self.config.model_index)
 
-        success = self.controller.get_time_series(location,
-                                                  image_pattern,
-                                                  stack_pattern)
+        # Set data model for controller from user pick
+        success = self.controller.get_time_series(
+            self.ts_data_models[model_index],
+            location, image_pattern, stack_pattern, results_folder)
+
         if success:
             # Accept values
             self.location = location
             self.image_pattern = image_pattern
             self.stack_pattern = stack_pattern
+            self.results_folder = results_folder
             # Close config
             self.config_closed()
             # Send message

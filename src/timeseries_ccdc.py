@@ -33,10 +33,18 @@ try:
 except:
     import gdal
 
-from timeseries import AbstractTimeSeries, mat2dict, ml2pydate, py2mldate
+import timeseries
+from timeseries import mat2dict, ml2pydate, py2mldate
 
-class CCDCTimeSeries(AbstractTimeSeries):
-    """ Class representing time series used by CCDC """
+class CCDCTimeSeries(timeseries.AbstractTimeSeries):
+    """Class holding data and methods for time series used by CCDC 
+    (Change Detection and Classification). Useful for QGIS plugin 'TSTools'.
+
+    More doc TODO
+    """
+
+    # __str__ name for TSTools data model plugin loader
+    __str__ = 'CCDC Time Series'
 
     # TODO add some container for "metadata" that can be used in table
     image_names = []

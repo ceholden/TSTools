@@ -31,7 +31,8 @@ class Config(QDialog, Ui_Config):
     accepted = pyqtSignal()
     canceled = pyqtSignal()
 
-    def __init__(self, iface, location, img_pattern, stack_pattern):
+    def __init__(self, iface, location, img_pattern, stack_pattern, 
+                 results_folder, data_model_str):
         self.iface = iface
         QWidget.__init__(self)
         self.setupUi(self)
@@ -39,16 +40,25 @@ class Config(QDialog, Ui_Config):
         self.location = location
         self.image_pattern = img_pattern
         self.stack_pattern = stack_pattern
+        self.results_folder = results_folder
+        self.data_model_str = data_model_str
         ### Finish setup
         self.setup_config()
 
     def setup_config(self):
-        ### Setup location text field and open button
+        ### Data model types
+        self.combox_ts_model.clear()
+        self.combox_ts_model.addItems(self.data_model_str)
+        ### Fields
+        # Setup location text field and open button
         self.edit_location.setText(self.location)
         self.button_location.clicked.connect(self.select_location)
-        ### Setup stack directory & patterns
+        # Setup stack directory & patterns
         self.edit_image.setText(self.image_pattern)
         self.edit_stack.setText(self.stack_pattern)
+        # Setup results text
+        self.edit_results.setText(self.results_folder)
+
         ### Setup dialog buttons
         # Init buttons
         self.ok = self.button_box.button(QDialogButtonBox.Ok)
@@ -69,9 +79,14 @@ class Config(QDialog, Ui_Config):
 
     def accept_config(self):
         print 'Okay pressed!'
+        
+        self.model_index = self.combox_ts_model.currentIndex()
+
         self.location = self.edit_location.text()
         self.image_pattern = self.edit_image.text()
         self.stack_pattern = self.edit_stack.text()
+        self.results_folder = self.edit_results.text()
+
         self.accepted.emit()
 
     def cancel_config(self):

@@ -119,11 +119,18 @@ class ControlPanel(QWidget, Ui_Widget):
             ', '.join(map(str, setting.plot['mask_val'])))
         self.edit_values.editingFinished.connect(self.set_mask_vals)
 
-        self.cbox_modelfit.setChecked(setting.plot['fit'])
-        self.cbox_modelfit.stateChanged.connect(self.set_model_fit)
+        # Only configure model fit and breaks if results exist
+        if ts.has_results is True:
+            self.cbox_modelfit.setEnabled(True)
+            self.cbox_modelfit.setChecked(setting.plot['fit'])
+            self.cbox_modelfit.stateChanged.connect(self.set_model_fit)
         
-        self.cbox_breakpoint.setChecked(setting.plot['break'])
-        self.cbox_breakpoint.stateChanged.connect(self.set_break_point)
+            self.cbox_breakpoint.setEnabled(True)
+            self.cbox_breakpoint.setChecked(setting.plot['break'])
+            self.cbox_breakpoint.stateChanged.connect(self.set_break_point)
+        else:
+            self.cbox_modelfit.setEnabled(False)
+            self.cbox_breakpoint.setEnabled(False)
 
         ### Save button options
         self.but_plot_save.clicked.connect(self.init_save_plot_dialog)

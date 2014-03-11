@@ -37,7 +37,7 @@ import time
 import matplotlib as mpl
 import numpy as np
 
-from timeseries_ccdc import CCDCTimeSeries
+# from timeseries_ccdc import CCDCTimeSeries
 import settings as setting
 
 class DataRetriever(QtCore.QObject):
@@ -88,7 +88,8 @@ class DataRetriever(QtCore.QObject):
                 if self.can_writecache is True:
                     print 'Debug: wrote to cache file'
 
-        self.ts.retrieve_result()
+        if self.ts.has_results is True:
+            self.ts.retrieve_result()
 
         self.retrieve_complete.emit()
 
@@ -137,13 +138,16 @@ class Controller(QtCore.QObject):
 #        self.retriever.moveToThread(self.retrieve_thread)
 
 ### Setup
-    def get_time_series(self, location, image_pattern, stack_pattern):
+    def get_time_series(self, TimeSeries, 
+                        location, image_pattern, stack_pattern,
+                        results_folder=None):
         """
         Loads the time series class when called by ccdctools and feeds
         information to controls & plotter
         """
         try:
-            self.ts = CCDCTimeSeries(location, image_pattern, stack_pattern)
+            self.ts = TimeSeries(location, image_pattern, stack_pattern,
+                                 results_folder)
         except:
             return False
 
@@ -182,6 +186,7 @@ class Controller(QtCore.QObject):
 
     def update_masks(self):
         """ Signal to TS to update the mask and reapply """
+        print 'Updated masks - refreshing plots'
         self.ts.mask_val = setting.plot['mask_val']
         self.ts.apply_mask(mask_val=setting.plot['mask_val'])
         self.update_display()
