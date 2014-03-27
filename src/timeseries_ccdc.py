@@ -248,7 +248,13 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
                 coef = rec['coefs'][:, band]
                 
                 ### Calculate model predictions
-                w = 2 * np.pi / 365
+                # HACK: adjust w based on existence of parameter file
+                if os.path.isfile(os.path.join(
+                    self.location, self.results_folder, '.p_36525')):
+                    w = 2 * np.pi * 365.25
+                else:
+                    w = 2 * np.pi / 365
+
                 if coef.shape[0] == 4:
                     # 4 coefficient model
                     _my = (coef[0] +
