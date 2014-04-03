@@ -35,6 +35,7 @@ import os
 
 from ui_controls import Ui_Controls as Ui_Widget
 from SavePlotDialog import SavePlotDialog
+from custom_form import CustomForm
 import settings as setting
 
 def str2num(s):
@@ -58,7 +59,39 @@ class ControlPanel(QWidget, Ui_Widget):
 
     def init_options(self):
         # Show/don't show clicks
-        self.cbox_showclick.setChecked(setting.canvas['show_click']) 
+        self.cbox_showclick.setChecked(setting.canvas['show_click'])
+
+    def init_custom_options(self, ts):
+        # Check to see if TS class has UI elements described
+        if not hasattr(ts, 'custom_opts') or \
+            not callable(getattr(ts, 'set_custom_opts', None)):
+            
+                self.custom_form = None
+                return
+        else:
+            if not isinstance(ts.custom_opts, list):
+                print 'Custom options for timeseries improperly described'
+                self.custom_form = None
+                return
+            if len(ts.custom_opts) == 0:
+                print 'Custom options for timeseries improperly described'
+                self.custom_form = None
+                return
+            if not isinstance(ts.custom_opts[0], list):
+                print 'Custom options for timeseries improperly described'
+                self.custom_form = None
+                return
+
+        # Add form
+        if not hasattr(ts, 'custom_opts_title'):
+            ts.custom_opts_title = None
+
+        self.custom_form = getattr(self, 'custom_form', None)
+        if self.custom_form is not None:
+            self.custom_form.deleteLater()
+
+        self.custom_form = CustomForm(ts.custom_opts, ts.custom_opts_title)
+        self.tab_options.layout().addWidget(self.custom_form)
 
     def init_plot_options(self, ts):
         print 'Plot options init'

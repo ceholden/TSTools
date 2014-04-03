@@ -153,8 +153,9 @@ class Controller(QtCore.QObject):
 
         if self.ts:
             # Control panel
-            self.ctrl.init_plot_options(self.ts)
             self.ctrl.init_options()
+            self.ctrl.init_custom_options(self.ts)
+            self.ctrl.init_plot_options(self.ts)
             self.ctrl.init_symbology(self.ts)
             self.ctrl.update_table(self.ts)
 
@@ -378,7 +379,28 @@ class Controller(QtCore.QObject):
                 self.cancel_retrieval.pressed.connect(self.retrieval_cancel)
                 self.progress_bar.layout().addWidget(self.cancel_retrieval)
                 self.iface.messageBar().pushWidget(self.progress_bar,
-                                                self.iface.messageBar().INFO)    
+                                                self.iface.messageBar().INFO)
+
+                # If we have custom options for TS, get them
+                if self.ctrl.custom_form is not None:
+                    print 'Getting custom options!'
+                    try:
+                        options = self.ctrl.custom_form.get()
+                        self.ts.set_custom_opts(options)
+                    except:
+                        print sys.exc_info()[0]
+                        self.ctrl.custom_form.set(self.ts.custom_opts)
+
+                        self.retrieval_cancel()
+                        self.iface.messageBar().pushMessage('Error',
+                                'Could not use custom options for timeseries',
+                                level=QgsMessageBar.CRITICAL,
+                                duration=3)
+                        return
+
+                print 'ts options:'
+                print self.ts.custom_opts
+
                 # Fetch pixel values
                 self.retriever.get_ts_pixel()
                 # self.retriever.start()

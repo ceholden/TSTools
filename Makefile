@@ -20,9 +20,9 @@
 # INSTALL LOCATION
 HOST=$(shell hostname)
 ifeq ($(HOST),geo)
-    LOC=/project/earth/packages/CCDCTools
+    LOC=/project/earth/packages/CCDCTools_beta
 else ifeq ($(HOST),scc1)
-	LOC=/project/earth/packages/CCDCTools
+	LOC=/project/earth/packages/CCDCTools_beta
 else
     LOC=$(HOME)/.qgis2/python/plugins
 endif
@@ -42,6 +42,8 @@ TRANSLATIONS =
 PLUGINNAME = tstools
 
 PY_FILES = src/*.py
+
+ANC = src/CCDC
 
 EXTRAS = tstools_click.png tstools_config.png metadata.txt
 
@@ -75,6 +77,7 @@ deploy: compile doc transcompile
 	cp -vf $(EXTRAS) $(LOC)/$(PLUGINNAME)
 	cp -vfr i18n $(LOC)/$(PLUGINNAME)
 	cp -vfr $(HELP) $(LOC)/$(PLUGINNAME)/help
+	cp -vfr $(ANC) $(LOC)/$(PLUGINNAME)
 
 # The dclean target removes compiled python files from plugin directory
 # also delets any .svn entry
