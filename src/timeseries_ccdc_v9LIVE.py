@@ -104,6 +104,7 @@ class CCDCTimeSeries_v9LIVE(timeseries_ccdc.CCDCTimeSeries):
 
         self.custom_opts_title = 'CCDC v9 Options'
         self.custom_opts = [
+            ['CCDC_function',  'TrendSeasonalFit_v9_QGIS_max', None],
             ['n_times',     1.5,    [0.5, 10]],
             ['conse',       5,      [1, 10]],
             ['T_cg',        2.57,   None],
@@ -111,43 +112,23 @@ class CCDCTimeSeries_v9LIVE(timeseries_ccdc.CCDCTimeSeries):
             ['B_detect',    np.array([[3, 4, 5, 6]]),    None]
         ]
 
+        self.ml_dates = [py2mldate(_d) for _d in self.dates]
+
         self._check_matlab()
 
     def set_custom_opts(self, values):
         """ Set custom options """
         for i, v in enumerate(values):
             if isinstance(v, type(self.custom_opts[i][1])):
+                if self.custom_opts[i][0] == 'CCDC_function':
+                    try:
+                        self._check_matlab(function=v, load_ml=False)
+                    except:
+                        raise
                 self.custom_opts[i][1] = v
             else:
                 print 'Error setting value for {o}'.format(
                     o=self.custom_opts[i])
-
-#        conf = os.path.join(self.location, 'config_ccdc.csv')
-#        param = {
-#            'n_times'   : 1.5,
-#            'conse'     : 5,
-#            'T_cg'      : 2.57,
-#            'num_c'     : 8,
-#            'B_detect'  : np.array([[3, 4, 5, 6]])
-#        }
-#
-#        if os.path.isfile(conf):
-#            with open(conf, 'r') as f:
-#                reader = csv.reader(f, delimiter=':')
-#                for row in reader:
-#                    print row
-#                    # Try to parse into param dictionary
-#                    k = row[0].strip(' ')
-#                    if k in param.keys():
-#                        print k
-#                        t = type(param[k])
-#                        if t == int or t == float:
-#                            param[k] = t(row[1])
-#                        else:
-#                            # ndarray / array
-#                            v = row[1].replace(',', ' ').split(' ')
-#                            v = [int(_v) for _v in v if _v != '']
-#                            param[k] = np.array([v])
 
 
     def retrieve_result(self):
@@ -294,18 +275,20 @@ class CCDCTimeSeries_v9LIVE(timeseries_ccdc.CCDCTimeSeries):
 
 ### INTERNAL SETUP METHODS
     def _check_matlab(self, folder='CCDC',
-                      function='TrendSeasonalFit_v9_QGIS_max'):
+                      function='TrendSeasonalFit_v9_QGIS_max',
+                      load_ml=True):
         """ Check to see if MATLAB files are available and can be loaded 
         """
 
-        # Try to load MATLAB
-        try:
-            import mlabwrap
-            from mlabwrap import mlab
-            self.mlab = mlabwrap.mlab
-        except:
-            print 'Error: cannot import MATLAB'
-            raise
+        if load_ml is True:
+            # Try to load MATLAB
+            try:
+                import mlabwrap
+                from mlabwrap import mlab
+                self.mlab = mlabwrap.mlab
+            except:
+                print 'Error: cannot import MATLAB'
+                raise
 
         # Check for source code detailed in method arguments
         import inspect
@@ -321,7 +304,7 @@ class CCDCTimeSeries_v9LIVE(timeseries_ccdc.CCDCTimeSeries):
 
         fn = []
         for root, directory, f in os.walk(here):
-            for result in fnmatch.filter(f, function + '*'):
+            for result in fnmatch.filter(f, function + '.m'):
                 fn.append(os.path.join(root, result))
 
         if len(fn) > 1:
