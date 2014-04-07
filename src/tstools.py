@@ -84,6 +84,11 @@ class TSTools(QObject):
             module = loader.find_module(modname).load_module(
                 os.path.basename(self.plugin_dir) + '.' + modname)
         self.ts_data_models = timeseries.AbstractTimeSeries.__subclasses__()
+        for subclass in self.ts_data_models:
+            subsubclass = subclass.__subclasses__()
+            for _subsubclass in subsubclass:
+                if _subsubclass not in self.ts_data_models:
+                    self.ts_data_models.append(_subsubclass)
 
         print 'DEBUG {f}: found {i} TS data models'.format(
             f=__file__, i=len(self.ts_data_models))
