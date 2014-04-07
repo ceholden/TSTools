@@ -255,7 +255,10 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
                 else:
                     w = 2 * np.pi / 365
 
-                if coef.shape[0] == 4:
+                if coef.shape[0] == 2:
+                    _my = (coef[0] +
+                            coef[1] * _mx)
+                elif coef.shape[0] == 4:
                     # 4 coefficient model
                     _my = (coef[0] +
                             coef[1] * _mx +

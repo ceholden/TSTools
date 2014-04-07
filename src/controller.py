@@ -382,7 +382,9 @@ class Controller(QtCore.QObject):
                                                 self.iface.messageBar().INFO)
 
                 # If we have custom options for TS, get them
-                if self.ctrl.custom_form is not None:
+                if self.ctrl.custom_form is not None and \
+                    hasattr(self.ts, 'custom_opts'):
+                    
                     print 'Getting custom options!'
                     try:
                         options = self.ctrl.custom_form.get()
@@ -397,9 +399,6 @@ class Controller(QtCore.QObject):
                                 level=QgsMessageBar.CRITICAL,
                                 duration=3)
                         return
-
-                print 'ts options:'
-                print self.ts.custom_opts
 
                 # Fetch pixel values
                 self.retriever.get_ts_pixel()
