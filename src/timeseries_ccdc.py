@@ -299,15 +299,16 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
         bx = []
         by = []
         if len(self.result) > 1:
-            for rec in self.result[0:-1]:
-                bx.append(dt.datetime.fromordinal(int(rec['t_break'])) -
-                      dt.timedelta(days = 366))
-                print 'Break: %s' % str(bx)
-                index = [i for i, date in 
-                        enumerate(self.dates) if date == bx[-1]][0]
-                print 'Index: %s' % str(index)
-                if index < self._data.shape[1]:
-                    by.append(self._data[band, index])
+            for rec in self.result:
+                if rec['t_break'] != 0:
+                    bx.append(dt.datetime.fromordinal(int(rec['t_break'])) -
+                          dt.timedelta(days = 366))
+                    print 'Break: %s' % str(bx)
+                    index = [i for i, date in 
+                                enumerate(self.dates) if date == bx[-1]][0]
+                    print 'Index: %s' % str(index)
+                    if index < self._data.shape[1]:
+                        by.append(self._data[band, index])
 
         return (bx, by)
 
