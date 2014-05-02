@@ -613,6 +613,8 @@ class CCDCBinaryReader(object):
         # https://www.youtube.com/watch?v=miGolgp9xq8
         if fformat == 'BIP':
             self.get_pixel = self.__BIP_get_pixel
+        else:
+            self.get_pixel = self.__band_get_pixel
 
     def __BIP_get_pixel(self, row, col):
         if row < 0 or row >= self.size[0] or col < 0 or col >= self.size[1]:
@@ -626,3 +628,19 @@ class CCDCBinaryReader(object):
             dat = np.fromfile(f, dtype=self.dt, count=self.n_band)
             f.close()
             return dat
+
+    def __band_get_pixel(self, row, col):
+        if row < 0 or row >= self.size[0] or col < 0 or col >= self.size[1]:
+            raise ValueError, 'Cannot select row,col %s,%s' % (row, col)
+
+        ds = gdal.Open(self.filename, gdal.GA_ReadOnly)
+
+        pixels = np.zeros(self.n_band)
+
+        for i in range(ds.RasterCount):
+            b = ds.GetRasterBand(i + 1)
+            pixels[i] = b.ReadAsArray(col, row, 1, 1)
+
+        ds = None
+
+        return pixels
