@@ -251,7 +251,7 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
                 # HACK: adjust w based on existence of parameter file
                 if os.path.isfile(os.path.join(
                     self.location, self.results_folder, '.p_36525')):
-                    w = 2 * np.pi * 365.25
+                    w = 2 * np.pi / 365.25
                 else:
                     w = 2 * np.pi / 365
 
