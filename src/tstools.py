@@ -129,10 +129,7 @@ class TSTools(QObject):
         print 'DEBUG %s : show/hide config' % __file__
 
         # Init the dialog
-        self.config = Config(self, self.location, 
-                             self.image_pattern, self.stack_pattern,
-                             self.results_folder,
-                             [_ts.__str__ for _ts in self.ts_data_models])
+        self.config = Config(self, self.location, self.ts_data_models)
         # Connect signals
         self.config.accepted.connect(self.config_accepted)
         self.config.canceled.connect(self.config_closed)

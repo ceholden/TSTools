@@ -91,6 +91,16 @@ class CCDCTimeSeries_v9LIVE(timeseries_ccdc.CCDCTimeSeries):
     results_folder = 'TSFitMap'
     results_pattern = 'record_change*'
 
+    custom_controls_title = 'CCDC v9 Options'
+    custom_controls = [
+            ['CCDC_function',  'TrendSeasonalFit_v9_QGIS_max', None],
+            ['n_times',     1.5,    [0.5, 10]],
+            ['conse',       5,      [1, 10]],
+            ['T_cg',        2.57,   None],
+            ['num_c',       8,      [2, 8]],
+            ['B_detect',    np.array([[3, 4, 5, 6]]),    None]
+    ]
+
     def __init__(self, location, 
                  image_pattern=image_pattern, 
                  stack_pattern=stack_pattern,
@@ -102,33 +112,23 @@ class CCDCTimeSeries_v9LIVE(timeseries_ccdc.CCDCTimeSeries):
                                              image_pattern,
                                              stack_pattern)
 
-        self.custom_opts_title = 'CCDC v9 Options'
-        self.custom_opts = [
-            ['CCDC_function',  'TrendSeasonalFit_v9_QGIS_max', None],
-            ['n_times',     1.5,    [0.5, 10]],
-            ['conse',       5,      [1, 10]],
-            ['T_cg',        2.57,   None],
-            ['num_c',       8,      [2, 8]],
-            ['B_detect',    np.array([[3, 4, 5, 6]]),    None]
-        ]
-
         self.ml_dates = [py2mldate(_d) for _d in self.dates]
 
         self._check_matlab()
 
-    def set_custom_opts(self, values):
-        """ Set custom options """
+    def set_custom_controls(self, values):
+        """ Set custom control options """
         for i, v in enumerate(values):
-            if isinstance(v, type(self.custom_opts[i][1])):
-                if self.custom_opts[i][0] == 'CCDC_function':
+            if isinstance(v, type(self.custom_controls[i][1])):
+                if self.custom_controls[i][0] == 'CCDC_function':
                     try:
                         self._check_matlab(function=v, load_ml=False)
                     except:
                         raise
-                self.custom_opts[i][1] = v
+                self.custom_controls[i][1] = v
             else:
                 print 'Error setting value for {o}'.format(
-                    o=self.custom_opts[i])
+                    o=self.custom_controls[i])
 
 
     def retrieve_result(self):

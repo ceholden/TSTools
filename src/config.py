@@ -20,28 +20,32 @@
  *                                                                         *
  ***************************************************************************/
 """
+from PyQt4 import QtCore
+from PyQt4 import QtGui
 
-from PyQt4.QtCore import *
+from PyQt4.QtCore import * # TODO remove * imports
 from PyQt4.QtGui import *
 
 from ui_config import Ui_Config
+
+from custom_form import CustomForm
 
 class Config(QDialog, Ui_Config):
 
     accepted = pyqtSignal()
     canceled = pyqtSignal()
 
-    def __init__(self, iface, location, img_pattern, stack_pattern, 
-                 results_folder, data_model_str):
+    def __init__(self, iface, location, ts_data_models):
         self.iface = iface
         QWidget.__init__(self)
         self.setupUi(self)
         ### Data
         self.location = location
-        self.image_pattern = img_pattern
-        self.stack_pattern = stack_pattern
-        self.results_folder = results_folder
-        self.data_model_str = data_model_str
+        self.ts_data_models = ts_data_models
+
+        ### Setup required information
+        self.data_model_str = [_ts.__str__ for _ts in self.ts_data_models]
+
         ### Finish setup
         self.setup_config()
 
@@ -49,15 +53,47 @@ class Config(QDialog, Ui_Config):
         ### Data model types
         self.combox_ts_model.clear()
         self.combox_ts_model.addItems(self.data_model_str)
-        ### Fields
-        # Setup location text field and open button
+
+        self.combox_ts_model.activated.connect(self.ts_model_changed)
+
+        ### Setup location text field and open button
         self.edit_location.setText(self.location)
         self.button_location.clicked.connect(self.select_location)
-        # Setup stack directory & patterns
-        self.edit_image.setText(self.image_pattern)
-        self.edit_stack.setText(self.stack_pattern)
-        # Setup results text
-        self.edit_results.setText(self.results_folder)
+
+        ### Setup stacked widget for custom options
+        self.stacked_widget = QtGui.QStackedWidget()
+        
+        for i, _ts in enumerate(self.ts_data_models):
+            # Test for custom configurations
+
+            has_custom_form = True
+
+            if not hasattr(_ts, 'custom_options') or \
+                not callable(getattr(_ts, 'set_custom_options', None)):    
+                has_custom_form = False
+            else:
+                if not isinstance(_ts.custom_options, list):
+                    print 'Custom options for timeseries improperly described'
+                    has_custom_form = False
+                if len(_ts.custom_options) == 0:
+                    print 'Custom controls for timeseries improperly described'
+                    has_custom_form = False
+                    
+                if not isinstance(_ts.custom_options[0], list):
+                    print 'Custom controls for timeseries improperly described'
+                    has_custom_form = False
+
+            if has_custom_form is True:
+                custom_form = CustomForm(_ts.custom_options)
+            else:
+                custom_form = QtGui.QLabel('No custom options')
+
+            custom_form.setParent(self.stacked_widget)
+            self.stacked_widget.insertWidget(i, custom_form)
+
+        self.custom_layout = QtGui.QVBoxLayout()
+        self.custom_layout.addWidget(self.stacked_widget)
+        self.custom_widget.setLayout(self.custom_layout)
 
         ### Setup dialog buttons
         # Init buttons
@@ -67,6 +103,14 @@ class Config(QDialog, Ui_Config):
         self.ok.pressed.connect(self.accept_config)
         self.cancel.pressed.connect(self.cancel_config)
 
+    @QtCore.pyqtSlot(int)
+    def ts_model_changed(self, index):
+        """ Fired when combo box is changed so stacked_widget can change """
+        if index != self.stacked_widget.currentIndex():
+            self.stacked_widget.setCurrentIndex(index)
+            self.combox_ts_model.setCurrentIndex(index)
+
+    @QtCore.pyqtSlot()
     def select_location(self):
         """
         Brings up a QFileDialog allowing user to select a folder
@@ -77,18 +121,30 @@ class Config(QDialog, Ui_Config):
                             QFileDialog.ShowDirsOnly)
         self.edit_location.setText(self.location) 
 
+    @QtCore.pyqtSlot()
     def accept_config(self):
         print 'Okay pressed!'
         
         self.model_index = self.combox_ts_model.currentIndex()
-
         self.location = self.edit_location.text()
-        self.image_pattern = self.edit_image.text()
-        self.stack_pattern = self.edit_stack.text()
-        self.results_folder = self.edit_results.text()
 
         self.accepted.emit()
 
+    @QtCore.pyqtSlot()    
     def cancel_config(self):
         print 'Cancel pressed!'
         self.canceled.emit()
+
+# main function for testing
+if __name__ == "__main__":
+    import os
+    import sys
+    app = QtGui.QApplication(sys.argv)
+
+    from timeseries_ccdc import CCDCTimeSeries
+    from timeseries_ccdc_v9LIVE import CCDCTimeSeries_v9LIVE
+
+    widget = Config(app, os.getcwd(), [CCDCTimeSeries, CCDCTimeSeries_v9LIVE])
+
+    widget.show()
+    sys.exit(app.exec_())

@@ -76,6 +76,14 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
     results_folder = 'TSFitMap'
     results_pattern = 'record_change*'
 
+    custom_options = [
+            ['Image folder pattern',  'L*', None],
+            ['Stack pattern',  '*stack', None],
+            ['Results folder', 'TSFitMap', None],
+            ['Results pattern', 'record_change*', None],
+            ['Cache folder', '.cache', None]
+    ]
+
     def __init__(self, location, 
                  image_pattern=image_pattern, 
                  stack_pattern=stack_pattern,
@@ -90,9 +98,6 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
         self.results_pattern = results_pattern
         self.cache_folder = cache_folder
 
-        self.mask_band = 7
-        self.mask_val = [2, 3, 4, 255]
-
         self._find_stacks()
         self._get_attributes()
         self._get_dates()
@@ -100,7 +105,20 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
         self._check_cache()
         self._open_ts()
 
+        self.mask_band = self.n_band - 1
+        self.mask_val = [2, 3, 4, 255]
+
         self._data = np.zeros([self.n_band, self.length], dtype=self.datatype)
+
+    def set_custom_options(self, options):
+        """ Set custom configuration options """
+        for i, v in enumerate(options):
+            # Make sure new value is of same type
+            if isinstance(v, type(self.custom_options[i][1])):
+                self.custom_opts[i][1] = v
+            else:
+                print 'Error setting value for {o}'.format(
+                    o=self.custom_opts[i])
 
     def get_ts_pixel(self, use_cache=True, do_cache=True):
         """ Fetch pixel data for the current pixel and set to self._data 
