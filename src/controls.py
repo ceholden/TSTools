@@ -88,9 +88,9 @@ class ControlPanel(QWidget, Ui_Widget):
 
         self.custom_form = getattr(self, 'custom_form', None)
         if self.custom_form is not None:
-            print self.custom_form
             print 'Deleting preexisting custom form'
             self.custom_form.deleteLater()
+            self.tab_options.layout().removeWidget(self.custom_form)
             self.custom_form = None
 
         self.custom_form = CustomForm(ts.custom_controls, ts.custom_controls_title)
@@ -151,8 +151,11 @@ class ControlPanel(QWidget, Ui_Widget):
         self.cbox_fmask.stateChanged.connect(self.set_plot_fmask)
 
         setting.plot['mask_val'] = ts.mask_val
-        self.edit_values.setText(
-            ', '.join(map(str, setting.plot['mask_val'])))
+        if setting.plot['mask_val'] is not None:
+            self.edit_values.setText(
+                ', '.join(map(str, setting.plot['mask_val'])))
+        else:
+            self.edit_values.setText('None')
         self.edit_values.editingFinished.connect(self.set_mask_vals)
 
         # Only configure model fit and breaks if results exist
@@ -182,11 +185,13 @@ class ControlPanel(QWidget, Ui_Widget):
         self.edit_min.setText(str(setting.plot['min'][setting.plot['band']]))
         self.edit_max.setText(str(setting.plot['max'][setting.plot['band']]))
 
+    @QtCore.pyqtSlot(int)
     def set_band_select(self, index):
         """ Slot for band plot selection combo-box """
         setting.plot['band'] = index
         self.plot_options_changed.emit()
 
+    @QtCore.pyqtSlot(int)
     def set_auto_scale(self, state):
         """ Slot for turning on/off automatic scaling of data """
         if state == Qt.Checked:
@@ -195,6 +200,7 @@ class ControlPanel(QWidget, Ui_Widget):
             setting.plot['auto_scale'] = False
         self.plot_options_changed.emit()
 
+    @QtCore.pyqtSlot(int)
     def set_yscale_all(self, state):
         """ Slot for turning on/off ability to apply ylim to all bands """
         if state == Qt.Checked:
@@ -204,6 +210,7 @@ class ControlPanel(QWidget, Ui_Widget):
             setting.plot['yscale_all'] = False
             print 'DEBUG: yscale_all off'
 
+    @QtCore.pyqtSlot()
     def set_plot_min(self):
         """ Slot for setting plot Y-axis minimum """
         ymin = str2num(self.edit_min.text())
@@ -215,6 +222,7 @@ class ControlPanel(QWidget, Ui_Widget):
             setting.plot['min'][setting.plot['band']] = ymin
         self.plot_options_changed.emit()
 
+    @QtCore.pyqtSlot()
     def set_plot_max(self):
         """ Slot for setting plot Y-axis maximum """
         ymax = str2num(self.edit_max.text())
@@ -229,10 +237,12 @@ class ControlPanel(QWidget, Ui_Widget):
 
         self.plot_options_changed.emit()
 
+    @QtCore.pyqtSlot(int)
     def xmin_moved(self, xmin):
         """ Slot for ONLY updating current X-axis slider value label """
         self.lab_xmin.setText(str(xmin))
 
+    @QtCore.pyqtSlot(int)
     def set_plot_xmin(self, xmin):
         """ Slot for setting plot X-axis minimum """
         # Set value and label
@@ -252,10 +262,12 @@ class ControlPanel(QWidget, Ui_Widget):
         # Emit update to plot
         self.plot_options_changed.emit()
 
+    @QtCore.pyqtSlot(int)
     def xmax_moved(self, xmax):
         """ Slot for ONLY updating current X-axis slider value label """
         self.lab_xmax.setText(str(xmax))
 
+    @QtCore.pyqtSlot(int)
     def set_plot_xmax(self, xmax):
         """ Slot for setting plot X-axis maximum """
         # Set value and label
@@ -272,7 +284,8 @@ class ControlPanel(QWidget, Ui_Widget):
             self.scroll_xmin.setMaximum(xmax - self.scroll_xmin.singleStep())
 
         self.plot_options_changed.emit()
-        
+    
+    @QtCore.pyqtSlot(int)    
     def set_xscale_fix(self, state):
         """ Slot for turning on/off fixing date range for x axis """
         if state == Qt.Checked:
@@ -299,6 +312,7 @@ class ControlPanel(QWidget, Ui_Widget):
                                         self.scroll_xmin.singleStep())
             self.cbox_xscale_fix.setText('Fixed date range')
 
+    @QtCore.pyqtSlot(int)
     def set_plot_fmask(self, state):
         """ Slot for enabling/disabling masking of data by Fmask """
         if state == Qt.Checked:
@@ -307,8 +321,12 @@ class ControlPanel(QWidget, Ui_Widget):
             setting.plot['mask'] = False
         self.plot_options_changed.emit()
 
+    @QtCore.pyqtSlot()
     def set_mask_vals(self):
         """ Sets mask values from line edit """
+        if self.edit_values.text() == 'None':
+            continue
+
         try:
             values = map(int, 
                          self.edit_values.text().replace(' ', '').split(','))
@@ -319,6 +337,7 @@ class ControlPanel(QWidget, Ui_Widget):
             self.edit_values.setText(
                 ', '.join(map(str, setting.plot['mask_val'])))
 
+    @QtCore.pyqtSlot(int)
     def set_model_fit(self, state):
         """ Slot for enabling/disabling model fit on plot """
         if state == Qt.Checked:
@@ -327,6 +346,7 @@ class ControlPanel(QWidget, Ui_Widget):
             setting.plot['fit'] = False
         self.plot_options_changed.emit()
 
+    @QtCore.pyqtSlot(int)
     def set_break_point(self, state):
         """ Slot for showing/hiding model break points on plot """
         if state == Qt.Checked:
@@ -335,6 +355,7 @@ class ControlPanel(QWidget, Ui_Widget):
             setting.plot['break'] = False
         self.plot_options_changed.emit()
 
+    @QtCore.pyqtSlot()
     def init_save_plot_dialog(self):
         """ Slot for saving Matplotlib plot. Brings up plot save dialog and
         listens for signal to save figure.
@@ -344,12 +365,14 @@ class ControlPanel(QWidget, Ui_Widget):
         self.save_plot.save_plot_closed.connect(self.save_plot_dialog_close)
         self.save_plot.exec_()
 
+    @QtCore.pyqtSlot()
     def save_plot_dialog_save(self):
         """ Slot for disconnecting signals to save plot dialog upon either
         canceling or saving the plot
         """
         self.plot_save_request.emit()
 
+    @QtCore.pyqtSlot()
     def save_plot_dialog_close(self):
         """ Slot for closing down plot dialog after saving/canceling """
         self.save_plot.save_plot_requested.disconnect()
