@@ -67,9 +67,6 @@ class TSTools(QObject):
 
         # Location info - define these elsewhere #TODO
         self.location = os.getcwd()
-        self.image_pattern = 'L*'
-        self.stack_pattern = '*stack'
-        self.results_folder = 'TSFitMap'
 
         # Toolbar
         self.init_toolbar()
@@ -142,22 +139,19 @@ class TSTools(QObject):
         """
         # Try new values
         location = str(self.config.location)
-        image_pattern = str(self.config.image_pattern)
-        stack_pattern = str(self.config.stack_pattern)
-        results_folder = str(self.config.results_folder)
         model_index = int(self.config.model_index)
+        custom_options = self.config.custom_options
 
         # Set data model for controller from user pick
-        success = self.controller.get_time_series(
-            self.ts_data_models[model_index],
-            location, image_pattern, stack_pattern, results_folder)
+        try: 
+            self.controller.get_time_series(
+                self.ts_data_models[model_index],
+                location,
+                custom_options)
 
-        if success:
             # Accept values
             self.location = location
-            self.image_pattern = image_pattern
-            self.stack_pattern = stack_pattern
-            self.results_folder = results_folder
+
             # Close config
             self.config_closed()
             # Send message
@@ -165,12 +159,14 @@ class TSTools(QObject):
                                                 'Loaded time series',
                                                 level=QgsMessageBar.INFO,
                                                 duration=3)
-        else:
+        except:
             # Send error message
             self.iface.messageBar().pushMessage('Error', 
                                            'Failed to find time series.',
                                            level=QgsMessageBar.CRITICAL,
                                            duration=3)
+            raise
+            
     
     def config_closed(self):
         """ Close and disconnect the configuration dialog """

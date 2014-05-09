@@ -139,17 +139,15 @@ class Controller(QtCore.QObject):
 
 ### Setup
     def get_time_series(self, TimeSeries, 
-                        location, image_pattern, stack_pattern,
-                        results_folder=None):
+                        location, custom_options=None):
         """
         Loads the time series class when called by ccdctools and feeds
         information to controls & plotter
         """
         try:
-            self.ts = TimeSeries(location, image_pattern, stack_pattern,
-                                 results_folder)
+            self.ts = TimeSeries(location, custom_options)
         except:
-            return False
+            raise
 
         if self.ts:
             # Control panel

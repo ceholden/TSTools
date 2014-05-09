@@ -34,12 +34,12 @@ def list_repr(l):
 
     return ', '.join(map(repr, l))
 
-def str2list(string, datatype, sep=','):
+def str2dict(string, datatype, sep=','):
     """ return list of values of given type separated by whitespace or sep """
     return [datatype(s) for s in string.replace(sep, ' ').split(' ') if s != '']
 
 class CustomForm(QWidget):
-    """ Easily creates a form in FormLayoutfrom a list of names and 
+    """ Easily creates a form in FormLayoutfrom a dict of names and 
     example data
 
     Class is heavily inspired by "formlayout" module by Pierre Raybut
@@ -50,14 +50,12 @@ class CustomForm(QWidget):
         QWidget.__init__(self, parent)
 
         # validate input data
-        if not isinstance(defaults, list):
-            raise ValueError, 'Input data is not list'
+        if not isinstance(defaults, dict):
+            raise ValueError, 'Input data is not dict'
         else:
             if len(defaults) == 0:
                 raise ValueError, 'Input data has no elements'
-            else:
-                if not isinstance(defaults[0], list):
-                    raise ValueError, 'Input data element is not list'
+
         # copy over data
         import copy
         self.defaults = copy.deepcopy(defaults)
@@ -79,7 +77,7 @@ class CustomForm(QWidget):
             self.form_layout.addRow(QLabel('<b>' + self.title + '</b>'))
             self.form_layout.addRow(QLabel(''))
 
-        for name, value, limit in self.defaults:
+        for name, value in self.defaults.itervalues():
             # int
             if isinstance(value, int):
                 field = QLineEdit(repr(value), self)
@@ -124,7 +122,7 @@ class CustomForm(QWidget):
         """ Loop through widgets returning current data from widgets as list """
         values = []
 
-        for i, (name, value, limit) in enumerate(self.defaults):
+        for i, (name, value) in enumerate(self.defaults.itervalues()):
             field = self.widgets[i]
             # int
             if isinstance(value, int):
@@ -167,7 +165,7 @@ class CustomForm(QWidget):
 
     def set(self, values):
         """ Set values """
-        for i, (name, value, limit) in enumerate(values):
+        for i, (name, value) in enumerate(values.itervalues()):
             field = self.widgets[i]
             # int
             if isinstance(value, int):

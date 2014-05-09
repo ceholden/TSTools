@@ -20,7 +20,8 @@
  *                                                                         *
  ***************************************************************************/
 """
-
+from PyQt4 import QtCore
+from PyQt4 import QtGui # TODO remoe PyQt4 import *
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from qgis.core import *
@@ -149,6 +150,8 @@ class ControlPanel(QWidget, Ui_Widget):
         ### Fmask, fit & breaks on/off
         self.cbox_fmask.setChecked(setting.plot['mask'])
         self.cbox_fmask.stateChanged.connect(self.set_plot_fmask)
+
+        print ts.mask_val
 
         setting.plot['mask_val'] = ts.mask_val
         if setting.plot['mask_val'] is not None:
@@ -325,7 +328,7 @@ class ControlPanel(QWidget, Ui_Widget):
     def set_mask_vals(self):
         """ Sets mask values from line edit """
         if self.edit_values.text() == 'None':
-            continue
+            return
 
         try:
             values = map(int, 

@@ -45,6 +45,7 @@ class Config(QDialog, Ui_Config):
 
         ### Setup required information
         self.data_model_str = [_ts.__str__ for _ts in self.ts_data_models]
+        self.custom_options = None
 
         ### Finish setup
         self.setup_config()
@@ -62,31 +63,31 @@ class Config(QDialog, Ui_Config):
 
         ### Setup stacked widget for custom options
         self.stacked_widget = QtGui.QStackedWidget()
+
+        self.custom_forms = []
         
         for i, _ts in enumerate(self.ts_data_models):
             # Test for custom configurations
 
             has_custom_form = True
 
-            if not hasattr(_ts, 'custom_options') or \
-                not callable(getattr(_ts, 'set_custom_options', None)):    
+            if not hasattr(_ts, 'config') or \
+                not callable(getattr(_ts, 'set_custom_config', None)):    
                 has_custom_form = False
             else:
-                if not isinstance(_ts.custom_options, list):
+                if not isinstance(_ts.config, dict):
                     print 'Custom options for timeseries improperly described'
                     has_custom_form = False
-                if len(_ts.custom_options) == 0:
-                    print 'Custom controls for timeseries improperly described'
-                    has_custom_form = False
-                    
-                if not isinstance(_ts.custom_options[0], list):
+                if len(_ts.config) == 0:
                     print 'Custom controls for timeseries improperly described'
                     has_custom_form = False
 
             if has_custom_form is True:
-                custom_form = CustomForm(_ts.custom_options)
+                custom_form = CustomForm(_ts.config)
+                self.custom_forms.append(custom_form)
             else:
-                custom_form = QtGui.QLabel('No custom options')
+                custom_form = QtGui.QLabel('No custom config options')
+                self.custom_forms.append(None)
 
             custom_form.setParent(self.stacked_widget)
             self.stacked_widget.insertWidget(i, custom_form)
@@ -124,10 +125,15 @@ class Config(QDialog, Ui_Config):
     @QtCore.pyqtSlot()
     def accept_config(self):
         print 'Okay pressed!'
-        
-        self.model_index = self.combox_ts_model.currentIndex()
-        self.location = self.edit_location.text()
+        self.location = str(self.edit_location.text())
 
+        self.model_index = self.combox_ts_model.currentIndex()
+
+        if self.custom_forms[self.model_index] != None:
+            self.custom_options = self.custom_forms[self.model_index].get()
+        else:
+            self.custom_options = None
+        
         self.accepted.emit()
 
     @QtCore.pyqtSlot()    

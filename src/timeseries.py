@@ -73,18 +73,18 @@ class AbstractTimeSeries(object):
 
     __metaclass__ = abc.ABCMeta
 
+    # Overide/set these within subclasser as needed
+    has_cache = False
+    can_cache = False
+    cache_folder = None
+    mask_band = None
+    mask_val = None
+
     def __init__(self, location, image_pattern, stack_pattern):
         # Basic, required information
         self.location = os.path.realpath(location)
         self.image_pattern = image_pattern
         self.stack_pattern = stack_pattern
-
-        # Overide/set these within subclasser as needed
-        self.has_cache = False
-        self.can_cache = False
-        self.cache_folder = None
-        self.mask_band = None
-        self.mask_val = None
 
     def __repr__(self):
         return 'A {c} time series of {n} images at {m}'.format(

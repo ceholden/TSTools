@@ -20,6 +20,7 @@
  *                                                                         *
  ***************************************************************************/
 """
+from collections import OrderedDict
 import csv
 import datetime as dt
 import fnmatch
@@ -86,49 +87,52 @@ class CCDCTimeSeries_v9LIVE(timeseries_ccdc.CCDCTimeSeries):
     # __str__ name for TSTools data model plugin loader
     __str__ = 'CCDC v9 Time Series - LIVE'
 
-    image_pattern = 'L*'
-    stack_pattern = '*stack'
-    results_folder = 'TSFitMap'
-    results_pattern = 'record_change*'
+    mask_val = [2, 3, 4, 255]
+
+    config = OrderedDict([
+            ['image_pattern',   ['Image folder pattern',  'L*']],
+            ['stack_pattern',   ['Stack pattern',  '*stack']],
+            ['cache_folder',    ['Cache folder', '.cache']],
+            ['mask_band',       ['Mask band', 8]]
+    ])
 
     custom_controls_title = 'CCDC v9 Options'
-    custom_controls = [
-            ['CCDC_function',  'TrendSeasonalFit_v9_QGIS_max', None],
-            ['n_times',     1.5,    [0.5, 10]],
-            ['conse',       5,      [1, 10]],
-            ['T_cg',        2.57,   None],
-            ['num_c',       8,      [2, 8]],
-            ['B_detect',    np.array([[3, 4, 5, 6]]),    None]
-    ]
+    custom_controls = OrderedDict([
+            ['CCDC_function',  'TrendSeasonalFit_v9_QGIS_max'],
+            ['n_times',     1.5],
+            ['conse',       5],
+            ['T_cg',        2.57],
+            ['num_c',       8],
+            ['B_detect',    np.array([[3, 4, 5, 6]])]
+    ])
 
-    def __init__(self, location, 
-                 image_pattern=image_pattern, 
-                 stack_pattern=stack_pattern,
-                 results_folder=results_folder,
-                 results_pattern=results_pattern,
-                 cache_folder='.cache'):
-        
-        super(CCDCTimeSeries_v9LIVE, self).__init__(location, 
-                                             image_pattern,
-                                             stack_pattern)
+    def __init__(self, location, config=config):
+
+        super(CCDCTimeSeries_v9LIVE, self).__init__(location, config)
 
         self.ml_dates = [py2mldate(_d) for _d in self.dates]
 
         self._check_matlab()
 
     def set_custom_controls(self, values):
-        """ Set custom control options """
-        for i, v in enumerate(values):
-            if isinstance(v, type(self.custom_controls[i][1])):
-                if self.custom_controls[i][0] == 'CCDC_function':
+        """ Set custom control options 
+
+        Arguments:
+            values          list of values to be inserted into OrderedDict
+
+        """
+        for v, k in zip(values, custom_controls.keys()):
+
+            if isinstance(v, type(self.custom_controls[k])):
+                if k == 'CCDC_function':
                     try:
                         self._check_matlab(function=v, load_ml=False)
                     except:
                         raise
-                self.custom_controls[i][1] = v
+                self.custom_controls[k] = v
             else:
                 print 'Error setting value for {o}'.format(
-                    o=self.custom_controls[i])
+                    o=self.custom_controls[k])
 
 
     def retrieve_result(self):
@@ -168,7 +172,7 @@ class CCDCTimeSeries_v9LIVE(timeseries_ccdc.CCDCTimeSeries):
         self.mlab._set('sdate', self.ml_dates)
         self.mlab._set('line_t', self.get_data(mask = False).T)
         
-        for k, v, _ in self.custom_opts:
+        for k, (_, v) in self.config.iteritems():
             self.mlab._set(k, v)
  #       for k, v in self.param.iteritems():
  #           self.mlab._set(str(k), v)
