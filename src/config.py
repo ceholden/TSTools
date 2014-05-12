@@ -23,21 +23,18 @@
 from PyQt4 import QtCore
 from PyQt4 import QtGui
 
-from PyQt4.QtCore import * # TODO remove * imports
-from PyQt4.QtGui import *
-
 from ui_config import Ui_Config
 
 from custom_form import CustomForm
 
-class Config(QDialog, Ui_Config):
+class Config(QtGui.QDialog, Ui_Config):
 
-    accepted = pyqtSignal()
-    canceled = pyqtSignal()
+    accepted = QtCore.pyqtSignal()
+    canceled = QtCore.pyqtSignal()
 
     def __init__(self, iface, location, ts_data_models):
         self.iface = iface
-        QWidget.__init__(self)
+        QtGui.QWidget.__init__(self)
         self.setupUi(self)
         ### Data
         self.location = location
@@ -65,14 +62,14 @@ class Config(QDialog, Ui_Config):
         self.stacked_widget = QtGui.QStackedWidget()
 
         self.custom_forms = []
-        
+
         for i, _ts in enumerate(self.ts_data_models):
             # Test for custom configurations
 
             has_custom_form = True
 
             if not hasattr(_ts, 'config') or \
-                not callable(getattr(_ts, 'set_custom_config', None)):    
+                not callable(getattr(_ts, 'set_custom_config', None)):
                 has_custom_form = False
             else:
                 if not isinstance(_ts.config, dict):
@@ -98,8 +95,8 @@ class Config(QDialog, Ui_Config):
 
         ### Setup dialog buttons
         # Init buttons
-        self.ok = self.button_box.button(QDialogButtonBox.Ok)
-        self.cancel = self.button_box.button(QDialogButtonBox.Cancel)
+        self.ok = self.button_box.button(QtGui.QDialogButtonBox.Ok)
+        self.cancel = self.button_box.button(QtGui.QDialogButtonBox.Cancel)
         # Add signals
         self.ok.pressed.connect(self.accept_config)
         self.cancel.pressed.connect(self.cancel_config)
@@ -116,11 +113,11 @@ class Config(QDialog, Ui_Config):
         """
         Brings up a QFileDialog allowing user to select a folder
         """
-        self.location = QFileDialog.getExistingDirectory(self, 
+        self.location = QFileDialog.getExistingDirectory(self,
                             'Select stack location',
                             self.location,
                             QFileDialog.ShowDirsOnly)
-        self.edit_location.setText(self.location) 
+        self.edit_location.setText(self.location)
 
     @QtCore.pyqtSlot()
     def accept_config(self):
@@ -133,10 +130,10 @@ class Config(QDialog, Ui_Config):
             self.custom_options = self.custom_forms[self.model_index].get()
         else:
             self.custom_options = None
-        
+
         self.accepted.emit()
 
-    @QtCore.pyqtSlot()    
+    @QtCore.pyqtSlot()
     def cancel_config(self):
         print 'Cancel pressed!'
         self.canceled.emit()
