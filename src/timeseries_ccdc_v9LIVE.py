@@ -63,7 +63,7 @@ def convert(obj, mlab):
             matlab_idx = k+1
             cell_list.append(
                 convert( mlab.eval('%s{%d}' % (varname, matlab_idx)), mlab))
-        return cell_list            
+        return cell_list
 
     elif is_struct_proxy(obj):
         m = re.match(".*?internal name: '(.*?)';.*?", str(obj))
@@ -73,12 +73,12 @@ def convert(obj, mlab):
         for key in fieldnames:
             dict[key] = convert(mlab.eval('%s.(\'%s\')' % (varname, key) ),
                                 mlab)
-   
+
         return dict
 
 
 class CCDCTimeSeries_v9LIVE(timeseries_ccdc.CCDCTimeSeries):
-    """Class holding data and methods for time series used by CCDC 
+    """Class holding data and methods for time series used by CCDC
     (Change Detection and Classification). Useful for QGIS plugin 'TSTools'.
 
     More doc TODO
@@ -87,26 +87,25 @@ class CCDCTimeSeries_v9LIVE(timeseries_ccdc.CCDCTimeSeries):
     # __str__ name for TSTools data model plugin loader
     __str__ = 'CCDC v9 Time Series - LIVE'
 
-    mask_val = [2, 3, 4, 255]
+    __configurable__ = ['image_pattern', 'stack_pattern',
+        'cache_folder', 'mask_band']
+    __configurable__str__ = ['Image folder pattern',
+        'Stack pattern',
+        'Cache folder',
+        'Mask band']
 
-    config = OrderedDict([
-            ['image_pattern',   ['Image folder pattern',  'L*']],
-            ['stack_pattern',   ['Stack pattern',  '*stack']],
-            ['cache_folder',    ['Cache folder', '.cache']],
-            ['mask_band',       ['Mask band', 8]]
-    ])
+    CCDC_function = 'TrendSeasonalFit_v9_QGIS_max'
+    n_times = 3
+    conse = 5
+    T_cg = 2.57
+    num_c = 8
+    B_detect = np.array([[3, 4, 5, 6]])
 
-    custom_controls_title = 'CCDC v9 Options'
-    custom_controls = OrderedDict([
-            ['CCDC_function',  'TrendSeasonalFit_v9_QGIS_max'],
-            ['n_times',     1.5],
-            ['conse',       5],
-            ['T_cg',        2.57],
-            ['num_c',       8],
-            ['B_detect',    np.array([[3, 4, 5, 6]])]
-    ])
+    __custom_controls_title__ = 'CCDC v9 Options'
+    __custom_controls__ = ['CCDC_function', 'n_times', 'conse',
+        'T_cg', 'num_c', 'B_detect']
 
-    def __init__(self, location, config=config):
+    def __init__(self, location, config=None):
 
         super(CCDCTimeSeries_v9LIVE, self).__init__(location, config)
 
@@ -115,25 +114,24 @@ class CCDCTimeSeries_v9LIVE(timeseries_ccdc.CCDCTimeSeries):
         self._check_matlab()
 
     def set_custom_controls(self, values):
-        """ Set custom control options 
+        """ Set custom control options
 
         Arguments:
             values          list of values to be inserted into OrderedDict
 
         """
-        for v, k in zip(values, custom_controls.keys()):
-
-            if isinstance(v, type(self.custom_controls[k])):
+        for v, k in zip(values, __custom_controls__):
+            current_value = getattr(self, k)
+            if isinstance(v, type(current_Value)):
                 if k == 'CCDC_function':
                     try:
                         self._check_matlab(function=v, load_ml=False)
                     except:
                         raise
-                self.custom_controls[k] = v
+                setattr(self, k, v)
             else:
                 print 'Error setting value for {o}'.format(
-                    o=self.custom_controls[k])
-
+                    o=k)
 
     def retrieve_result(self):
         """ Returns the record changes for the current pixel
@@ -143,7 +141,7 @@ class CCDCTimeSeries_v9LIVE(timeseries_ccdc.CCDCTimeSeries):
         Note:   MATLAB indexes on 1 so y is really (y - 1) in calculations and
                 x is (x - 1)
 
-        CCDC Usage:
+        CCDC Usage:cd
             rec_cg=TrendSeasonalFit_v10_QGIS(
                 N_row,N_col, mini, T_cg, n_times, conse, B_detect)
 
@@ -171,14 +169,15 @@ class CCDCTimeSeries_v9LIVE(timeseries_ccdc.CCDCTimeSeries):
         ### Set data in MATLAB
         self.mlab._set('sdate', self.ml_dates)
         self.mlab._set('line_t', self.get_data(mask = False).T)
-        
-        for k, (_, v) in self.config.iteritems():
+
+        for k in self.__custom_controls__:
+            v = getattr(self, k)
             self.mlab._set(k, v)
  #       for k, v in self.param.iteritems():
  #           self.mlab._set(str(k), v)
 
         ### Run CCDC in MATLAB and save MATLAB proxy class from mlabwrap
-        rec_cg = self.mlab.eval(self.CCDC_function + 
+        rec_cg = self.mlab.eval(self.CCDC_function +
             '(sdate, line_t, n_times, conse, T_cg, num_c, B_detect);')
 
         # Find how many records using MATLAB commands
@@ -187,7 +186,7 @@ class CCDCTimeSeries_v9LIVE(timeseries_ccdc.CCDCTimeSeries):
         for i in range(n_records):
             # Convert references to MATLAB structs to dictionaries and append
             self.result.append(convert(rec_cg[i], self.mlab))
-        
+
         print self.result
 
 
@@ -199,7 +198,7 @@ class CCDCTimeSeries_v9LIVE(timeseries_ccdc.CCDCTimeSeries):
             usermx          optional - can specify MATLAB datenum dates as list
 
         Returns:
-            [(mx, my)]      list of data points for time series fit where 
+            [(mx, my)]      list of data points for time series fit where
                                 length of list is equal to number of time
                                 segments
 
@@ -215,13 +214,13 @@ class CCDCTimeSeries_v9LIVE(timeseries_ccdc.CCDCTimeSeries):
             for rec in self.result:
                 if band >= rec['coefs'].shape[1]:
                     break
-                
+
                 ### Setup x values (dates)
                 # Use user specified values, if possible
                 if has_mx:
-                    _mx = usermx[np.where((usermx >= rec['t_start']) & 
+                    _mx = usermx[np.where((usermx >= rec['t_start']) &
                                       (usermx <= rec['t_end']))]
-                    if len(_mx) == 0: 
+                    if len(_mx) == 0:
                         # User didn't ask for dates in this range
                         continue
                 else:
@@ -230,7 +229,7 @@ class CCDCTimeSeries_v9LIVE(timeseries_ccdc.CCDCTimeSeries):
                                       rec['t_end'],
                                       rec['t_end'] - rec['t_start'])
                 coef = rec['coefs'][:, band]
-                
+
                 ### Calculate model predictions
                 w = 2 * np.pi / 365.25
 
@@ -245,9 +244,9 @@ class CCDCTimeSeries_v9LIVE(timeseries_ccdc.CCDCTimeSeries):
                             coef[3] * np.sin(w * _mx))
                 elif coef.shape[0] == 6:
                     # 6 coefficient model
-                    _my = (coef[0] + 
-                           coef[1] * _mx + 
-                           coef[2] * np.cos(w * _mx) + 
+                    _my = (coef[0] +
+                           coef[1] * _mx +
+                           coef[2] * np.cos(w * _mx) +
                            coef[3] * np.sin(w * _mx) +
                            coef[4] * np.cos(2 * w * _mx) +
                            coef[5] * np.sin(2 * w * _mx))
@@ -281,7 +280,7 @@ class CCDCTimeSeries_v9LIVE(timeseries_ccdc.CCDCTimeSeries):
     def _check_matlab(self, folder='CCDC',
                       function='TrendSeasonalFit_v9_QGIS_max',
                       load_ml=True):
-        """ Check to see if MATLAB files are available and can be loaded 
+        """ Check to see if MATLAB files are available and can be loaded
         """
 
         if load_ml is True:

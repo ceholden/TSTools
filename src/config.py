@@ -20,6 +20,8 @@
  *                                                                         *
  ***************************************************************************/
 """
+from collections import OrderedDict
+
 from PyQt4 import QtCore
 from PyQt4 import QtGui
 
@@ -68,19 +70,26 @@ class Config(QtGui.QDialog, Ui_Config):
 
             has_custom_form = True
 
-            if not hasattr(_ts, 'config') or \
+            if not hasattr(_ts, '__configurable__') or \
+                not hasattr(_ts, '__configurable__str__') or \
                 not callable(getattr(_ts, 'set_custom_config', None)):
                 has_custom_form = False
             else:
-                if not isinstance(_ts.config, dict):
+                if not isinstance(_ts.__configurable__, list):
                     print 'Custom options for timeseries improperly described'
                     has_custom_form = False
-                if len(_ts.config) == 0:
+                if len(_ts.__configurable__) == 0:
                     print 'Custom controls for timeseries improperly described'
                     has_custom_form = False
 
             if has_custom_form is True:
-                custom_form = CustomForm(_ts.config)
+                # Create OrderedDict for CustomForm
+                default_config = OrderedDict([
+                    [key, [name, getattr(_ts, key)]] for key, name in
+                    zip(_ts.__configurable__, _ts.__configurable__str__)
+                ])
+
+                custom_form = CustomForm(default_config)
                 self.custom_forms.append(custom_form)
             else:
                 custom_form = QtGui.QLabel('No custom config options')

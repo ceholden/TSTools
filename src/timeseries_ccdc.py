@@ -20,7 +20,6 @@
  *                                                                         *
  ***************************************************************************/
 """
-from collections import OrderedDict
 import datetime as dt
 import fnmatch
 import os
@@ -46,7 +45,7 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
     # __str__ name for TSTools data model plugin loader
     __str__ = 'CCDC Time Series'
 
-    # TODO add some container for "metadata" that can be used in table
+    # TODO add some container for "metadata" that can be used in table (hint: __metadata__)
     image_names = []
     filenames = []
     filepaths = []
@@ -73,29 +72,34 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
 
     mask_val = [2, 3, 4, 255]
 
-    config = OrderedDict([
-            ['image_pattern',   ['Image folder pattern',  'L*']],
-            ['stack_pattern',   ['Stack pattern',  '*stack']],
-            ['results_folder',  ['Results folder', 'TSFitMap']],
-            ['results_pattern', ['Results pattern', 'record_change*']],
-            ['cache_folder',    ['Cache folder', '.cache']],
-            ['mask_band',       ['Mask band', 8]]
-    ])
+    image_pattern = 'L*'
+    stack_pattern = '*stack'
+    results_folder = 'TSFitMap'
+    results_pattern = 'record_change*'
+    cache_folder = '.cache'
+    mask_band = 8
 
-    def __init__(self, location, config=config):
+    __configurable__ = ['image_pattern', 'stack_pattern',
+      'results_folder', 'results_pattern',
+      'cache_folder', 'mask_band']
+    __configurable__str__ = ['Image folder pattern', 'Stack Pattern',
+      'Results folder', 'Results pattern',
+      'Cache folder pattern', 'Mask band']
 
-        self.set_custom_config(config)
+    def __init__(self, location, config=None):
+        if config is not None:
+            self.set_custom_config(config)
 
         super(CCDCTimeSeries, self).__init__(location,
-                                             self.config['image_pattern'][1],
-                                             self.config['stack_pattern'][1])
+                                             self.image_pattern,
+                                             self.stack_pattern)
 
         self._find_stacks()
         self._get_attributes()
         self._get_dates()
-        if self.config.has_key('results_folder'):
+        if getattr(self, 'results_folder', None) is not None:
             self._check_results()
-        if self.config.has_key('cache_folder'):
+        if getattr(self, 'cache_folder', None) is not None:
             self._check_cache()
         self._open_ts()
 
@@ -105,30 +109,33 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
         """ Set custom configuration options
 
         Arguments:
-            values          list of values to be inserted into OrderedDict
+            values          list of values matched to self.__configurable__
 
         """
         print "SETTING CUSTOM VALUES"
         print values
-        print self.config.keys()
+        print self.__configurable__
 
-        for v, k in zip(values, self.config.keys()):
+        for v, k in zip(values, self.__configurable__):
+            # Lookup current value for configurable item
+            current_value = getattr(self, k, None)
 
             print '    {k} : {cv} <-- {v}'.format(
                 k=k,
                 v=v,
-                cv=self.config[k][1]
+                cv=current_value
             )
 
             # Make sure new value is of same type
-            if isinstance(v, type(self.config[k][1])):
-                self.config[k][1] = v
+            if isinstance(v, type(current_value)):
+                # Set attribute
+                setattr(self, k, v)
             else:
                 raise AttributeError, \
                     'Cannot set value {v} for {o} (current value {cv})'.format(
                     v=v,
-                    o=self.config[k][0],
-                    cv=self.config[k][1])
+                    o=k,
+                    cv=current_value)
 
     def get_ts_pixel(self, use_cache=True, do_cache=True):
         """ Fetch pixel data for the current pixel and set to self._data
@@ -203,11 +210,11 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
         self.result = []
 
         # Check for existence of output
-        record = self.config['results_pattern'][1].replace(
+        record = self.results_pattern.replace(
             '*', str(self._py + 1)) + '.mat'
 
         record = os.path.join(self.location,
-            self.config['results_folder'][1], record)
+            self.results_folder, record)
 
         print 'Opening: {r}'.format(r=record)
 
@@ -280,8 +287,8 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
 
                 ### Calculate model predictions
                 # HACK: adjust w based on existence of parameter file
-                if os.path.isfile(os.path.join(self.location, 
-                    self.config['results_folder'][1], '.p_36525')):
+                if os.path.isfile(os.path.join(self.location,
+                    self.results_folder, '.p_36525')):
 
                     w = 2 * np.pi / 365.25
                 else:
@@ -379,7 +386,7 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
         """ Apply mask to self._data """
 
         if mask_band is None:
-            mask_band = self.config['mask_band'][1]
+            mask_band = self.mask_band
 
         if mask_val is None:
             mask_val = list(self.mask_val)
@@ -459,10 +466,10 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
         self.location = self.location.rstrip(os.path.sep)
         num_sep = self.location.count(os.path.sep)
         for root, dnames, fnames in os.walk(self.location, followlinks=True):
-            if self.config.has_key('results_folder'):
+            if self.results_folder is not None:
                 # Remove results folder if exists
                 dnames[:] = [d for d in dnames if
-                    self.config['results_folder'][1] not in d]
+                    self.results_folder not in d]
 
             # Force only 1 level
             num_sep_this = root.count(os.path.sep)
@@ -470,7 +477,7 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
                 del dnames[:]
 
             # Directory names as image IDs
-            for dname in fnmatch.filter(dnames, self.config['image_pattern'][1]):
+            for dname in fnmatch.filter(dnames, self.image_pattern):
                 self.image_names.append(dname)
             # Add file name and paths
             for fname in fnmatch.filter(fnames, self.stack_pattern):
@@ -531,6 +538,7 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
         self.datatype = np.dtype(self.datatype)
 
         # Band names
+        self.band_names = []
         for i in range(ds.RasterCount):
             band = ds.GetRasterBand(i + 1)
             if (band.GetDescription() is not None and
@@ -564,12 +572,12 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
 
     def _check_results(self):
         """ Checks for results """
-        results = os.path.join(self.location, self.config['results_folder'][1])
+        results = os.path.join(self.location, self.results_folder)
         if (os.path.exists(results) and os.path.isdir(results) and
             os.access(results, os.R_OK)):
             # Check for any results
             for root, dname, fname in os.walk(results):
-                for f in fnmatch.filter(fname, self.config['results_pattern'][1]):
+                for f in fnmatch.filter(fname, self.results_pattern):
                     self.has_results = True
                     self.results_folder = root
                     return
@@ -578,7 +586,7 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
         """ Checks location of time series for a cache to read/write
         time series
         """
-        cache = os.path.join(self.location, self.config['cache_folder'][1])
+        cache = os.path.join(self.location, self.cache_folder)
         if os.path.exists(cache) and os.path.isdir(cache):
             if os.access(cache, os.R_OK):
                 self.has_cache = True
@@ -617,8 +625,8 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
         """ Return cache filename for given x/y """
         cache = 'n{n}_x{x}-y{y}_timeseries.npy'.format(
             n=self.length, x=x, y=y)
-        if self.config['cache_folder'][1] is not None:
-            return os.path.join(self.location, self.config['cache_folder'][1], cache)
+        if self.cache_folder is not None:
+            return os.path.join(self.location, self.cache_folder, cache)
         else:
             return None
 

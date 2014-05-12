@@ -48,14 +48,14 @@ class TSTools(QObject):
         super(TSTools, self).__init__()
         # Save reference to the QGIS interface
         self.iface = iface
-        self.canvas = self.iface.mapCanvas()    
+        self.canvas = self.iface.mapCanvas()
 
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
         # initialize locale
         locale = QSettings().value("locale/userLocale")[0:2]
-        localePath = os.path.join(self.plugin_dir, 
-                                  'i18n', 
+        localePath = os.path.join(self.plugin_dir,
+                                  'i18n',
                                   'tstools_{}.qm'.format(locale))
 
         if os.path.exists(localePath):
@@ -143,7 +143,7 @@ class TSTools(QObject):
         custom_options = self.config.custom_options
 
         # Set data model for controller from user pick
-        try: 
+        try:
             self.controller.get_time_series(
                 self.ts_data_models[model_index],
                 location,
@@ -155,19 +155,19 @@ class TSTools(QObject):
             # Close config
             self.config_closed()
             # Send message
-            self.iface.messageBar().pushMessage('Info', 
+            self.iface.messageBar().pushMessage('Info',
                                                 'Loaded time series',
                                                 level=QgsMessageBar.INFO,
                                                 duration=3)
         except:
             # Send error message
-            self.iface.messageBar().pushMessage('Error', 
+            self.iface.messageBar().pushMessage('Error',
                                            'Failed to find time series.',
                                            level=QgsMessageBar.CRITICAL,
                                            duration=3)
             raise
-            
-    
+
+
     def config_closed(self):
         """ Close and disconnect the configuration dialog """
         self.config.accepted.disconnect()
@@ -205,18 +205,18 @@ class TSTools(QObject):
 
         # Add to dock widget
         self.plot_dock.setWidget(self.plot_tabs)
-        
+
         # Add to iface
         self.iface.addDockWidget(Qt.BottomDockWidgetArea, self.plot_dock)
 
     def initGui(self):
-        """ Required method for Qt to load components. 
+        """ Required method for Qt to load components.
 
         Load controls, plot, and init the signal controller
         """
         self.init_controls()
         self.init_plots()
-        self.controller = Controller(self.iface, self.ctrl, 
+        self.controller = Controller(self.iface, self.ctrl,
                                      self.ts_plot, self.doy_plot, parent=self)
 
         self.controller.enable_tool.connect(self.set_tool)
@@ -226,7 +226,7 @@ class TSTools(QObject):
 
     def plot_request(self, pos, button=None):
         """ Request handler for QgsMapToolEmitPoint. Gets position and sends
-        signal to controller to grab data & plot 
+        signal to controller to grab data & plot
         """
         if self.tool_enabled is False:
             print 'NO PLOT FOR YOU'
@@ -272,9 +272,9 @@ class TSTools(QObject):
                     level=QgsMessageBar.ERROR,
                     duration = 5)
                 return
-        
+
         # Fetch data if inside raster
-        if layer and layer.extent().contains(pos):        
+        if layer and layer.extent().contains(pos):
             # Fetch data
             self.controller.fetch_data(pos)
 

@@ -28,6 +28,7 @@ from qgis.core import *
 
 import numpy as np
 
+from collections import OrderedDict
 import datetime as dt
 import fnmatch
 from functools import partial
@@ -64,28 +65,24 @@ class ControlPanel(QWidget, Ui_Widget):
 
     def init_custom_options(self, ts):
         # Check to see if TS class has UI elements described
-        if not hasattr(ts, 'custom_controls') or \
+        if not hasattr(ts, '__custom_controls__') or \
             not callable(getattr(ts, 'set_custom_controls', None)):
 
             self.custom_form = None
             return
         else:
-            if not isinstance(ts.custom_controls, list):
+            if not isinstance(ts.__custom_controls__, list):
                 print 'Custom controls for timeseries improperly described'
                 self.custom_form = None
                 return
-            if len(ts.custom_controls) == 0:
-                print 'Custom controls for timeseries improperly described'
-                self.custom_form = None
-                return
-            if not isinstance(ts.custom_controls[0], list):
+            if len(ts.__custom_controls__) == 0:
                 print 'Custom controls for timeseries improperly described'
                 self.custom_form = None
                 return
 
         # Add form
-        if not hasattr(ts, 'custom_controls_title'):
-            ts.custom_controls_title = None
+        if not hasattr(ts, '__custom_controls_title__'):
+            ts.__custom_controls_title__ = None
 
         self.custom_form = getattr(self, 'custom_form', None)
         if self.custom_form is not None:
@@ -94,7 +91,12 @@ class ControlPanel(QWidget, Ui_Widget):
             self.tab_options.layout().removeWidget(self.custom_form)
             self.custom_form = None
 
-        self.custom_form = CustomForm(ts.custom_controls, ts.custom_controls_title)
+        print 'Adding custom form for TS {ts}'.format(ts=repr(ts))
+        config = OrderedDict([
+            [key, [key, getattr(ts, key)]] for key in
+            ts.__custom_controls__
+        ])
+        self.custom_form = CustomForm(config, ts.__custom_controls_title__)
         self.tab_options.layout().addWidget(self.custom_form)
 
     def init_plot_options(self, ts):
@@ -128,9 +130,9 @@ class ControlPanel(QWidget, Ui_Widget):
         self.lab_xmin.setText(str(setting.plot['xmin']))
         self.lab_xmax.setText(str(setting.plot['xmax']))
 
-        self.scroll_xmin.setRange(setting.plot['xmin'], 
+        self.scroll_xmin.setRange(setting.plot['xmin'],
             setting.plot['xmax'] - 1)
-        self.scroll_xmax.setRange(setting.plot['xmin'] + 1, 
+        self.scroll_xmax.setRange(setting.plot['xmin'] + 1,
             setting.plot['xmax'])
         self.scroll_xmin.setValue(setting.plot['xmin'])
         self.scroll_xmax.setValue(setting.plot['xmax'])
@@ -138,9 +140,9 @@ class ControlPanel(QWidget, Ui_Widget):
         self.scroll_xmax.setSingleStep(1)
         self.scroll_xmin.setPageStep(1)
         self.scroll_xmax.setPageStep(1)
-        
+
         self.scroll_xmin.valueChanged.connect(self.set_plot_xmin)
-        self.scroll_xmin.sliderMoved.connect(self.xmin_moved) 
+        self.scroll_xmin.sliderMoved.connect(self.xmin_moved)
         self.scroll_xmax.valueChanged.connect(self.set_plot_xmax)
         self.scroll_xmax.sliderMoved.connect(self.xmax_moved)
 
@@ -166,7 +168,7 @@ class ControlPanel(QWidget, Ui_Widget):
             self.cbox_modelfit.setEnabled(True)
             self.cbox_modelfit.setChecked(setting.plot['fit'])
             self.cbox_modelfit.stateChanged.connect(self.set_model_fit)
-        
+
             self.cbox_breakpoint.setEnabled(True)
             self.cbox_breakpoint.setChecked(setting.plot['break'])
             self.cbox_breakpoint.stateChanged.connect(self.set_break_point)
@@ -221,7 +223,7 @@ class ControlPanel(QWidget, Ui_Widget):
         if setting.plot['yscale_all']:
             print 'DEBUG: applying ymin to all'
             setting.plot['min'][:] = ymin
-        else:     
+        else:
             setting.plot['min'][setting.plot['band']] = ymin
         self.plot_options_changed.emit()
 
@@ -234,7 +236,7 @@ class ControlPanel(QWidget, Ui_Widget):
 
         if setting.plot['yscale_all']:
             print 'DEBUG: applying ymax to all'
-            setting.plot['max'][:] = ymax 
+            setting.plot['max'][:] = ymax
         else:
             setting.plot['max'][setting.plot['band']] = ymax
 
@@ -251,7 +253,7 @@ class ControlPanel(QWidget, Ui_Widget):
         # Set value and label
         setting.plot['xmin'] = xmin
         self.lab_xmin.setText(str(xmin))
-        
+
         # Reconfigure range
         if setting.plot['xscale_fix']:
             setting.plot['xmax'] = xmin + setting.plot['xscale_range']
@@ -287,8 +289,8 @@ class ControlPanel(QWidget, Ui_Widget):
             self.scroll_xmin.setMaximum(xmax - self.scroll_xmin.singleStep())
 
         self.plot_options_changed.emit()
-    
-    @QtCore.pyqtSlot(int)    
+
+    @QtCore.pyqtSlot(int)
     def set_xscale_fix(self, state):
         """ Slot for turning on/off fixing date range for x axis """
         if state == Qt.Checked:
@@ -331,7 +333,7 @@ class ControlPanel(QWidget, Ui_Widget):
             return
 
         try:
-            values = map(int, 
+            values = map(int,
                          self.edit_values.text().replace(' ', '').split(','))
             setting.plot['mask_val'] = values
             self.mask_updated.emit()
@@ -396,23 +398,23 @@ class ControlPanel(QWidget, Ui_Widget):
 
         # Contrast enhancement
         self.combox_cenhance.setCurrentIndex(setting.symbol['contrast'])
-        
+
         # Band selections
         if self.combox_red.count() == 0:
             self.combox_red.addItems(ts.band_names)
         if setting.symbol['band_red'] < len(ts.band_names):
             self.combox_red.setCurrentIndex(setting.symbol['band_red'])
-        
+
         if self.combox_green.count() == 0:
             self.combox_green.addItems(ts.band_names)
         if setting.symbol['band_green'] < len(ts.band_names):
             self.combox_green.setCurrentIndex(setting.symbol['band_green'])
-        
+
         if self.combox_blue.count() == 0:
             self.combox_blue.addItems(ts.band_names)
         if setting.symbol['band_blue'] < len(ts.band_names):
             self.combox_blue.setCurrentIndex(setting.symbol['band_blue'])
-        
+
         # Min / max
         self.edit_redmin.setText(str(
             setting.symbol['min'][setting.symbol['band_red']]))
@@ -457,7 +459,7 @@ class ControlPanel(QWidget, Ui_Widget):
         self.but_symbol_apply.clicked.connect(self.apply_symbology)
 
     def set_symbol_control(self, state):
-        """ Turns on or off control of symbology 
+        """ Turns on or off control of symbology
         """
         if state == Qt.Checked:
             setting.symbol['control'] = True
@@ -467,8 +469,8 @@ class ControlPanel(QWidget, Ui_Widget):
             self.but_symbol_apply.setEnabled(False)
 
     def set_symbol_band(self, color, index):
-        """ Assigns image band to symbology color and updates the QLineEdit 
-        min/max display to the min/max for the image band chosen for symbology 
+        """ Assigns image band to symbology color and updates the QLineEdit
+        min/max display to the min/max for the image band chosen for symbology
         color.
         """
         if color == 'red':
@@ -477,7 +479,7 @@ class ControlPanel(QWidget, Ui_Widget):
             setting.p_symbol['band_green'] = index
         elif color == 'blue':
             setting.p_symbol['band_blue'] = index
-        
+
         self.edit_redmin.setText(
             str(setting.p_symbol['min'][setting.p_symbol['band_red']]))
         self.edit_redmax.setText(
@@ -492,7 +494,7 @@ class ControlPanel(QWidget, Ui_Widget):
             str(setting.p_symbol['max'][setting.p_symbol['band_blue']]))
 
     def set_symbol_minmax(self, field, color, minmax):
-        """ Assigns minimum or maximum value for a given color 
+        """ Assigns minimum or maximum value for a given color
         """
         # Determine which image band we're using for symbology color
         if color == 'red':
@@ -510,10 +512,10 @@ class ControlPanel(QWidget, Ui_Widget):
             setting.p_symbol[minmax][band] = value
         except:
             field.setText(str(setting.p_symbol.get(minmax)[band]))
-            
-        
+
+
     def set_symbol_enhance(self, index):
-        """ Assigns color enhancement from combo box of methods 
+        """ Assigns color enhancement from combo box of methods
         """
         setting.p_symbol['contrast'] = index
 
@@ -533,7 +535,7 @@ class ControlPanel(QWidget, Ui_Widget):
         # Set header labels
         self.image_table.setHorizontalHeaderLabels(
             ['Add/Remove', 'Date', 'ID'])
-        
+
         # Propagate table
         self.image_table.setRowCount(ts.length)
         for row, (date, img) in enumerate(izip(ts.dates, ts.image_names)):

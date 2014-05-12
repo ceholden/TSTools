@@ -23,7 +23,7 @@
 import numpy as np
 
 from PyQt4.QtCore import * # TODO remove *
-from PyQt4.QtGui import * #TODO 
+from PyQt4.QtGui import * #TODO
 
 def list_repr(l):
     """ custom string repr for a list or numpy array using commas """
@@ -39,7 +39,7 @@ def str2dict(string, datatype, sep=','):
     return [datatype(s) for s in string.replace(sep, ' ').split(' ') if s != '']
 
 class CustomForm(QWidget):
-    """ Easily creates a form in FormLayoutfrom a dict of names and 
+    """ Easily creates a form in FormLayoutfrom a dict of names and
     example data
 
     Class is heavily inspired by "formlayout" module by Pierre Raybut
