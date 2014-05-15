@@ -122,10 +122,10 @@ class Config(QtGui.QDialog, Ui_Config):
         """
         Brings up a QFileDialog allowing user to select a folder
         """
-        self.location = QFileDialog.getExistingDirectory(self,
+        self.location = QtGui.QFileDialog.getExistingDirectory(self,
                             'Select stack location',
                             self.location,
-                            QFileDialog.ShowDirsOnly)
+                            QtGui.QFileDialog.ShowDirsOnly)
         self.edit_location.setText(self.location)
 
     @QtCore.pyqtSlot()
