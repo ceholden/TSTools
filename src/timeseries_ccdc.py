@@ -282,7 +282,7 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
                 # Create sequence of MATLAB ordinal date
                     _mx = np.linspace(rec['t_start'],
                                       rec['t_end'],
-                                      rec['t_end'] - rec['t_start'])
+                                      max(1, rec['t_end'] - rec['t_start']))
                 coef = rec['coefs'][:, band]
 
                 ### Calculate model predictions
