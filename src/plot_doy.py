@@ -166,6 +166,9 @@ class DOYPlot(FigureCanvas):
             fit_plt = []
             # Find median year and plot that result
             for n, _yr in enumerate(self.mx_year):
+                # Make sure _yr is not empty array
+                if len(_yr) == 0:
+                    continue
                 # Determine median year
                 med = int(np.median(_yr))
                 # Make sure median year is in our current x-axis
