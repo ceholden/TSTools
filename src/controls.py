@@ -105,11 +105,11 @@ class ControlPanel(QWidget, Ui_Widget):
         self.cbox_plotlayer.setChecked(setting.plot['plot_layer'])
         # Signal handled by CCDCController
         # Raster band select
+        self.combox_band.clear()
         if self.combox_band.count() == 0:
             self.combox_band.addItems(ts.band_names)
         self.combox_band.setCurrentIndex(setting.plot['band'])
-        self.combox_band.currentIndexChanged.connect(partial(
-            self.set_band_select))
+        self.combox_band.currentIndexChanged.connect(self.set_band_select)
 
         # Ylim min and max
         self.cbox_scale.setChecked(setting.plot['auto_scale'])
