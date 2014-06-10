@@ -263,13 +263,13 @@ class TSTools(QObject):
                 except:
                     self.iface.messageBar().pushMessage('Error',
                         'Could not convert map CRS to layer CRS',
-                        level=QgsMessageBar.ERROR,
+                        level=QgsMessageBar.WARNING,
                         duration = 5)
                     return
             else:
                 self.iface.messageBar().pushMessage('Error',
                     'Could not convert map CRS to layer CRS',
-                    level=QgsMessageBar.ERROR,
+                    level=QgsMessageBar.WARNING,
                     duration = 5)
                 return
 
