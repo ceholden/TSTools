@@ -127,7 +127,7 @@ class Controller(QtCore.QObject):
         self.doy_plot = doy_plot
 
         # Which tab do we have open?
-        self.active_plot = None
+        self.active_plot = self.ts_plot
 
         # Are we configured with a time series?
         self.configured = False
