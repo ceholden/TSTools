@@ -34,7 +34,7 @@ import settings as setting
 
 # Note: FigureCanvas is also a QWidget
 class TSPlot(FigureCanvas):
-    
+
     def __str__(self):
         return "Time Series Plot"
 
@@ -69,7 +69,7 @@ class TSPlot(FigureCanvas):
     def update_plot(self, ts):
         """ Fetches new information and then calls to plot
         """
-        
+
         print 'Updating plot...'
 
         self.px, self.py = ts.get_px(), ts.get_py()
@@ -106,39 +106,39 @@ class TSPlot(FigureCanvas):
             self.axes.set_ylabel('Band')
         else:
             self.axes.set_ylabel(ts.band_names[setting.plot['band']])
-        
+
         self.axes.grid(True)
 
-        self.axes.set_ylim([setting.plot['min'][setting.plot['band']], 
+        self.axes.set_ylim([setting.plot['min'][setting.plot['band']],
                             setting.plot['max'][setting.plot['band']]])
 
         if setting.plot['xmin'] is not None \
                 and setting.plot['xmax'] is not None:
-            self.axes.set_xlim([dt.date(setting.plot['xmin'], 01, 01), 
+            self.axes.set_xlim([dt.date(setting.plot['xmin'], 01, 01),
                                 dt.date(setting.plot['xmax'], 12, 31)])
-        
+
         # Plot time series data
-        line, = self.axes.plot(self.x, self.y, 
+        line, = self.axes.plot(self.x, self.y,
                        marker='o', ls='', color='k',
                        picker=setting.plot['picker_tol'])
-        
+
         # Plot modeled fit
         if setting.plot['fit'] is True:
             for i in xrange(len(self.mx)):
                 self.axes.plot(self.mx[i], self.my[i], linewidth=2)
-        
+
         # Plot break points
         if setting.plot['break'] is True:
             for i in xrange(len(self.bx)):
                 self.axes.plot(self.bx[i], self.by[i], 'ro',
                     mec='r', mfc='none', ms=10, mew=5)
-        
+
         # Redraw
         self.fig.tight_layout()
         self.fig.canvas.draw()
 
     def save_plot(self):
-        """ Save the matplotlib figure 
+        """ Save the matplotlib figure
         """
         ### Parse options from settings
         fname = setting.save_plot['fname']
@@ -146,21 +146,18 @@ class TSPlot(FigureCanvas):
         facecolor = setting.save_plot['facecolor']
         edgecolor = setting.save_plot['edgecolor']
         transparent = setting.save_plot['transparent']
-        ### Format the output path
-        directory = os.path.split(fname)[0]
-        # Check for file extension
-        if '.' not in os.path.split(fname)[1]:
-            filename = '{f}.{e}'.format(f=os.path.split(fname)[1], e=fformat)
-        # Add in directory if none
-        if directory == '':
-            directory = '.'
-        # If directory does not exist, return False
-        if not os.path.exists(directory):
-            return False
-        # Join and save
-        filename = os.path.join(directory, filename)
 
-        self.fig.savefig(filename, format=fformat, 
+        # Get real path to filename
+        fname = os.path.realpath(fname)
+
+        # Format the output path
+        directory = os.path.dirname(fname)
+
+        # Check for file extension
+        if fname.split('.')[-1].lower() != fformat:
+            fname = fname + '.' + fformat
+
+        self.fig.savefig(fname, format=fformat,
                          facecolor=facecolor, edgecolor=edgecolor,
                          transparent=transparent)
 
