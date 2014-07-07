@@ -29,12 +29,12 @@ import numpy as np
 import scipy.io
 
 class AbstractTimeSeries(object):
-    """ Abstract base class representing a remote sensing time series. 
+    """ Abstract base class representing a remote sensing time series.
 
-    AbstractTimeSeries class is meant to be sub-classed and its methods 
-    overriden. This interface simply defines attributes and methods expected 
+    AbstractTimeSeries class is meant to be sub-classed and its methods
+    overriden. This interface simply defines attributes and methods expected
     by "TSTools" QGIS plugin.
-    
+
     Required attributes:
         image_names                 Names or IDs for each image
         filenames                   File basename for each image
@@ -56,14 +56,15 @@ class AbstractTimeSeries(object):
         get_data                    return dataset
         get_prediction              return predicted dataset for x/y
         get_breaks                  return break points for time segments
-    
+
     Additional attributes:
         has_cache                   boolean indicating existence of cached data
         can_cache                   boolean indicating potential to cache data
         cache_folder                location of cache, if any
         mask_band                   band (index on 0) of mask within images
         mask_val                    values to mask
-    
+        __metadata__                list of attributes containing metadata
+
     Additional methods:
         apply_mask                  apply mask to dataset
         retrieve_from_cache         retrieve dataset from cached retrieval
@@ -79,6 +80,8 @@ class AbstractTimeSeries(object):
     cache_folder = None
     mask_band = None
     mask_val = None
+    __metadata__ = []
+    __metadata__str__ = []
 
     def __init__(self, location, image_pattern, stack_pattern):
         # Basic, required information
@@ -122,9 +125,9 @@ class AbstractTimeSeries(object):
     @abc.abstractproperty
     def length(self):
         """ Length of the time series """
-        pass 
+        pass
 
-    @abc.abstractproperty    
+    @abc.abstractproperty
     def dates(self):
         """ np.array of datetime for each image """
         pass
@@ -162,12 +165,12 @@ class AbstractTimeSeries(object):
 
 # HELPER METHOD
     def get_ts_pixel(self, x, y):
-        """ Fetch pixel data for a given x/y and set to self.data 
-        
+        """ Fetch pixel data for a given x/y and set to self.data
+
         Args:
             x                       column
             y                       row
-                 
+
         """
         for i in xrange(self.length):
             self.retrieve_pixel(x, y, i)
@@ -209,7 +212,7 @@ class AbstractTimeSeries(object):
     def get_prediction(self, band):
         """
         """
-        pass   
+        pass
 
     @abc.abstractmethod
     def get_breaks(self, x, y):
@@ -221,7 +224,7 @@ class AbstractTimeSeries(object):
     def get_px(self):
         """ current pixel column number """
         pass
-    
+
     @abc.abstractmethod
     def set_px(self, value):
         """ set current pixel column number """
@@ -232,7 +235,7 @@ class AbstractTimeSeries(object):
         """ current pixel row number """
         pass
 
-    @abc.abstractmethod    
+    @abc.abstractmethod
     def set_py(self, value):
         """ set current pixel row number """
         pass

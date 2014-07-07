@@ -78,13 +78,23 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
     results_pattern = 'record_change*'
     cache_folder = '.cache'
     mask_band = 8
+    days_in_year = 365.25
 
     __configurable__ = ['image_pattern', 'stack_pattern',
       'results_folder', 'results_pattern',
-      'cache_folder', 'mask_band']
+      'cache_folder', 'mask_band',
+      'days_in_year']
     __configurable__str__ = ['Image folder pattern', 'Stack Pattern',
       'Results folder', 'Results pattern',
-      'Cache folder pattern', 'Mask band']
+      'Cache folder pattern', 'Mask band',
+      'Days in Year']
+
+    sensor = np.array([])
+    pathrow = np.array([])
+    cloudcover = np.array([])
+
+    __metadata__ = ['sensor', 'pathrow']
+    __metadata__str__ = ['Sensor', 'Path/Row']
 
     def __init__(self, location, config=None):
         if config is not None:
@@ -104,6 +114,9 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
         self._open_ts()
 
         self._data = np.zeros([self.n_band, self.length], dtype=self.datatype)
+
+        # Retrieve metadata
+        self._get_metadata()
 
     def set_custom_config(self, values):
         """ Set custom configuration options
@@ -286,13 +299,7 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
                 coef = rec['coefs'][:, band]
 
                 ### Calculate model predictions
-                # HACK: adjust w based on existence of parameter file
-                if os.path.isfile(os.path.join(self.location,
-                    self.results_folder, '.p_36525')):
-
-                    w = 2 * np.pi / 365.25
-                else:
-                    w = 2 * np.pi / 365
+                w = 2 * np.pi / self.days_in_year
 
                 if coef.shape[0] == 2:
                     _my = (coef[0] +
@@ -618,6 +625,14 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
                 self.readers.append(
                     CCDCBinaryReader(stack, self.fformat, self.datatype,
                                      (self.y_size, self.x_size), self.n_band))
+
+    def _get_metadata(self):
+        """ Parse timeseries attributes for metadata """
+        # Sensor ID
+        self.sensor = np.array([n[0:3] for n in self.filenames])
+        # Path/Row
+        self.pathrow = np.array(['p{p}r{r}'.format(p=n[3:6], r=n[6:9])
+                                for n in self.filenames])
 
 
 ### Additional methods dealing with caching

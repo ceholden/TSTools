@@ -153,8 +153,6 @@ class ControlPanel(QWidget, Ui_Widget):
         self.cbox_fmask.setChecked(setting.plot['mask'])
         self.cbox_fmask.stateChanged.connect(self.set_plot_fmask)
 
-        print ts.mask_val
-
         setting.plot['mask_val'] = ts.mask_val
         if setting.plot['mask_val'] is not None:
             self.edit_values.setText(
@@ -175,6 +173,9 @@ class ControlPanel(QWidget, Ui_Widget):
         else:
             self.cbox_modelfit.setEnabled(False)
             self.cbox_breakpoint.setEnabled(False)
+
+        # Symbology
+        self.but_symbology.clicked.connect(self.select_symbology)
 
         ### Save button options
         self.but_plot_save.clicked.connect(self.init_save_plot_dialog)

@@ -425,75 +425,6 @@
          </property>
         </widget>
        </item>
-       <item row="8" column="0">
-        <widget class="QWidget" name="widget_5" native="true">
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>16777215</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <layout class="QGridLayout" name="gridLayout_4">
-          <item row="0" column="0" colspan="3">
-           <widget class="QLabel" name="label_2">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>20</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Plot Features&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignCenter</set>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="0">
-           <widget class="QCheckBox" name="cbox_modelfit">
-            <property name="text">
-             <string>Model Fit</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="1">
-           <widget class="QLabel" name="lab_values">
-            <property name="text">
-             <string>Values</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="0">
-           <widget class="QCheckBox" name="cbox_fmask">
-            <property name="text">
-             <string>Fmask</string>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="1" colspan="2">
-           <widget class="QCheckBox" name="cbox_breakpoint">
-            <property name="text">
-             <string>Break Points</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="2">
-           <widget class="QLineEdit" name="edit_values">
-            <property name="text">
-             <string/>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </widget>
-       </item>
        <item row="10" column="0">
         <widget class="QWidget" name="widget_9" native="true">
          <property name="maximumSize">
@@ -548,6 +479,13 @@
           </size>
          </property>
          <layout class="QGridLayout" name="gridLayout_3">
+          <item row="4" column="3" colspan="3">
+           <widget class="QCheckBox" name="cbox_scale">
+            <property name="text">
+             <string>Auto set min/max</string>
+            </property>
+           </widget>
+          </item>
           <item row="10" column="3" colspan="3">
            <widget class="QCheckBox" name="cbox_xscale_fix">
             <property name="text">
@@ -721,17 +659,86 @@
             </property>
            </widget>
           </item>
-          <item row="4" column="3" colspan="3">
-           <widget class="QCheckBox" name="cbox_scale">
-            <property name="text">
-             <string>Auto set min/max</string>
-            </property>
-           </widget>
-          </item>
           <item row="5" column="3" colspan="3">
            <widget class="QCheckBox" name="cbox_yscale_all">
             <property name="text">
              <string>Apply to all bands</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item row="8" column="0">
+        <widget class="QWidget" name="widget_5" native="true">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <layout class="QGridLayout" name="gridLayout_4">
+          <item row="0" column="0" colspan="4">
+           <widget class="QLabel" name="label_2">
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>20</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Plot Features&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QCheckBox" name="cbox_modelfit">
+            <property name="text">
+             <string>Model Fit</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QLabel" name="lab_values">
+            <property name="text">
+             <string>Values</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QCheckBox" name="cbox_fmask">
+            <property name="text">
+             <string>Fmask</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1" colspan="3">
+           <widget class="QCheckBox" name="cbox_breakpoint">
+            <property name="text">
+             <string>Break Points</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="3">
+           <widget class="QLineEdit" name="edit_values">
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="0" colspan="4">
+           <widget class="QPushButton" name="but_symbology">
+            <property name="text">
+             <string>Symbology</string>
             </property>
            </widget>
           </item>
