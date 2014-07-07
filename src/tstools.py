@@ -33,12 +33,12 @@ import resources_rc
 
 import timeseries
 
-from config import Config
-from controller import Controller
-from controls import ControlPanel
+from .config import Config
+from .controller import Controller
+from .controls import ControlPanel
 
-from plot_ts import TSPlot
-from plot_doy import DOYPlot
+from .plots.plot_ts import TSPlot
+from .plots.plot_doy import DOYPlot
 
 import settings as setting
 

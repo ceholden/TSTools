@@ -32,7 +32,7 @@ import mpl_toolkits.axes_grid1 as mpl_grid
 
 import numpy as np
 
-import settings as setting
+from tstools import settings as setting
 
 # Note: FigureCanvas is also a QWidget
 class DOYPlot(FigureCanvas):
@@ -53,12 +53,12 @@ class DOYPlot(FigureCanvas):
         # Location of pixel plotted
         self.px = None
         self.py = None
-    
+
         # Store colorbar so we know to delete
         self.cbar = None
         # Store range of data
         self.yr_range = (0, 1)
-        
+
         # Setup plots
         self.setup_plots()
         self.plot()
@@ -82,13 +82,13 @@ class DOYPlot(FigureCanvas):
         self.x = np.array([int(d.strftime('%j')) for d in ts.dates])
         self.year = np.array([d.year for d in ts.dates])
         self.y = ts.get_data(setting.plot['mask'])[setting.plot['band'], :]
-        
+
         if setting.plot['fit'] is True and ts.result is not None:
             if len(ts.result) > 0:
                 self.mx, self.my = ts.get_prediction(setting.plot['band'])
             else:
                 self.mx, self.my = (np.zeros(0), np.zeros(0))
-            
+
             self.mx_year = []
             for _mx in self.mx:
                 self.mx_year.append(np.array([d.year for d in _mx]))
@@ -114,7 +114,7 @@ class DOYPlot(FigureCanvas):
             self.axes.set_ylabel('Band')
         else:
             self.axes.set_ylabel(ts.band_names[setting.plot['band']])
-        
+
         self.axes.grid(True)
         self.axes.set_ylim([setting.plot['min'][setting.plot['band']],
                             setting.plot['max'][setting.plot['band']]])
@@ -136,10 +136,10 @@ class DOYPlot(FigureCanvas):
         if len(self.year) > 0:
             yr_min = self.year.min()
             yr_max = self.year.max()
-        
+
         # Setup colormap and mapper
         cmap = mpl.cm.get_cmap('jet')
-        norm = mpl.colors.Normalize(vmin=yr_min, vmax=yr_max) 
+        norm = mpl.colors.Normalize(vmin=yr_min, vmax=yr_max)
         mapper = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
 
         # Plot
@@ -197,13 +197,13 @@ class DOYPlot(FigureCanvas):
                 self.axes.legend(fit_plt,
                              ['Fit {n}: {y}'.format(n=n + 1, y=y)
                               for n, y in enumerate(med_year)])
-        
+
         # Redraw
         self.fig.tight_layout()
         self.fig.canvas.draw()
 
     def save_plot(self):
-        """ Save the matplotlib figure 
+        """ Save the matplotlib figure
         """
         ### Parse options from settings
         fname = setting.save_plot['fname']

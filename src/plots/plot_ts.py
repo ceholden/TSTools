@@ -30,7 +30,7 @@ from matplotlib.backends.backend_qt4agg \
 
 import numpy as np
 
-import settings as setting
+from tstools import settings as setting
 
 # Note: FigureCanvas is also a QWidget
 class TSPlot(FigureCanvas):
