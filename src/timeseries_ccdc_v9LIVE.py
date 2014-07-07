@@ -120,9 +120,9 @@ class CCDCTimeSeries_v9LIVE(timeseries_ccdc.CCDCTimeSeries):
             values          list of values to be inserted into OrderedDict
 
         """
-        for v, k in zip(values, __custom_controls__):
+        for v, k in zip(values, self.__custom_controls__):
             current_value = getattr(self, k)
-            if isinstance(v, type(current_Value)):
+            if isinstance(v, type(current_value)):
                 if k == 'CCDC_function':
                     try:
                         self._check_matlab(function=v, load_ml=False)
