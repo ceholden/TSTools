@@ -21,12 +21,14 @@
  This script initializes the plugin, making it known to QGIS.
 """
 
+
 def name():
     return "TSTools"
 
 
 def description():
-    return "Plugin for visualization and analysis of remote sensing time series"
+    return "Plugin for visualization and analysis \
+            of remote sensing time series"
 
 
 def version():
@@ -40,11 +42,14 @@ def icon():
 def qgisMinimumVersion():
     return "2.0"
 
+
 def author():
     return "Chris Holden"
 
+
 def email():
     return "ceholden@gmail.com"
+
 
 def classFactory(iface):
     # load TSTools class from file TSTools
