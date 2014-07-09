@@ -38,6 +38,7 @@ import os
 from ui_controls import Ui_Controls as Ui_Widget
 from SavePlotDialog import SavePlotDialog
 from custom_form import CustomForm
+from controls_symbology import SymbologyControl
 import settings as setting
 
 def str2num(s):
@@ -175,6 +176,8 @@ class ControlPanel(QWidget, Ui_Widget):
             self.cbox_breakpoint.setEnabled(False)
 
         # Symbology
+        self.symbology_controls = SymbologyControl(self)
+        self.symbology_controls.setup_gui(ts)
         self.but_symbology.clicked.connect(self.select_symbology)
 
         ### Save button options
@@ -360,6 +363,12 @@ class ControlPanel(QWidget, Ui_Widget):
         elif state == Qt.Unchecked:
             setting.plot['break'] = False
         self.plot_options_changed.emit()
+
+    @QtCore.pyqtSlot()
+    def select_symbology(self):
+        """ Open up symbology dialog
+        """
+        self.symbology_controls.show()
 
     @QtCore.pyqtSlot()
     def init_save_plot_dialog(self):
