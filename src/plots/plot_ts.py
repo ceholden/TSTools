@@ -117,10 +117,25 @@ class TSPlot(FigureCanvas):
             self.axes.set_xlim([dt.date(setting.plot['xmin'], 01, 01),
                                 dt.date(setting.plot['xmax'], 12, 31)])
 
-        # Plot time series data
-        line, = self.axes.plot(self.x, self.y,
-                       marker='o', ls='', color='k',
-                       picker=setting.plot['picker_tol'])
+        ### Plot time series data
+        if setting.plot_symbol['enabled']:
+            # Multiple plot calls to plot symbology
+            for index, marker, color in zip(setting.plot_symbol['indices'],
+                                            setting.plot_symbol['markers'],
+                                            setting.plot_symbol['colors']):
+                # Plot if we found anything
+                if index.size > 0:
+                    # Convert color from 0 - 255 to 0 - 1
+                    color = [c / 255.0 for c in color]
+
+                    self.axes.plot(self.x[index], self.y[index],
+                                   marker=marker, ls='', color=color,
+                                   picker=setting.plot['picker_tol'])
+        else:
+            # Plot just black dots if no symbology used
+            line, = self.axes.plot(self.x, self.y,
+                                   marker='o', ls='', color='k',
+                                   picker=setting.plot['picker_tol'])
 
         # Plot modeled fit
         if setting.plot['fit'] is True:

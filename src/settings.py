@@ -53,6 +53,14 @@ plot = {
     'picker_tol'    :       2
 }
 
+# Dictionary to store plot symbology options
+plot_symbol = {
+    'enabled': False,
+    'indices': None,
+    'markers': None,
+    'colors': None
+}
+
 save_plot = {
 
     'fname'         :       'time_series_plot',

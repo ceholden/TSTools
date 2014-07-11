@@ -34,9 +34,6 @@
           </widget>
          </item>
         </layout>
-        <zorder>stack_widget</zorder>
-        <zorder>stack_widget</zorder>
-        <zorder>label_2</zorder>
        </widget>
       </item>
       <item row="0" column="0">
@@ -75,7 +72,7 @@
     </widget>
    </item>
    <item>
-    <widget class="QDialogButtonBox" name="buttonBox">
+    <widget class="QDialogButtonBox" name="button_box">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
      </property>
@@ -89,7 +86,7 @@
  <resources/>
  <connections>
   <connection>
-   <sender>buttonBox</sender>
+   <sender>button_box</sender>
    <signal>accepted()</signal>
    <receiver>Symbology</receiver>
    <slot>accept()</slot>
@@ -105,7 +102,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>buttonBox</sender>
+   <sender>button_box</sender>
    <signal>rejected()</signal>
    <receiver>Symbology</receiver>
    <slot>reject()</slot>

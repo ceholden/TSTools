@@ -35,6 +35,8 @@ import settings as setting
 class SymbologyControl(QtGui.QDialog, Ui_Widget):
     """ Plot symbology controls """
 
+    plot_symbology_applied = QtCore.pyqtSignal()
+
     def __init__(self, iface):
         # Qt setup
         self.iface = iface
@@ -66,18 +68,26 @@ class SymbologyControl(QtGui.QDialog, Ui_Widget):
             # If there is no description string, just use variable names
             md_str = md
 
+        # First item should be None to default to no symbology
+        self.list_metadata.addItem(QtGui.QListWidgetItem('None'))
         for _md_str in md_str:
             self.list_metadata.addItem(QtGui.QListWidgetItem(_md_str))
         self.list_metadata.setCurrentRow(0)
 
         # Find all unique values for all metadata items
-        self.unique_values = []
+        self.unique_values = [None]
         for _md in self.md:
             self.unique_values.append(np.unique(_md))
 
-        # Init marker and color for unique values in all metadatas
-        self.unique_symbologies = []
+        ### Init marker and color for unique values in all metadatas
+        # list of dictionaries
+        #   entries in list are for metadata types (entries in QListWidget)
+        #       each list has dictionary for each unique value in metadata
+        #           each list's dictionary has dict of 'color', 'marker'
+        self.unique_symbologies = [None]
         for md in self.unique_values:
+            if md is None:
+                continue
             color = [0, 0, 0]
             marker = '.'
             unique_md = {}
@@ -96,6 +106,9 @@ class SymbologyControl(QtGui.QDialog, Ui_Widget):
         # Add handler for stacked widget
         self.list_metadata.currentRowChanged.connect(self.metadata_changed)
 
+        # Add slot for Okay / Apply
+        self.button_box.button(QtGui.QDialogButtonBox.Apply).clicked.connect(self.symbology_applied)
+
     def init_metadata(self, i_md):
         """ Initialize symbology table with selected metadata attributes """
         if not self.has_metadata:
@@ -107,36 +120,41 @@ class SymbologyControl(QtGui.QDialog, Ui_Widget):
         table.setHorizontalHeaderLabels(['Value', 'Marker', 'Color'])
         table.horizontalHeader().setStretchLastSection(True)
 
-        table.setRowCount(len(self.unique_values[i_md]))
+        if self.unique_values[i_md] is None:
+            table.setRowCount(0)
+        else:
+            # Populate table
+            table.setRowCount(len(self.unique_values[i_md]))
 
-        # Populate table
-        for i, unique in enumerate(self.unique_values[i_md]):
-            # Fetch current values
-            color = self.unique_symbologies[i_md][unique]['color']
-            marker = self.unique_symbologies[i_md][unique]['marker']
+            for i, unique in enumerate(self.unique_values[i_md]):
+                # Fetch current values
+                color = self.unique_symbologies[i_md][unique]['color']
+                marker = self.unique_symbologies[i_md][unique]['marker']
 
-            # Label for value
-            lab = QtGui.QLabel(str(unique))
-            lab.setAlignment(QtCore.Qt.AlignCenter)
+                # Label for value
+                lab = QtGui.QLabel(str(unique))
+                lab.setAlignment(QtCore.Qt.AlignCenter)
 
-            # Possible markers in combobox
-            cbox = QtGui.QComboBox()
-            for m in self.markers.values():
-                cbox.addItem(m)
-            cbox.setCurrentIndex(cbox.findText(self.markers[marker]))
+                # Possible markers in combobox
+                cbox = QtGui.QComboBox()
+                for m in self.markers.values():
+                    cbox.addItem(m)
+                cbox.setCurrentIndex(cbox.findText(self.markers[marker]))
+                cbox.currentIndexChanged.connect(partial(self.marker_changed,
+                                                 i, i_md, unique))
 
-            # Colors
-            button = QtGui.QPushButton('Color')
-            button.setAutoFillBackground(True)
-            self.set_button_color(button, color)
+                # Colors
+                button = QtGui.QPushButton('Color')
+                button.setAutoFillBackground(True)
+                self.set_button_color(button, color)
 
-            button.pressed.connect(partial(self.color_button_pressed,
-                                           i, i_md, unique))
+                button.pressed.connect(partial(self.color_button_pressed,
+                                               i, i_md, unique))
 
-            # Add to table
-            table.setCellWidget(i, 0, lab)
-            table.setCellWidget(i, 1, cbox)
-            table.setCellWidget(i, 2, button)
+                # Add to table
+                table.setCellWidget(i, 0, lab)
+                table.setCellWidget(i, 1, cbox)
+                table.setCellWidget(i, 2, button)
 
         self.tables.append(table)
         self.stack_widget.insertWidget(i_md, table)
@@ -167,6 +185,17 @@ class SymbologyControl(QtGui.QDialog, Ui_Widget):
                               self.unique_symbologies[i_md][unique]['color'])
 
     @QtCore.pyqtSlot(int)
+    def marker_changed(self, i, i_md, unique, index):
+        """ """
+        # Find combobox
+        cbox = self.tables[i_md].cellWidget(i, 1)
+        # Update value
+        self.unique_symbologies[i_md][unique]['marker'] = \
+            self.markers.keys()[index]
+
+        print cbox.itemText(index)
+
+    @QtCore.pyqtSlot(int)
     def metadata_changed(self, row):
         """ Switch metadata tables """
         self.stack_widget.setCurrentIndex(row)
@@ -177,6 +206,49 @@ class SymbologyControl(QtGui.QDialog, Ui_Widget):
         style = 'QPushButton {{color: {c}; font-weight: bold}}'.format(c=c_str)
 
         button.setStyleSheet(style)
+
+    @QtCore.pyqtSlot()
+    def symbology_applied(self):
+        """ Slot for Apply or OK button on QDialogButtonBox
+
+        Emits "plot_symbology_applied" to Controls, which pushes to Controller,
+        and then to the plots
+        """
+        print 'Applied / OK'
+        # Send symbology to settings
+        row = self.list_metadata.currentRow()
+
+        if row == 0:
+            # If row == 0, either no symbology or no metadata
+            setting.plot_symbol['enabled'] = False
+            setting.plot_symbol['indices'] = None
+            setting.plot_symbol['markers'] = None
+            setting.plot_symbol['colors'] = None
+        else:
+            # Else, get the appropriate values
+            setting.plot_symbol['enabled'] = True
+
+            # Grab unique values
+            keys = self.unique_symbologies[row].keys()
+
+            # Grab unique value's markers and colors
+            indices = []
+            markers = []
+            colors = []
+            for k in keys:
+                indices.append(np.where(self.md[row - 1] == k)[0])
+                markers.append(self.unique_symbologies[row][k]['marker'])
+                colors.append(self.unique_symbologies[row][k]['color'])
+
+            setting.plot_symbol['indices'] = list(indices)
+            setting.plot_symbol['markers'] = list(markers)
+            setting.plot_symbol['colors'] = list(colors)
+
+        # Emit changes
+        self.plot_symbology_applied.emit()
+
+        print setting.plot_symbol['colors']
+        print setting.plot_symbol['markers']
 
     def setup_gui_nomd(self):
         """ Setup GUI if timeseries has no metadata """

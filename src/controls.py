@@ -179,6 +179,8 @@ class ControlPanel(QWidget, Ui_Widget):
         self.symbology_controls = SymbologyControl(self)
         self.symbology_controls.setup_gui(ts)
         self.but_symbology.clicked.connect(self.select_symbology)
+        plot_changed = lambda: self.plot_options_changed.emit()
+        self.symbology_controls.plot_symbology_applied.connect(plot_changed)
 
         ### Save button options
         self.but_plot_save.clicked.connect(self.init_save_plot_dialog)
