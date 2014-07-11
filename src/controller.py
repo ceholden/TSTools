@@ -686,4 +686,6 @@ class Controller(QtCore.QObject):
             self.ctrl.plot_options_changed.disconnect()
             self.ctrl.plot_save_request.disconnect()
             self.ctrl.cbox_plotlayer.stateChanged.disconnect()
-    
+            QgsMapLayerRegistry.instance().layersAdded.disconnect()
+            QgsMapLayerRegistry.instance().layersWillBeRemoved.disconnect()
+
