@@ -629,10 +629,10 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
     def _get_metadata(self):
         """ Parse timeseries attributes for metadata """
         # Sensor ID
-        self.sensor = np.array([n[0:3] for n in self.filenames])
+        self.sensor = np.array([n[0:3] for n in self.image_names])
         # Path/Row
         self.pathrow = np.array(['p{p}r{r}'.format(p=n[3:6], r=n[6:9])
-                                for n in self.filenames])
+                                for n in self.image_names])
 
 
 ### Additional methods dealing with caching
