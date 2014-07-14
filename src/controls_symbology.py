@@ -29,8 +29,9 @@ import numpy as np
 import matplotlib as mpl
 
 from ui_symbology import Ui_Symbology as Ui_Widget
-import settings as setting
 
+from controls_attach_md import AttachMetadata
+import settings as setting
 
 class SymbologyControl(QtGui.QDialog, Ui_Widget):
     """ Plot symbology controls """
@@ -52,25 +53,46 @@ class SymbologyControl(QtGui.QDialog, Ui_Widget):
 
     def setup_gui(self, ts):
         """ Setup GUI with metadata from timeseries """
+        self.setup_tables(ts)
+
+        # Add handler for stacked widget
+        self.list_metadata.currentRowChanged.connect(self.metadata_changed)
+
+        # Add slot for Okay / Apply
+        self.button_box.button(QtGui.QDialogButtonBox.Apply).clicked.connect(
+            self.symbology_applied)
+
+        # Attach metadata
+        self.attach_md = AttachMetadata(self.iface, ts)
+        self.attach_md.metadata_attached.connect(self.refresh_metadata)
+        self.but_load_metadata.clicked.connect(self.load_metadata)
+
+    def setup_tables(self, ts):
+        """ Setup tables """
+        self.ts = ts
         # Check for metadata
         md = getattr(ts, '__metadata__', None)
         if not isinstance(md, list) or len(md) == 0:
             self.has_metadata = False
             self.setup_gui_nomd()
             return
+
+        self.metadata = list(md)
+
         self.md = [getattr(ts, _md) for _md in md]
 
         self.has_metadata = True
 
         # Setup metadata listing
-        md_str = getattr(ts, '__metadata__str__', None)
-        if not isinstance(md_str, list) or len(md_str) != len(self.md):
+        self.md_str = getattr(ts, '__metadata__str__', None)
+        if not isinstance(self.md_str, list) or \
+                len(self.md_str) != len(self.md):
             # If there is no description string, just use variable names
-            md_str = md
+            self.md_str = list(md)
 
         # First item should be None to default to no symbology
         self.list_metadata.addItem(QtGui.QListWidgetItem('None'))
-        for _md_str in md_str:
+        for _md_str in self.md_str:
             self.list_metadata.addItem(QtGui.QListWidgetItem(_md_str))
         self.list_metadata.setCurrentRow(0)
 
@@ -99,15 +121,11 @@ class SymbologyControl(QtGui.QDialog, Ui_Widget):
 
         # Setup initial set of symbology for item selected
         self.tables = []
+        print self.unique_values
         for i_md, unique_values in enumerate(self.unique_values):
+            print 'Init table {i}'.format(i=i_md)
             self.init_metadata(i_md)
         self.stack_widget.setCurrentIndex(0)
-
-        # Add handler for stacked widget
-        self.list_metadata.currentRowChanged.connect(self.metadata_changed)
-
-        # Add slot for Okay / Apply
-        self.button_box.button(QtGui.QDialogButtonBox.Apply).clicked.connect(self.symbology_applied)
 
     def init_metadata(self, i_md):
         """ Initialize symbology table with selected metadata attributes """
@@ -249,6 +267,89 @@ class SymbologyControl(QtGui.QDialog, Ui_Widget):
 
         print setting.plot_symbol['colors']
         print setting.plot_symbol['markers']
+
+    @QtCore.pyqtSlot()
+    def load_metadata(self):
+        """ Open AttachMetadata window to retrieve more metadata """
+        self.attach_md.show()
+
+    @QtCore.pyqtSlot()
+    def refresh_metadata(self):
+        """ Reset old table and load up new metadata """
+        self.update_tables()
+        # self.setup_tables(self.ts)
+
+    def update_tables(self):
+        """ Setup tables """
+        # Check for new metadata
+        new_i = []
+        for i, (_md, _md_str) in enumerate(zip(self.ts.__metadata__,
+                                               self.ts.__metadata__str__)):
+            if _md not in self.metadata:
+                self.metadata.append(_md)
+                self.md.append(getattr(self.ts, _md))
+                self.md_str.append(_md_str)
+                new_i.append(i)
+
+        # First item should be None to default to no symbology
+        for i, _md_str in enumerate(self.md_str):
+            if i in new_i:
+                self.list_metadata.addItem(QtGui.QListWidgetItem(_md_str))
+        self.list_metadata.setCurrentRow(0)
+
+        # Find all unique values for all metadata items
+        self.unique_values = [None]
+        for _md in self.md:
+            self.unique_values.append(np.unique(_md))
+
+        ### Init marker and color for unique values in all metadatas
+        # list of dictionaries
+        #   entries in list are for metadata types (entries in QListWidget)
+        #       each list has dictionary for each unique value in metadata
+        #           each list's dictionary has dict of 'color', 'marker'
+        self.unique_symbologies = [None]
+        for md in self.unique_values:
+            if md is None:
+                continue
+            color = [0, 0, 0]
+            marker = '.'
+            unique_md = {}
+            for unique in md:
+                unique_md[unique] = {'color': color,
+                                     'marker': marker
+                                     }
+            self.unique_symbologies.append(unique_md)
+
+        # Setup initial set of symbology for item selected
+        for i_md, unique_values in enumerate(self.unique_values):
+            if (i_md - 1) not in new_i:
+                continue
+            print 'Init table {i}'.format(i=i_md)
+            self.init_metadata(i_md)
+
+        self.stack_widget.setCurrentIndex(0)
+
+#    def reset_tables(self):
+#        """ Removes all metadata items from table """
+#        # Remove all table entries and stacked widgets
+#        self.tables = []
+#        self.list_metadata.clear()
+#
+#        print self.stack_widget.count()
+#        for i in range(self.stack_widget.count()):
+#            print 'Removing stacked widget {i}'.format(i=i)
+#            w = self.stack_widget.widget(i)
+#            print w
+#            if w:
+#                self.stack_widget.removeWidget(w)
+#                w.deleteLater()
+#
+#        self.stack_widget.update()
+#
+#        self.widget_sym.layout().removeWidget(self.stack_widget)
+#        self.stack_widget = QtGui.QStackedWidget(self.widget_sym)
+#
+#        print self.stack_widget.count()
 
     def setup_gui_nomd(self):
         """ Setup GUI if timeseries has no metadata """

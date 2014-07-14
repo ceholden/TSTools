@@ -18,7 +18,7 @@
     <widget class="QWidget" name="widget" native="true">
      <layout class="QGridLayout" name="gridLayout">
       <item row="0" column="1">
-       <widget class="QWidget" name="widget_3" native="true">
+       <widget class="QWidget" name="widget_sym" native="true">
         <layout class="QGridLayout" name="gridLayout_3">
          <item row="1" column="0">
           <widget class="QStackedWidget" name="stack_widget">

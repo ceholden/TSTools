@@ -47,7 +47,7 @@ ANC = src/CCDC
 
 EXTRAS = tstools_click.png tstools_config.png metadata.txt
 
-UI_FILES = ui/ui_config.py ui/ui_controls.py ui/ui_plotsave.py ui/ui_symbology.py
+UI_FILES = ui/ui_config.py ui/ui_controls.py ui/ui_plotsave.py ui/ui_symbology.py ui/ui_attach_md.py
 
 RESOURCE_FILES = resources_rc.py
 
