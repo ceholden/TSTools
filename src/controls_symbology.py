@@ -111,7 +111,7 @@ class SymbologyControl(QtGui.QDialog, Ui_Widget):
             if md is None:
                 continue
             color = [0, 0, 0]
-            marker = '.'
+            marker = 'o'
             unique_md = {}
             for unique in md:
                 unique_md[unique] = {'color': color,
@@ -312,7 +312,7 @@ class SymbologyControl(QtGui.QDialog, Ui_Widget):
             if md is None:
                 continue
             color = [0, 0, 0]
-            marker = '.'
+            marker = 'o'
             unique_md = {}
             for unique in md:
                 unique_md[unique] = {'color': color,
