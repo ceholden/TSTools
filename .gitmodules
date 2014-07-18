@@ -1,0 +1,3 @@
+[submodule "src/yatsm"]
+	path = src/yatsm
+	url = https://github.com/ceholden/yatsm.git
