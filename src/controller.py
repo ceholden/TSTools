@@ -21,7 +21,7 @@
  ***************************************************************************/
 """
 from PyQt4.QtCore import * # TODO remove *
-from PyQt4.QtGui import * #TODO 
+from PyQt4.QtGui import * #TODO
 from PyQt4 import QtCore
 from PyQt4 import QtGui
 from qgis.core import *
@@ -63,7 +63,7 @@ class DataRetriever(QtCore.QObject):
                 self.running = False
                 self._got_ts_pixel()
                 return
-            
+
             # If not, get pixel and index++
             self.ts.retrieve_pixel(self.index)
             self.index += 1
@@ -131,14 +131,14 @@ class Controller(QtCore.QObject):
 
         # Are we configured with a time series?
         self.configured = False
-        
+
         # Setup threading for data retrieval
 #        self.retrieve_thread = QtCore.QThread()
         self.retriever = DataRetriever()
 #        self.retriever.moveToThread(self.retrieve_thread)
 
 ### Setup
-    def get_time_series(self, TimeSeries, 
+    def get_time_series(self, TimeSeries,
                         location, custom_options=None):
         """
         Loads the time series class when called by ccdctools and feeds
@@ -252,7 +252,7 @@ class Controller(QtCore.QObject):
         Unchecks image tab checkbox for layers removed and synchronizes
         image_layers in settings. Also ensures that
         setting.canvas['click_layer_id'] = None if the this layer is removed.
-        
+
         Note that layers is a QStringList of layer IDs. A layer ID contains
         the layer name appended by the datetime added
         """
@@ -268,7 +268,7 @@ class Controller(QtCore.QObject):
 
             # Find corresponding row in table
             rows_removed = [row for row, (image_name, fname) in
-                enumerate(itertools.izip(self.ts.image_names, 
+                enumerate(itertools.izip(self.ts.image_names,
                                          self.ts.filenames))
                 if image_name in layer_id or fname in layer_id]
 
@@ -280,7 +280,7 @@ class Controller(QtCore.QObject):
                 if item:
                     if item.checkState() == Qt.Checked:
                         item.setCheckState(Qt.Unchecked)
-            
+
             # Check for click layer
             if setting.canvas['click_layer_id'] == layer_id:
                 print 'Removed click layer'
@@ -299,13 +299,13 @@ class Controller(QtCore.QObject):
         ### Plot tab
         # Catch signal from plot options that we need to update
         self.ctrl.plot_options_changed.connect(self.update_display)
-        # Catch signal to save the figure 
+        # Catch signal to save the figure
         self.ctrl.plot_save_request.connect(self.save_plot)
         # Add layer from time series plot points
         self.ctrl.cbox_plotlayer.stateChanged.connect(self.set_plotlayer)
         # Connect/disconnect matplotlib event signal based on checkbox default
         self.set_plotlayer(self.ctrl.cbox_plotlayer.checkState())
-        
+
         # Fmask mask values updated
         self.ctrl.mask_updated.connect(self.update_masks)
 
@@ -326,7 +326,7 @@ class Controller(QtCore.QObject):
 
         ### Image tab panel
         self.ctrl.image_table.itemClicked.connect(self.get_tablerow_clicked)
-        
+
 ### Slots for signals
 
 ### Slot for plot tab management
@@ -354,7 +354,7 @@ class Controller(QtCore.QObject):
                         self.ts.geo_transform[1])
             py = int((pos[1] - self.ts.geo_transform[3]) /
                      self.ts.geo_transform[5])
-            
+
             if px < self.ts.x_size and py < self.ts.y_size:
                 # Set pixel
                 self.ts.set_px(px)
@@ -400,7 +400,7 @@ class Controller(QtCore.QObject):
                 # Fetch pixel values
                 self.retriever.get_ts_pixel()
                 # self.retriever.start()
-    
+
     @QtCore.pyqtSlot(int)
     def retrieval_progress_update(self, i):
         """ Update self.progress with value from DataRetriever """
@@ -493,7 +493,7 @@ class Controller(QtCore.QObject):
             vlayer_id = QgsMapLayerRegistry.instance().addMapLayer(vlayer).id()
             if vlayer_id:
                 setting.canvas['click_layer_id'] = vlayer_id
-        
+
         # Restore active layer
         self.iface.setActiveLayer(last_selected)
 
@@ -533,7 +533,7 @@ class Controller(QtCore.QObject):
 ## Symbology tab
     def apply_symbology(self, rlayers=None):
         """ Apply consistent raster symbology to all raster layers in time
-        series 
+        series
         """
         if rlayers is None:
             rlayers = setting.image_layers
@@ -553,25 +553,25 @@ class Controller(QtCore.QObject):
             r_ce.setMaximumValue(setting.symbol['max'][r_band])
             r_ce.setContrastEnhancementAlgorithm(setting.symbol['contrast'])
             r_ce.setContrastEnhancementAlgorithm(1)
-            
+
             g_ce = QgsContrastEnhancement(
                 rlayer.dataProvider().dataType(g_band + 1))
             g_ce.setMinimumValue(setting.symbol['min'][g_band])
             g_ce.setMaximumValue(setting.symbol['max'][g_band])
             g_ce.setContrastEnhancementAlgorithm(setting.symbol['contrast'])
-    
+
             b_ce = QgsContrastEnhancement(
                 rlayer.dataProvider().dataType(b_band + 1))
             b_ce.setMinimumValue(setting.symbol['min'][b_band])
             b_ce.setMaximumValue(setting.symbol['max'][b_band])
             b_ce.setContrastEnhancementAlgorithm(setting.symbol['contrast'])
-    
+
             renderer = QgsMultiBandColorRenderer(rlayer.dataProvider(),
                 r_band + 1, g_band + 1, b_band + 1)
             renderer.setRedContrastEnhancement(r_ce)
             renderer.setGreenContrastEnhancement(g_ce)
             renderer.setBlueContrastEnhancement(b_ce)
-            
+
             # Apply renderer
             rlayer.setRenderer(renderer)
             # Refresh & update symbology in legend
@@ -625,7 +625,7 @@ class Controller(QtCore.QObject):
             #   we've applied a mask and adjust index we add accordingly
             if (type(self.ts.get_data(setting.plot['mask'])) ==
                     np.ma.core.MaskedArray):
-                
+
                 date = self.ts.dates[~self.ts.get_data().mask[0,
                                         self.doy_plot.yr_range]][ind]
                 ind = np.where(self.ts.dates == date)[0][0]
@@ -643,7 +643,7 @@ class Controller(QtCore.QObject):
         """
         # Get data with mask option
         data = self.ts.get_data(setting.plot['mask'])
-        
+
         # Check for case where all data is masked
         if hasattr(data, 'mask'):
             if np.ma.compressed(data[0, :]).shape[0] == 0:
@@ -654,9 +654,9 @@ class Controller(QtCore.QObject):
             print 'Data has no mask'
 
         setting.plot['min'] = np.array([
-            max(0, np.percentile(np.ma.compressed(band), 2) - 500) 
+            max(0, np.percentile(np.ma.compressed(band), 2) - 500)
             for band in data[:, ]])
-        setting.plot['max'] = np.array([                                      
+        setting.plot['max'] = np.array([
             min(10000, np.percentile(np.ma.compressed(band), 98) + 500)
             for band in data[:, ]])
 
@@ -664,13 +664,13 @@ class Controller(QtCore.QObject):
 #            np.percentile(np.ma.compressed(band), 2) for band in
 #            data[:, ]])
 #        setting.plot['max'] = np.array([
-#            np.percentile(np.ma.compressed(band), 98) for band in 
+#            np.percentile(np.ma.compressed(band), 98) for band in
 #            data[:, ]])
 
-#        setting.plot['min'] = [min(0, np.min(band) * 
+#        setting.plot['min'] = [min(0, np.min(band) *
 #                                   (1 - setting.plot['scale_factor']))
 #                           for band in self.ts.get_data()[:, ]]
-#        setting.plot['max'] = [max(10000, np.max(band) * 
+#        setting.plot['max'] = [max(10000, np.max(band) *
 #                                   (1 + setting.plot['scale_factor']))
 #                           for band in self.ts.get_data()[:, ]]
 
@@ -681,7 +681,7 @@ class Controller(QtCore.QObject):
         if self.configured:
             self.ctrl.symbology_applied.disconnect()
             self.ctrl.image_table.itemClicked.disconnect()
-            self.ctrl.cbox_showclick.stateChanged.disconnect()              
+            self.ctrl.cbox_showclick.stateChanged.disconnect()
             self.ctrl.plot_options_changed.disconnect()
             self.ctrl.plot_save_request.disconnect()
             self.ctrl.cbox_plotlayer.stateChanged.disconnect()
