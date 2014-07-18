@@ -20,6 +20,8 @@
  *                                                                         *
  ***************************************************************************/
 """
+import copy
+
 import numpy as np
 
 from PyQt4.QtCore import * # TODO remove *
@@ -57,8 +59,8 @@ class CustomForm(QWidget):
                 raise ValueError, 'Input data has no elements'
 
         # copy over data
-        import copy
         self.defaults = copy.deepcopy(defaults)
+        self.last_known_good = copy.deepcopy(defaults)
         self.title = title
 
         # list to store corresponding widgets
@@ -116,7 +118,6 @@ class CustomForm(QWidget):
 
         self.error_label = QLabel('')
         self.form_layout.addRow(self.error_label)
-
 
     def get(self):
         """ Loop through widgets returning current data from widgets as list """
@@ -187,6 +188,15 @@ class CustomForm(QWidget):
                 continue
             else:
                 print '{f} - UNRECOGNIZED CUSTOM FORM GIVEN'.format(f=__file__)
+
+        self.last_known_good = copy.deepcopy(values)
+
+    def reset(self):
+        """ Reset to last known good values
+
+        "Good" value determined by successful set
+        """
+        self.set(self.last_known_good)
 
     def push_error(self, text):
         """ Add error message """
