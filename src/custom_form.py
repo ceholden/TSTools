@@ -124,38 +124,38 @@ class CustomForm(QWidget):
         """ Loop through widgets returning current data from widgets as list """
         values = []
 
-        for i, (name, value) in enumerate(self.defaults.itervalues()):
+        for i, (name, default) in enumerate(self.defaults.itervalues()):
             field = self.widgets[i]
             # int
-            if isinstance(value, int) and not isinstance(value, bool):
+            if isinstance(default, int) and not isinstance(default, bool):
                 value = int(field.text())
             # float
-            elif isinstance(value, float):
+            elif isinstance(default, float):
                 value = float(field.text())
             # string
-            elif isinstance(value, str):
+            elif isinstance(default, str):
                 value = str(field.text())
             # list or numpy array
-            elif isinstance(value, list) or isinstance(value, np.ndarray):
+            elif isinstance(default, list) or isinstance(default, np.ndarray):
                 # lists and 1d np.arrays
-                if isinstance(value[0], int):
+                if isinstance(default[0], int):
                     value = str2list(field.text(), int)
-                elif isinstance(value[0], float):
+                elif isinstance(default[0], float):
                     value = str2list(field.text(), float)
                 # 2d np.arrays
-                elif isinstance(value[0], np.ndarray):
-                    if isinstance(value[0][0], int):
+                elif isinstance(default[0], np.ndarray):
+                    if isinstance(default[0][0], int):
                         value = np.array([str2list(field.text(), int)])
-                    elif isinstance(value[0][0], float):
+                    elif isinstance(default[0][0], float):
                         value = np.array([str2list(field.text(), float)])
                 # turn 1d np.array back into np.array
-                if isinstance(value, np.ndarray) and len(value.shape) == 1:
+                if isinstance(default, np.ndarray) and len(default.shape) == 1:
                     value = np.array(value)
             # boolean
-            elif isinstance(value, bool):
+            elif isinstance(default, bool):
                 value = field.checkState() == Qt.Checked
             # blank space
-            elif name is None or value is None:
+            elif name is None or default is None:
                 value = None
             # unsupported field
             else:
