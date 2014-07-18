@@ -36,9 +36,12 @@ def list_repr(l):
 
     return ', '.join(map(repr, l))
 
-def str2dict(string, datatype, sep=','):
-    """ return list of values of given type separated by whitespace or sep """
-    return [datatype(s) for s in string.replace(sep, ' ').split(' ') if s != '']
+
+def str2list(s, dtype):
+    """ return list parsed from space, or comma, separated string """
+    l = [_s for _s in s.replace(',', ' ').split(' ') if _s != '']
+    return map(dtype, l)
+
 
 class CustomForm(QWidget):
     """ Easily creates a form in FormLayoutfrom a dict of names and
