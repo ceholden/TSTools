@@ -56,10 +56,10 @@ class CustomForm(QWidget):
 
         # validate input data
         if not isinstance(defaults, dict):
-            raise ValueError, 'Input data is not dict'
+            raise ValueError('Input data is not dict')
         else:
             if len(defaults) == 0:
-                raise ValueError, 'Input data has no elements'
+                raise ValueError('Input data has no elements')
 
         # copy over data
         self.defaults = copy.deepcopy(defaults)
