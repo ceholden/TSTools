@@ -153,7 +153,7 @@ class CustomForm(QWidget):
                     value = np.array(value)
             # boolean
             elif isinstance(value, bool):
-                value = field.checkState() == Qt.QtChecked
+                value = field.checkState() == Qt.Checked
             # blank space
             elif name is None or value is None:
                 value = None
