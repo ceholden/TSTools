@@ -89,6 +89,7 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
                 setattr(self, k, v)
             else:
                 print 'Error setting value for {o}'.format(o=k)
+                print current_value, v
 
     def retrieve_result(self):
         """ Returns the record changes for the current pixel
@@ -166,10 +167,14 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
                         # User didn't ask for dates in this range
                         continue
                 else:
-                # Create sequence of MATLAB ordinal date
-                    _mx = np.linspace(rec['start'],
-                                      rec['end'],
-                                      rec['end'] - rec['start'])
+                    # Check for reverse
+                    if rec['end'] < rec['start']:
+                        i_step = -1
+                    else:
+                        i_step = 1
+                    _mx = np.arange(rec['start'],
+                                    rec['end'],
+                                    i_step)
                 coef = rec['coef'][:, band]
 
                 ### Calculate model predictions
