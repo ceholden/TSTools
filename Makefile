@@ -41,9 +41,9 @@ TRANSLATIONS =
 
 PLUGINNAME = tstools
 
-PY_FILES = src/*
+PY_FILES = src/*.py src/plots
 
-ANC = src/CCDC
+ANC = src/CCDC src/yatsm/yatsm/
 
 EXTRAS = tstools_click.png tstools_config.png metadata.txt
 
