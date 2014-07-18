@@ -381,15 +381,14 @@ class Controller(QtCore.QObject):
 
                 # If we have custom options for TS, get them
                 if self.ctrl.custom_form is not None and \
-                    hasattr(self.ts, 'custom_opts'):
-                    
-                    print 'Getting custom options!'
+                    hasattr(self.ts, '__custom_controls__'):
+
                     try:
                         options = self.ctrl.custom_form.get()
-                        self.ts.set_custom_opts(options)
+                        self.ts.set_custom_controls(options)
                     except:
                         print sys.exc_info()[0]
-                        self.ctrl.custom_form.set(self.ts.custom_opts)
+                        self.ctrl.custom_form.reset()
 
                         self.retrieval_cancel()
                         self.iface.messageBar().pushMessage('Error',
