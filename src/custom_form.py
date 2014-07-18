@@ -76,15 +76,13 @@ class CustomForm(QWidget):
     def init_form(self):
         """ Loop through input data initializing widgets """
 
-        print '{f} - INITIALIZING CUSTOM FORMS'.format(f=__file__)
-
         if self.title:
             self.form_layout.addRow(QLabel('<b>' + self.title + '</b>'))
             self.form_layout.addRow(QLabel(''))
 
         for name, value in self.defaults.itervalues():
             # int
-            if isinstance(value, int):
+            if isinstance(value, int) and not isinstance(value, bool):
                 field = QLineEdit(repr(value), self)
                 field.setValidator(QIntValidator(field))
             # float
@@ -129,7 +127,7 @@ class CustomForm(QWidget):
         for i, (name, value) in enumerate(self.defaults.itervalues()):
             field = self.widgets[i]
             # int
-            if isinstance(value, int):
+            if isinstance(value, int) and not isinstance(value, bool):
                 value = int(field.text())
             # float
             elif isinstance(value, float):
@@ -172,7 +170,7 @@ class CustomForm(QWidget):
         for i, (name, value) in enumerate(values.itervalues()):
             field = self.widgets[i]
             # int
-            if isinstance(value, int):
+            if isinstance(value, int) and not isinstance(value, bool):
                 field.setText(str(value))
             # float
             elif isinstance(value, float):
