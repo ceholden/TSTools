@@ -20,30 +20,26 @@
 # INSTALL LOCATION
 HOST=$(shell hostname)
 ifeq ($(HOST),geo)
-    LOC=/project/earth/packages/CCDCTools_beta
+LOC=/project/earth/packages/CCDCTools_beta
 else ifeq ($(HOST),scc1)
-	LOC=/project/earth/packages/CCDCTools_beta
+LOC=/project/earth/packages/CCDCTools_beta
 else
-    LOC=$(HOME)/.qgis2/python/plugins
+LOC=$(HOME)/.qgis2/python/plugins
 endif
 
 # CONFIGURATION
 PLUGIN_UPLOAD = $(CURDIR)/plugin_upload.py
 
 # Makefile for a PyQGIS plugin
-
 # translation
 SOURCES = src/*.py
 #TRANSLATIONS = i18n/tstools_en.ts
 TRANSLATIONS =
 
 # global
-
 PLUGINNAME = tstools
 
 PY_FILES = src/*.py src/plots
-
-ANC = src/CCDC src/yatsm/yatsm/
 
 EXTRAS = tstools_click.png tstools_config.png metadata.txt
 
@@ -52,6 +48,16 @@ UI_FILES = ui/ui_config.py ui/ui_controls.py ui/ui_plotsave.py ui/ui_symbology.p
 RESOURCE_FILES = resources_rc.py
 
 HELP = help/build/html
+
+# Find ancillary data
+ANC =
+ifneq ($(wildcard src/yatsm/yatsm),)
+ANC += src/yatsm/yatsm
+endif
+
+ifneq ($(wildcard src/CCDC),)
+ANC += src/CCDC
+endif
 
 default: compile
 
@@ -77,6 +83,7 @@ deploy: compile doc transcompile
 	cp -vf $(EXTRAS) $(LOC)/$(PLUGINNAME)
 	cp -vfr i18n $(LOC)/$(PLUGINNAME)
 	cp -vfr $(HELP) $(LOC)/$(PLUGINNAME)/help
+	echo "Copying Ancillary files: $(ANC)"
 	cp -vfr $(ANC) $(LOC)/$(PLUGINNAME)
 
 # The dclean target removes compiled python files from plugin directory
