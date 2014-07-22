@@ -114,7 +114,7 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
 
         if self.reverse:
             self.yatsm_model = YATSM(np.flipud(self.X[clear, :]),
-                                     np.fliplr(self.Y[:, clear]),
+                                     np.fliplr(self.Y[:-1, clear]),
                                      consecutive=self.consecutive,
                                      threshold=self.threshold,
                                      min_obs=self.min_obs,
@@ -122,7 +122,7 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
                                      loglevel=logging.INFO)
         else:
             self.yatsm_model = YATSM(self.X[clear, :],
-                                     self.Y[:, clear],
+                                     self.Y[:-1, clear],
                                      consecutive=self.consecutive,
                                      threshold=self.threshold,
                                      min_obs=self.min_obs,
