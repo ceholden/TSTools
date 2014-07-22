@@ -56,12 +56,13 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
     freq = np.array([1, 2, 3])
     reverse = False
     test_indices = np.array([3, 4, 5, 6])
+    robust_results = False
 
     __custom_controls_title__ = 'YATSM Options'
     __custom_controls__ = ['crossvalidate_lambda',
                            'consecutive', 'min_obs', 'threshold',
                            'freq', 'reverse',
-                           'test_indices']
+                           'test_indices', 'robust_results']
 
     def __init__(self, location, config=None):
 
@@ -84,7 +85,8 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
             if isinstance(v, type(current_value)):
                 # Check if we need to update the frequency of X
                 if k == 'freq':
-                    if all(v != self.freq):
+                    if any([_v not in self.freq for _v in v]) or \
+                            any([_f not in v for _f in self.freq]):
                         self.X = make_X(self.ord_dates, self.freq).T
                 setattr(self, k, v)
             else:
@@ -131,7 +133,10 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
         self.yatsm_model.run()
 
         # List to store results
-        self.result = list(self.yatsm_model.record)
+        if self.robust_results:
+            self.result = self.yatsm_model.robust_record
+        else:
+            self.result = self.yatsm_model.record
 
     def get_prediction(self, band, usermx=None):
         """ Return the time series model fit predictions for any single pixel
