@@ -4,8 +4,8 @@ if [ ! -d i18n ]; then
 	mkdir i18n
 fi
 
-make clean
-make
+set -e
+
 make clean
 make derase
 make deploy
