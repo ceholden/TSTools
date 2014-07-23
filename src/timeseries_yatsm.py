@@ -53,6 +53,8 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
     consecutive = 5
     min_obs = 12
     threshold = 2.57
+    enable_min_rmse = False
+    min_rmse = 0.0
     freq = np.array([1, 2, 3])
     reverse = False
     test_indices = np.array([3, 4, 5, 6])
@@ -61,6 +63,7 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
     __custom_controls_title__ = 'YATSM Options'
     __custom_controls__ = ['crossvalidate_lambda',
                            'consecutive', 'min_obs', 'threshold',
+                           'enable_min_rmse', 'min_rmse',
                            'freq', 'reverse',
                            'test_indices', 'robust_results']
 
@@ -90,8 +93,12 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
                         self.X = make_X(self.ord_dates, self.freq).T
                 setattr(self, k, v)
             else:
-                print 'Error setting value for {o}'.format(o=k)
-                print current_value, v
+                # Make an exception for minimum RMSE since we can pass None
+                if k == 'min_rmse' and isinstance(v, float):
+                    setattr(self, k, v)
+                else:
+                    print 'Error setting value for {o}'.format(o=k)
+                    print current_value, v
 
     def retrieve_result(self):
         """ Returns the record changes for the current pixel
@@ -112,12 +119,17 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
         self.Y = self.get_data(mask=False)
         clear = self.Y[self.mask_band - 1, :] <= 1
 
+        # Turn on/off minimum RMSE
+        if not self.enable_min_rmse:
+            self.min_rmse = None
+
         if self.reverse:
             self.yatsm_model = YATSM(np.flipud(self.X[clear, :]),
                                      np.fliplr(self.Y[:-1, clear]),
                                      consecutive=self.consecutive,
                                      threshold=self.threshold,
                                      min_obs=self.min_obs,
+                                     min_rmse=self.min_rmse,
                                      lassocv=self.crossvalidate_lambda,
                                      loglevel=logging.INFO)
         else:
@@ -126,6 +138,7 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
                                      consecutive=self.consecutive,
                                      threshold=self.threshold,
                                      min_obs=self.min_obs,
+                                     min_rmse=self.min_rmse,
                                      lassocv=self.crossvalidate_lambda,
                                      loglevel=logging.INFO)
 
