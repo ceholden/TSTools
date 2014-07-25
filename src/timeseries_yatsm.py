@@ -92,7 +92,7 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
                 if k == 'freq':
                     if any([_v not in self.freq for _v in v]) or \
                             any([_f not in v for _f in self.freq]):
-                        self.X = make_X(self.ord_dates, self.freq).T
+                        self.X = make_X(self.ord_dates, v).T
                 setattr(self, k, v)
             else:
                 # Make an exception for minimum RMSE since we can pass None
@@ -104,19 +104,10 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
 
     def retrieve_result(self):
         """ Returns the record changes for the current pixel
-
-        Result is stored as a list of dictionaries
-
-        Note:   MATLAB indexes on 1 so y is really (y - 1) in calculations and
-                x is (x - 1)
-
-        CCDC Usage:cd
-            rec_cg=TrendSeasonalFit_v10_QGIS(
-                N_row,N_col, mini, T_cg, n_times, conse, B_detect)
-
         """
         # Note: X recalculated during variable setting, if needed, unless None
-        self.X = make_X(self.ord_dates, self.freq).T
+        if self.X is None:
+            self.X = make_X(self.ord_dates, self.freq).T
         # Get Y
         self.Y = self.get_data(mask=False)
         clear = self.Y[self.mask_band - 1, :] <= 1
