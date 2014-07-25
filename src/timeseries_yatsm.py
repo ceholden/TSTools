@@ -59,13 +59,15 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
     reverse = False
     test_indices = np.array([3, 4, 5, 6])
     robust_results = False
+    debug = False
 
     __custom_controls_title__ = 'YATSM Options'
     __custom_controls__ = ['crossvalidate_lambda',
                            'consecutive', 'min_obs', 'threshold',
                            'enable_min_rmse', 'min_rmse',
                            'freq', 'reverse',
-                           'test_indices', 'robust_results']
+                           'test_indices', 'robust_results',
+                            'debug']
 
     def __init__(self, location, config=None):
 
@@ -123,6 +125,11 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
         if not self.enable_min_rmse:
             self.min_rmse = None
 
+        if self.debug:
+            loglevel = logging.DEBUG
+        else:
+            loglevel = logging.INFO
+
         if self.reverse:
             self.yatsm_model = YATSM(np.flipud(self.X[clear, :]),
                                      np.fliplr(self.Y[:-1, clear]),
@@ -131,7 +138,7 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
                                      min_obs=self.min_obs,
                                      min_rmse=self.min_rmse,
                                      lassocv=self.crossvalidate_lambda,
-                                     loglevel=logging.INFO)
+                                     loglevel=loglevel)
         else:
             self.yatsm_model = YATSM(self.X[clear, :],
                                      self.Y[:-1, clear],
@@ -140,7 +147,7 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
                                      min_obs=self.min_obs,
                                      min_rmse=self.min_rmse,
                                      lassocv=self.crossvalidate_lambda,
-                                     loglevel=logging.INFO)
+                                     loglevel=loglevel)
 
         # Run
         self.yatsm_model.run()
