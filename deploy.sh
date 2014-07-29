@@ -6,6 +6,7 @@ fi
 
 set -e
 
+make
 make clean
 make derase
 make deploy
