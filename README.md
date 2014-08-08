@@ -9,6 +9,7 @@ While this QGIS plugin was originally designed for use with the "Continuous Chan
 The goal is for users to describe their own data set structures, algorithm parameters, and algorithm outputs and then plug these customizations into the TSTools plugin by inheriting from the abstract base class "TimeSeries". This base class acts as an interface descriptor that characterizes what methods and properties are required for use within the user interface.
 
 ### Installation
+#### Locally
 This plugin has not been uploaded to the main QGIS plugin repository so installation will need to be done manually.
 
 In most cases, the QGIS Python plugins folder will be located in your home directory within the ".qgis2/python/plugins" folder. Any plugins you have installed previously will be located here. For more information, see this excellent answer on [Stack Exchange](http://gis.stackexchange.com/questions/26979/how-to-install-a-qgis-plugin-when-offline).
@@ -24,6 +25,15 @@ Two new icons will be added to the plugins toolbar. These icons have the letters
 
 An example dataset for this plugin is located here:
 https://github.com/ceholden/landsat_stack
+
+#### Virtual machine demo
+To help out people who find the installation of this software is not so straightforward (e.g., it is more difficult on Windows than Linux), I have created a virtual machine of the 14.04 LTS [Xubuntu distribution](http://xubuntu.org/) with everything installed. This virtual machine contains a full stack of softwares - GDAL, Python, QGIS, NumPy, SciPy, etc. - that are required to use the plugin. The virtual machine is formatted as a [VirtualBox image](https://www.virtualbox.org/) and I would recommend you to use [VirtualBox](https://www.virtualbox.org/) to run the virtual machine. VirtualBox is a free and open source softare that can create and host virtual machines and is comparable to commercial solutions such as VMWare or Parallels.
+
+The virtual machine has been exported to a [VirtualBox appliance](http://www.virtualbox.org/manual/ch01.html#ovf) and uploaded to my university department's anonymous FTP server:
+
+ftp://ftp-earth.bu.edu/ceholden/TSTools/
+
+Please see the included README for further instructions. A md5sum of the virtual disk appliance is provided for confirming the file transfer integrity.
 
 ### Requirements
 #### Main dependencies:
