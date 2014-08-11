@@ -128,6 +128,7 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
                                      threshold=self.threshold,
                                      min_obs=self.min_obs,
                                      min_rmse=self.min_rmse,
+                                     test_indices=self.test_indices,
                                      lassocv=self.crossvalidate_lambda,
                                      loglevel=loglevel)
         else:
@@ -137,6 +138,7 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
                                      threshold=self.threshold,
                                      min_obs=self.min_obs,
                                      min_rmse=self.min_rmse,
+                                     test_indices=self.test_indices,
                                      lassocv=self.crossvalidate_lambda,
                                      loglevel=loglevel)
 
