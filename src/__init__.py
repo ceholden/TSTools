@@ -21,6 +21,13 @@
  This script initializes the plugin, making it known to QGIS.
 """
 
+import logging
+
+logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
+                    level=logging.DEBUG,
+                    datefmt='%H:%M:%S')
+logger = logging.getLogger(__name__)
+
 
 def name():
     return "TSTools"

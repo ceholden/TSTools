@@ -30,6 +30,7 @@ from matplotlib.backends.backend_qt4agg \
 
 import numpy as np
 
+from tstools.ts_driver.ts_manager import tsm
 from tstools import settings as setting
 
 # Note: FigureCanvas is also a QWidget
@@ -66,33 +67,33 @@ class TSPlot(FigureCanvas):
         self.axes.set_ylim([0, 10000])
         self.fig.tight_layout()
 
-    def update_plot(self, ts):
+    def update_plot(self):
         """ Fetches new information and then calls to plot
         """
 
         print 'Updating plot...'
 
-        self.px, self.py = ts.get_px(), ts.get_py()
+        self.px, self.py = tsm.ts.get_px(), tsm.ts.get_py()
         if self.px is not None and self.py is not None:
             # Add + 1 so we index on 1,1 instead of 0,0 (as in ENVI/MATLAB)
             self.px, self.py = self.px + 1, self.py + 1
 
-        self.x = ts.dates
-        self.y = ts.get_data(setting.plot['mask'])[setting.plot['band'], :]
+        self.x = tsm.ts.dates
+        self.y = tsm.ts.get_data(setting.plot['mask'])[setting.plot['band'], :]
 
-        if setting.plot['fit'] is True and ts.result is not None:
-            if len(ts.result) > 0:
-                self.mx, self.my = ts.get_prediction(setting.plot['band'])
+        if setting.plot['fit'] is True and tsm.ts.result is not None:
+            if len(tsm.ts.result) > 0:
+                self.mx, self.my = tsm.ts.get_prediction(setting.plot['band'])
             else:
                 self.mx, self.my = (np.zeros(0), np.zeros(0))
-        if setting.plot['break'] is True and ts.result is not None:
-            if len(ts.result) > 1:
-                self.bx, self.by = ts.get_breaks(setting.plot['band'])
+        if setting.plot['break'] is True and tsm.ts.result is not None:
+            if len(tsm.ts.result) > 1:
+                self.bx, self.by = tsm.ts.get_breaks(setting.plot['band'])
             else:
                 self.bx, self.by = (np.zeros(0), np.zeros(0))
-        self.plot(ts)
+        self.plot()
 
-    def plot(self, ts=None):
+    def plot(self):
         """ Matplotlib plot of time series
         """
         self.axes.clear()
@@ -102,10 +103,10 @@ class TSPlot(FigureCanvas):
         self.axes.set_title(title)
 
         self.axes.set_xlabel('Date')
-        if ts is None:
+        if tsm.ts is None:
             self.axes.set_ylabel('Band')
         else:
-            self.axes.set_ylabel(ts.band_names[setting.plot['band']])
+            self.axes.set_ylabel(tsm.ts.band_names[setting.plot['band']])
 
         self.axes.grid(True)
 
@@ -146,7 +147,7 @@ class TSPlot(FigureCanvas):
         if setting.plot['break'] is True:
             for i in xrange(len(self.bx)):
                 self.axes.plot(self.bx[i], self.by[i], 'ro',
-                    mec='r', mfc='none', ms=10, mew=5)
+                               mec='r', mfc='none', ms=10, mew=5)
 
         # Redraw
         self.fig.tight_layout()

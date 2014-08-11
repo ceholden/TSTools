@@ -20,22 +20,24 @@
  *                                                                         *
  ***************************************************************************/
 """
+import os
+
 from PyQt4 import QtCore
 from PyQt4 import QtGui
-
-import os
 
 import numpy as np
 
 from ui_attach_md import Ui_AttachMd as Ui_Widget
+
+from .ts_driver.ts_manager import tsm
+
 
 class AttachMetadata(QtGui.QDialog, Ui_Widget):
     """ Plot symbology metadata attacher """
 
     metadata_attached = QtCore.pyqtSignal()
 
-    def __init__(self, iface, ts):
-        self.ts = ts
+    def __init__(self, iface):
         # Qt setup
         self.iface = iface
         QtGui.QDialog.__init__(self)
@@ -164,8 +166,8 @@ class AttachMetadata(QtGui.QDialog, Ui_Widget):
     def add_metadata(self):
         """ """
         # Try to match metadata
-        ts_match_var = (self.ts.image_names if self.rad_ID.isChecked() is True
-                        else self.ts.dates)
+        ts_match_var = (tsm.ts.image_names if self.rad_ID.isChecked() is True
+                        else tsm.ts.dates)
         # Match column
         match_col = self.table_metadata.selectedItems()[0].column()
         md_match_var = self.md[:, match_col]
@@ -199,10 +201,10 @@ class AttachMetadata(QtGui.QDialog, Ui_Widget):
             # Ignore match column
             if i == match_col:
                 continue
-            if md not in self.ts.__metadata__ and not hasattr(self.ts, md):
-                self.ts.__metadata__.append(md)
-                self.ts.__metadata__str__.append(md)
-                setattr(self.ts, md, self.md_sorted[:, i])
+            if md not in tsm.ts.__metadata__ and not hasattr(tsm.ts, md):
+                tsm.ts.__metadata__.append(md)
+                tsm.ts.__metadata__str__.append(md)
+                setattr(tsm.ts, md, self.md_sorted[:, i])
             else:
                 print 'TS already has metadata item {m}'.format(m=md)
 

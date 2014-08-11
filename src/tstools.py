@@ -31,7 +31,7 @@ from qgis.gui import QgsMapToolEmitPoint, QgsMessageBar
 # Initialize Qt resources from file resources.py
 import resources_rc
 
-import timeseries
+from .ts_driver.ts_manager import tsm
 
 from .config import Config
 from .controller import Controller
@@ -74,21 +74,8 @@ class TSTools(QObject):
         # Map tool on/off
         self.tool_enabled = True
 
-        # Find TimeSeries data model classes
-        #   (subclassers to AbstractTimeSeries)
-        # Better way of doing this?
-        for loader, modname, ispkg in pkgutil.iter_modules([self.plugin_dir]):
-            module = loader.find_module(modname).load_module(
-                os.path.basename(self.plugin_dir) + '.' + modname)
-        self.ts_data_models = timeseries.AbstractTimeSeries.__subclasses__()
-        for subclass in self.ts_data_models:
-            subsubclass = subclass.__subclasses__()
-            for _subsubclass in subsubclass:
-                if _subsubclass not in self.ts_data_models:
-                    self.ts_data_models.append(_subsubclass)
-
         print 'DEBUG {f}: found {i} TS data models'.format(
-            f=__file__, i=len(self.ts_data_models))
+            f=__file__, i=len(tsm.ts_drivers))
 
     def init_toolbar(self):
         """ Creates and populates the toolbar for plugin """
@@ -126,7 +113,7 @@ class TSTools(QObject):
         print 'DEBUG %s : show/hide config' % __file__
 
         # Init the dialog
-        self.config = Config(self, self.location, self.ts_data_models)
+        self.config = Config(self, self.location)
         # Connect signals
         self.config.accepted.connect(self.config_accepted)
         self.config.canceled.connect(self.config_closed)
@@ -145,7 +132,7 @@ class TSTools(QObject):
         # Set data model for controller from user pick
         try:
             self.controller.get_time_series(
-                self.ts_data_models[model_index],
+                tsm.ts_drivers[model_index],
                 location,
                 custom_options)
 
@@ -264,13 +251,13 @@ class TSTools(QObject):
                     self.iface.messageBar().pushMessage('Error',
                         'Could not convert map CRS to layer CRS',
                         level=QgsMessageBar.WARNING,
-                        duration = 5)
+                        duration=5)
                     return
             else:
                 self.iface.messageBar().pushMessage('Error',
                     'Could not convert map CRS to layer CRS',
                     level=QgsMessageBar.WARNING,
-                    duration = 5)
+                    duration=5)
                 return
 
         # Fetch data if inside raster
@@ -284,7 +271,7 @@ class TSTools(QObject):
             self.iface.messageBar().pushMessage('Warning',
                 'Please select a point within the time series image',
                 level=QgsMessageBar.WARNING,
-                duration = 5)
+                duration=5)
 
 
     def unload(self):

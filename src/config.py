@@ -27,23 +27,23 @@ from PyQt4 import QtGui
 
 from ui_config import Ui_Config
 
-from custom_form import CustomForm
+from .ts_driver.ts_manager import tsm
+from .custom_form import CustomForm
 
 class Config(QtGui.QDialog, Ui_Config):
 
     accepted = QtCore.pyqtSignal()
     canceled = QtCore.pyqtSignal()
 
-    def __init__(self, iface, location, ts_data_models):
+    def __init__(self, iface, location):
         self.iface = iface
         QtGui.QWidget.__init__(self)
         self.setupUi(self)
         ### Data
         self.location = location
-        self.ts_data_models = ts_data_models
 
         ### Setup required information
-        self.data_model_str = [_ts.__str__ for _ts in self.ts_data_models]
+        self.data_model_str = [_ts.__str__ for _ts in tsm.ts_drivers]
         self.custom_options = None
 
         ### Finish setup
@@ -65,7 +65,7 @@ class Config(QtGui.QDialog, Ui_Config):
 
         self.custom_forms = []
 
-        for i, _ts in enumerate(self.ts_data_models):
+        for i, _ts in enumerate(tsm.ts_drivers):
             # Test for custom configurations
 
             has_custom_form = True

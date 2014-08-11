@@ -35,6 +35,7 @@ except:
 import timeseries
 from timeseries import mat2dict, ml2pydate, py2mldate
 
+
 class CCDCTimeSeries(timeseries.AbstractTimeSeries):
     """Class holding data and methods for time series used by CCDC
     (Change Detection and Classification). Useful for QGIS plugin 'TSTools'.

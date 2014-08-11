@@ -39,7 +39,7 @@ TRANSLATIONS =
 # global
 PLUGINNAME = tstools
 
-PY_FILES = src/*.py src/plots
+PY_FILES = src/*.py src/plots src/ts_driver
 
 EXTRAS = tstools_click.png tstools_config.png metadata.txt
 

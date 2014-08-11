@@ -22,7 +22,6 @@
 """
 
 import os
-import datetime as dt
 
 import matplotlib as mpl
 from matplotlib.figure import Figure
@@ -32,6 +31,7 @@ import mpl_toolkits.axes_grid1 as mpl_grid
 
 import numpy as np
 
+from tstools.ts_driver.ts_manager import tsm
 from tstools import settings as setting
 
 # Note: FigureCanvas is also a QWidget
@@ -71,21 +71,21 @@ class DOYPlot(FigureCanvas):
         self.axes.set_ylim([0, 10000])
         self.fig.tight_layout()
 
-    def update_plot(self, ts):
+    def update_plot(self):
         """ Fetches new information and then calls plot
         """
-        self.px, self.py = ts.get_px(), ts.get_py()
+        self.px, self.py = tsm.ts.get_px(), tsm.ts.get_py()
         if self.px is not None and self.py is not None:
             # Add + 1 so we index on 1,1 instead of 0,0 (as in ENVI/MATLAB)
             self.px, self.py = self.px + 1, self.py + 1
 
-        self.x = np.array([int(d.strftime('%j')) for d in ts.dates])
-        self.year = np.array([d.year for d in ts.dates])
-        self.y = ts.get_data(setting.plot['mask'])[setting.plot['band'], :]
+        self.x = np.array([int(d.strftime('%j')) for d in tsm.ts.dates])
+        self.year = np.array([d.year for d in tsm.ts.dates])
+        self.y = tsm.ts.get_data(setting.plot['mask'])[setting.plot['band'], :]
 
-        if setting.plot['fit'] is True and ts.result is not None:
-            if len(ts.result) > 0:
-                self.mx, self.my = ts.get_prediction(setting.plot['band'])
+        if setting.plot['fit'] is True and tsm.ts.result is not None:
+            if len(tsm.ts.result) > 0:
+                self.mx, self.my = tsm.ts.get_prediction(setting.plot['band'])
             else:
                 self.mx, self.my = (np.zeros(0), np.zeros(0))
 
@@ -93,14 +93,14 @@ class DOYPlot(FigureCanvas):
             for _mx in self.mx:
                 self.mx_year.append(np.array([d.year for d in _mx]))
 
-        if setting.plot['break'] is True and ts.result is not None:
-            if len(ts.result) > 1:
-                self.bx, self.by = ts.get_breaks(setting.plot['band'])
+        if setting.plot['break'] is True and tsm.ts.result is not None:
+            if len(tsm.ts.result) > 1:
+                self.bx, self.by = tsm.ts.get_breaks(setting.plot['band'])
             else:
                 self.bx, self.by = (np.zeros(0), np.zeros(0))
-        self.plot(ts)
+        self.plot()
 
-    def plot(self, ts=None):
+    def plot(self):
         """ Matplotlib plot of time series stacked by DOY
         """
         self.axes.clear()
@@ -110,16 +110,15 @@ class DOYPlot(FigureCanvas):
         self.axes.set_title(title)
 
         self.axes.set_xlabel('Day of Year')
-        if ts is None:
+        if tsm.ts is None:
             self.axes.set_ylabel('Band')
         else:
-            self.axes.set_ylabel(ts.band_names[setting.plot['band']])
+            self.axes.set_ylabel(tsm.ts.band_names[setting.plot['band']])
 
         self.axes.grid(True)
         self.axes.set_ylim([setting.plot['min'][setting.plot['band']],
                             setting.plot['max'][setting.plot['band']]])
         self.axes.set_xlim(0, 366)
-
 
         if setting.plot['xmin'] is not None \
                 and setting.plot['xmax'] is not None:
@@ -150,7 +149,7 @@ class DOYPlot(FigureCanvas):
                                picker=setting.plot['picker_tol'])
 
         # Only put colorbar if we have data
-        if ts is not None:
+        if tsm.ts is not None:
             # Setup layout to add space
             # http://matplotlib.org/mpl_toolkits/axes_grid/users/overview.html#axesdivider
             divider = mpl_grid.make_axes_locatable(self.axes)
@@ -195,8 +194,8 @@ class DOYPlot(FigureCanvas):
 
             if len(med_year) > 0:
                 self.axes.legend(fit_plt,
-                             ['Fit {n}: {y}'.format(n=n + 1, y=y)
-                              for n, y in enumerate(med_year)])
+                                 ['Fit {n}: {y}'.format(n=n + 1, y=y)
+                                  for n, y in enumerate(med_year)])
 
         # Redraw
         self.fig.tight_layout()

@@ -29,23 +29,24 @@ from qgis.core import *
 import numpy as np
 
 from collections import OrderedDict
-import datetime as dt
-import fnmatch
 from functools import partial
 from itertools import izip
-import os
 
 from ui_controls import Ui_Controls as Ui_Widget
 from SavePlotDialog import SavePlotDialog
 from custom_form import CustomForm
 from controls_symbology import SymbologyControl
-import settings as setting
+
+from .ts_driver.ts_manager import tsm
+from . import settings as setting
+
 
 def str2num(s):
     try:
         return int(s)
     except ValueError:
         return float(s)
+
 
 class ControlPanel(QWidget, Ui_Widget):
 
@@ -64,26 +65,26 @@ class ControlPanel(QWidget, Ui_Widget):
         # Show/don't show clicks
         self.cbox_showclick.setChecked(setting.canvas['show_click'])
 
-    def init_custom_options(self, ts):
+    def init_custom_options(self):
         # Check to see if TS class has UI elements described
-        if not hasattr(ts, '__custom_controls__') or \
-            not callable(getattr(ts, 'set_custom_controls', None)):
+        if not hasattr(tsm.ts, '__custom_controls__') or \
+                not callable(getattr(tsm.ts, 'set_custom_controls', None)):
 
             self.custom_form = None
             return
         else:
-            if not isinstance(ts.__custom_controls__, list):
+            if not isinstance(tsm.ts.__custom_controls__, list):
                 print 'Custom controls for timeseries improperly described'
                 self.custom_form = None
                 return
-            if len(ts.__custom_controls__) == 0:
+            if len(tsm.ts.__custom_controls__) == 0:
                 print 'Custom controls for timeseries improperly described'
                 self.custom_form = None
                 return
 
         # Add form
-        if not hasattr(ts, '__custom_controls_title__'):
-            ts.__custom_controls_title__ = None
+        if not hasattr(tsm.ts, '__custom_controls_title__'):
+            tsm.ts.__custom_controls_title__ = None
 
         self.custom_form = getattr(self, 'custom_form', None)
         if self.custom_form is not None:
@@ -92,15 +93,15 @@ class ControlPanel(QWidget, Ui_Widget):
             self.tab_options.layout().removeWidget(self.custom_form)
             self.custom_form = None
 
-        print 'Adding custom form for TS {ts}'.format(ts=repr(ts))
+        print 'Adding custom form for TS {ts}'.format(ts=repr(tsm.ts))
         config = OrderedDict([
-            [key, [key, getattr(ts, key)]] for key in
-            ts.__custom_controls__
+            [key, [key, getattr(tsm.ts, key)]] for key in
+            tsm.ts.__custom_controls__
         ])
-        self.custom_form = CustomForm(config, ts.__custom_controls_title__)
+        self.custom_form = CustomForm(config, tsm.ts.__custom_controls_title__)
         self.tab_options.layout().addWidget(self.custom_form)
 
-    def init_plot_options(self, ts):
+    def init_plot_options(self):
         print 'Plot options init'
         # Click a point, add the layer
         self.cbox_plotlayer.setChecked(setting.plot['plot_layer'])
@@ -108,7 +109,7 @@ class ControlPanel(QWidget, Ui_Widget):
         # Raster band select
         self.combox_band.clear()
         if self.combox_band.count() == 0:
-            self.combox_band.addItems(ts.band_names)
+            self.combox_band.addItems(tsm.ts.band_names)
         self.combox_band.setCurrentIndex(setting.plot['band'])
         self.combox_band.currentIndexChanged.connect(self.set_band_select)
 
@@ -125,8 +126,8 @@ class ControlPanel(QWidget, Ui_Widget):
         self.edit_max.editingFinished.connect(self.set_plot_max)
 
         # Xlim min and max
-        setting.plot['xmin'] = ts.dates.min().year
-        setting.plot['xmax'] = ts.dates.max().year
+        setting.plot['xmin'] = tsm.ts.dates.min().year
+        setting.plot['xmax'] = tsm.ts.dates.max().year
 
         self.lab_xmin.setText(str(setting.plot['xmin']))
         self.lab_xmax.setText(str(setting.plot['xmax']))
@@ -154,7 +155,7 @@ class ControlPanel(QWidget, Ui_Widget):
         self.cbox_fmask.setChecked(setting.plot['mask'])
         self.cbox_fmask.stateChanged.connect(self.set_plot_fmask)
 
-        setting.plot['mask_val'] = ts.mask_val
+        setting.plot['mask_val'] = tsm.ts.mask_val
         if setting.plot['mask_val'] is not None:
             self.edit_values.setText(
                 ', '.join(map(str, setting.plot['mask_val'])))
@@ -163,7 +164,7 @@ class ControlPanel(QWidget, Ui_Widget):
         self.edit_values.editingFinished.connect(self.set_mask_vals)
 
         # Only configure model fit and breaks if results exist
-        if ts.has_results is True:
+        if tsm.ts.has_results is True:
             self.cbox_modelfit.setEnabled(True)
             self.cbox_modelfit.setChecked(setting.plot['fit'])
             self.cbox_modelfit.stateChanged.connect(self.set_model_fit)
@@ -177,7 +178,7 @@ class ControlPanel(QWidget, Ui_Widget):
 
         # Symbology
         self.symbology_controls = SymbologyControl(self)
-        self.symbology_controls.setup_gui(ts)
+        self.symbology_controls.setup_gui()
         self.but_symbology.clicked.connect(self.select_symbology)
         plot_changed = lambda: self.plot_options_changed.emit()
         self.symbology_controls.plot_symbology_applied.connect(plot_changed)
@@ -396,35 +397,35 @@ class ControlPanel(QWidget, Ui_Widget):
         self.save_plot.save_plot_closed.disconnect()
         self.save_plot.close()
 
-    def init_symbology(self, ts):
+    def init_symbology(self):
         print 'Symbology init...'
         ### UI
         # Control symbology
         self.cbox_symbolcontrol.setChecked(setting.symbol['control'])
 
         # Band min/max
-        setting.symbol['min'] = np.zeros(ts.n_band, dtype=np.int)
-        setting.symbol['max'] = np.ones(ts.n_band, dtype=np.int) * 10000
-        setting.p_symbol['min'] = np.zeros(ts.n_band, dtype=np.int)
-        setting.p_symbol['max'] = np.ones(ts.n_band, dtype=np.int) * 10000
+        setting.symbol['min'] = np.zeros(tsm.ts.n_band, dtype=np.int)
+        setting.symbol['max'] = np.ones(tsm.ts.n_band, dtype=np.int) * 10000
+        setting.p_symbol['min'] = np.zeros(tsm.ts.n_band, dtype=np.int)
+        setting.p_symbol['max'] = np.ones(tsm.ts.n_band, dtype=np.int) * 10000
 
         # Contrast enhancement
         self.combox_cenhance.setCurrentIndex(setting.symbol['contrast'])
 
         # Band selections
         if self.combox_red.count() == 0:
-            self.combox_red.addItems(ts.band_names)
-        if setting.symbol['band_red'] < len(ts.band_names):
+            self.combox_red.addItems(tsm.ts.band_names)
+        if setting.symbol['band_red'] < len(tsm.ts.band_names):
             self.combox_red.setCurrentIndex(setting.symbol['band_red'])
 
         if self.combox_green.count() == 0:
-            self.combox_green.addItems(ts.band_names)
-        if setting.symbol['band_green'] < len(ts.band_names):
+            self.combox_green.addItems(tsm.ts.band_names)
+        if setting.symbol['band_green'] < len(tsm.ts.band_names):
             self.combox_green.setCurrentIndex(setting.symbol['band_green'])
 
         if self.combox_blue.count() == 0:
-            self.combox_blue.addItems(ts.band_names)
-        if setting.symbol['band_blue'] < len(ts.band_names):
+            self.combox_blue.addItems(tsm.ts.band_names)
+        if setting.symbol['band_blue'] < len(tsm.ts.band_names):
             self.combox_blue.setCurrentIndex(setting.symbol['band_blue'])
 
         # Min / max
@@ -525,7 +526,6 @@ class ControlPanel(QWidget, Ui_Widget):
         except:
             field.setText(str(setting.p_symbol.get(minmax)[band]))
 
-
     def set_symbol_enhance(self, index):
         """ Assigns color enhancement from combo box of methods
         """
@@ -542,15 +542,15 @@ class ControlPanel(QWidget, Ui_Widget):
                 # Emit that we applied settings
                 self.symbology_applied.emit()
 
-    def update_table(self, ts):
+    def update_table(self):
         print 'Table updates...'
         # Set header labels
         self.image_table.setHorizontalHeaderLabels(
             ['Add/Remove', 'Date', 'ID'])
 
         # Propagate table
-        self.image_table.setRowCount(ts.length)
-        for row, (date, img) in enumerate(izip(ts.dates, ts.image_names)):
+        self.image_table.setRowCount(tsm.ts.length)
+        for row, (date, img) in enumerate(izip(tsm.ts.dates, tsm.ts.image_names)):
             cbox = QTableWidgetItem()
             cbox.setFlags(Qt.ItemIsUserCheckable |
                           Qt.ItemIsEnabled)

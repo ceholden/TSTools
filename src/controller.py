@@ -20,32 +20,27 @@
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt4.QtCore import * # TODO remove *
-from PyQt4.QtGui import * #TODO
 from PyQt4 import QtCore
 from PyQt4 import QtGui
 from qgis.core import *
 from qgis.gui import QgsMessageBar
 
-import datetime as dt
-from functools import partial
 import itertools
-import os
-import sys
-import time
 
 import matplotlib as mpl
 import numpy as np
 
 # from timeseries_ccdc import CCDCTimeSeries
-import settings as setting
+from .ts_driver.ts_manager import tsm
+from . import settings as setting
+
 
 class DataRetriever(QtCore.QObject):
 
     retrieve_update = QtCore.pyqtSignal(int)
     retrieve_complete = QtCore.pyqtSignal()
 
-    def __init__(self, ts=None):
+    def __init__(self):
         QtCore.QObject.__init__(self)
         self.running = False
         self.can_readcache = False
@@ -59,13 +54,13 @@ class DataRetriever(QtCore.QObject):
 
         while (t.elapsed() < 150):
             # Are we done?
-            if self.index == self.ts.length:
+            if self.index == tsm.ts.length:
                 self.running = False
                 self._got_ts_pixel()
                 return
 
             # If not, get pixel and index++
-            self.ts.retrieve_pixel(self.index)
+            tsm.ts.retrieve_pixel(self.index)
             self.index += 1
             QtGui.QApplication.instance().processEvents()
 
@@ -73,31 +68,31 @@ class DataRetriever(QtCore.QObject):
 
         # Use QTimer to call this method again
         if self.running is True:
-            QTimer.singleShot(0, self._retrieve_ts_pixel)
+            QtCore.QTimer.singleShot(0, self._retrieve_ts_pixel)
 
     def _got_ts_pixel(self):
         """ Finish off rest of process when getting pixel data """
-        self.ts.apply_mask()
+        tsm.ts.apply_mask()
 
-        if self.ts.has_cache is True and self.ts.can_cache is True:
+        if tsm.ts.has_cache is True and tsm.ts.can_cache is True:
             try:
-                self.can_writecache = self.ts.write_to_cache()
+                self.can_writecache = tsm.ts.write_to_cache()
             except:
                 print 'Debug: could not write to cache file'
             else:
                 if self.can_writecache is True:
                     print 'Debug: wrote to cache file'
 
-        if self.ts.has_results is True:
-            self.ts.retrieve_result()
+        if tsm.ts.has_results is True:
+            tsm.ts.retrieve_result()
 
         self.retrieve_complete.emit()
 
     def get_ts_pixel(self):
         """ Retrieves time series, emitting status updates """
         # First check if time series has a readable cache
-        if self.ts.has_cache is True and self.ts.cache_folder is not None:
-            self.can_readcache = self.ts.retrieve_from_cache()
+        if tsm.ts.has_cache is True and tsm.ts.cache_folder is not None:
+            self.can_readcache = tsm.ts.retrieve_from_cache()
 
         if self.can_readcache is True:
             # We've read from cache - finish process
@@ -106,7 +101,7 @@ class DataRetriever(QtCore.QObject):
             # We can't read from or there is no cache - retrieve from images
             self.index = 0
             self.running = True
-            QTimer.singleShot(0, self._retrieve_ts_pixel)
+            QtCore.QTimer.singleShot(0, self._retrieve_ts_pixel)
 
 
 class Controller(QtCore.QObject):
@@ -137,7 +132,7 @@ class Controller(QtCore.QObject):
         self.retriever = DataRetriever()
 #        self.retriever.moveToThread(self.retrieve_thread)
 
-### Setup
+# Setup
     def get_time_series(self, TimeSeries,
                         location, custom_options=None):
         """
@@ -145,22 +140,21 @@ class Controller(QtCore.QObject):
         information to controls & plotter
         """
         try:
-            self.ts = TimeSeries(location, custom_options)
+            tsm.ts = TimeSeries(location, custom_options)
         except:
             raise
 
-        if self.ts:
+        if tsm.ts:
             # Control panel
             self.ctrl.init_options()
-            self.ctrl.init_custom_options(self.ts)
-            self.ctrl.init_plot_options(self.ts)
-            self.ctrl.init_symbology(self.ts)
-            self.ctrl.update_table(self.ts)
+            self.ctrl.init_custom_options()
+            self.ctrl.init_plot_options()
+            self.ctrl.init_symbology()
+            self.ctrl.update_table()
 
             # Wire signals for GUI
             self.add_signals()
 
-            self.retriever.ts = self.ts
             self.retriever.retrieve_update.connect(
                 self.retrieval_progress_update)
             self.retriever.retrieve_complete.connect(
@@ -170,7 +164,7 @@ class Controller(QtCore.QObject):
             self.configured = True
             return True
 
-### Communications
+# Communications
 
     def update_display(self):
         """
@@ -180,17 +174,17 @@ class Controller(QtCore.QObject):
         if setting.plot['auto_scale']:
             self.calculate_scale()
         self.ctrl.update_plot_options()
-        self.ts_plot.update_plot(self.ts)
-        self.doy_plot.update_plot(self.ts)
+        self.ts_plot.update_plot()
+        self.doy_plot.update_plot()
 
     def update_masks(self):
         """ Signal to TS to update the mask and reapply """
         print 'Updated masks - refreshing plots'
-        self.ts.mask_val = setting.plot['mask_val']
-        self.ts.apply_mask(mask_val=setting.plot['mask_val'])
+        tsm.ts.mask_val = setting.plot['mask_val']
+        tsm.ts.apply_mask(mask_val=setting.plot['mask_val'])
         self.update_display()
 
-### Common layer manipulation
+# Common layer manipulation
 
     def add_map_layer(self, index):
         """
@@ -205,13 +199,13 @@ class Controller(QtCore.QObject):
                 index = index[0]
 
         # Which layer are we adding?
-        added = [(self.ts.filepaths[index] == layer.source(), layer)
+        added = [(tsm.ts.filepaths[index] == layer.source(), layer)
                  for layer in reg.mapLayers().values()]
         # Check if we haven't already added it
         if all(not add[0] for add in added) or len(added) == 0:
             # Create
-            rlayer = QgsRasterLayer(self.ts.filepaths[index],
-                                    self.ts.image_names[index])
+            rlayer = QgsRasterLayer(tsm.ts.filepaths[index],
+                                    tsm.ts.image_names[index])
             if rlayer.isValid():
                 reg.addMapLayer(rlayer)
 
@@ -220,7 +214,7 @@ class Controller(QtCore.QObject):
             # Handle symbology
             self.apply_symbology(rlayer)
 
-#        # If we have already added it, move it to top
+# If we have already added it, move it to top
 #        elif any(add[0] for add in added):
 #            index = [i for i, tup in enumerate(added) if tup[0] == True][0]
 #            self.move_layer_top(added[index][1].id())
@@ -233,14 +227,14 @@ class Controller(QtCore.QObject):
         """
         print 'Added a map layer'
         for layer in layers:
-            rows_added = [row for (row, imgfile) in enumerate(self.ts.filepaths)
+            rows_added = [row for (row, imgfile) in enumerate(tsm.ts.filepaths)
                           if layer.source() == imgfile]
             print 'Added these rows: %s' % str(rows_added)
             for row in rows_added:
                 item = self.ctrl.image_table.item(row, 0)
                 if item:
-                    if item.checkState() == Qt.Unchecked:
-                        item.setCheckState(Qt.Checked)
+                    if item.checkState() == QtCore.Qt.Unchecked:
+                        item.setCheckState(QtCore.Qt.Checked)
 
         # Move pixel highlight back to top
         if setting.canvas['click_layer_id']:
@@ -268,9 +262,9 @@ class Controller(QtCore.QObject):
 
             # Find corresponding row in table
             rows_removed = [row for row, (image_name, fname) in
-                enumerate(itertools.izip(self.ts.image_names,
-                                         self.ts.filenames))
-                if image_name in layer_id or fname in layer_id]
+                            enumerate(itertools.izip(tsm.ts.image_names,
+                                                     tsm.ts.filenames))
+                            if image_name in layer_id or fname in layer_id]
 
             print 'Removed these rows %s' % str(rows_removed)
 
@@ -278,8 +272,8 @@ class Controller(QtCore.QObject):
             for row in rows_removed:
                 item = self.ctrl.image_table.item(row, 0)
                 if item:
-                    if item.checkState() == Qt.Checked:
-                        item.setCheckState(Qt.Unchecked)
+                    if item.checkState() == QtCore.Qt.Checked:
+                        item.setCheckState(QtCore.Qt.Unchecked)
 
             # Check for click layer
             if setting.canvas['click_layer_id'] == layer_id:
@@ -287,16 +281,16 @@ class Controller(QtCore.QObject):
                 print setting.canvas['click_layer_id']
                 setting.canvas['click_layer_id'] = None
 
-### Signals
+# Signals
     def add_signals(self):
         """
         Add the signals to the options tab
         """
-        ### Options tab
+        # Options tab
         # Show/don't show where user clicked
         self.ctrl.cbox_showclick.stateChanged.connect(self.set_show_click)
 
-        ### Plot tab
+        # Plot tab
         # Catch signal from plot options that we need to update
         self.ctrl.plot_options_changed.connect(self.update_display)
         # Catch signal to save the figure
@@ -309,11 +303,11 @@ class Controller(QtCore.QObject):
         # Fmask mask values updated
         self.ctrl.mask_updated.connect(self.update_masks)
 
-        ### Symbology tab
+        # Symbology tab
         # Signal for having applied symbology settings
         self.ctrl.symbology_applied.connect(self.apply_symbology)
 
-        ### Image tab panel helpers for add/remove layers
+        # Image tab panel helpers for add/remove layers
         # NOTE: QGIS added "layersAdded" in 1.8(?) to replace some older
         #       signals. It looks like they intended on adding layersRemoved
         #       to replace layersWillBeRemoved/etc, but haven't gotten around
@@ -324,13 +318,13 @@ class Controller(QtCore.QObject):
         QgsMapLayerRegistry.instance().layersWillBeRemoved.connect(
             self.map_layers_removed)
 
-        ### Image tab panel
+        # Image tab panel
         self.ctrl.image_table.itemClicked.connect(self.get_tablerow_clicked)
 
-### Slots for signals
+# Slots for signals
 
-### Slot for plot tab management
-    @pyqtSlot(int)
+# Slot for plot tab management
+    @QtCore.pyqtSlot(int)
     def changed_tab(self, index):
         """ Updates which plot is currently being shown """
         if index == 0:
@@ -340,7 +334,7 @@ class Controller(QtCore.QObject):
         else:
             print 'You select a non-existent tab!? (#{i})'.format(i=index)
 
-## Slots for map tool
+# Slots for map tool
     def fetch_data(self, pos):
         """ Receives QgsPoint, transforms into pixel coordinates, and begins
         thread that retrieves data
@@ -350,15 +344,15 @@ class Controller(QtCore.QObject):
             print 'Currently fetching data. Please wait'
         else:
             # Convert position into pixel location
-            px = int((pos[0] - self.ts.geo_transform[0]) /
-                        self.ts.geo_transform[1])
-            py = int((pos[1] - self.ts.geo_transform[3]) /
-                     self.ts.geo_transform[5])
+            px = int((pos[0] - tsm.ts.geo_transform[0]) /
+                     tsm.ts.geo_transform[1])
+            py = int((pos[1] - tsm.ts.geo_transform[3]) /
+                     tsm.ts.geo_transform[5])
 
-            if px < self.ts.x_size and py < self.ts.y_size:
+            if px < tsm.ts.x_size and py < tsm.ts.y_size:
                 # Set pixel
-                self.ts.set_px(px)
-                self.ts.set_py(py)
+                tsm.ts.set_px(px)
+                tsm.ts.set_py(py)
 
                 # Start fetching data and disable tool
 #                self.retriever.running = True
@@ -366,35 +360,36 @@ class Controller(QtCore.QObject):
 
                 # Init progress bar - updated by self.update_progress slot
                 self.progress_bar = self.iface.messageBar().createMessage(
-                    'Retrieving data for pixel x={x}, y={y}'.format(
-                    x=px, y=py))
-                self.progress = QProgressBar()
+                    'Retrieving data for pixel x={x}, y={y}'.format(x=px,
+                                                                    y=py))
+                self.progress = QtGui.QProgressBar()
                 self.progress.setValue(0)
-                self.progress.setMaximum(self.ts.length)
-                self.progress.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+                self.progress.setMaximum(tsm.ts.length)
+                self.progress.setAlignment(QtCore.Qt.AlignLeft |
+                                           QtCore.Qt.AlignVCenter)
                 self.progress_bar.layout().addWidget(self.progress)
-                self.cancel_retrieval = QPushButton('Cancel')
+                self.cancel_retrieval = QtGui.QPushButton('Cancel')
                 self.cancel_retrieval.pressed.connect(self.retrieval_cancel)
                 self.progress_bar.layout().addWidget(self.cancel_retrieval)
                 self.iface.messageBar().pushWidget(self.progress_bar,
-                                                self.iface.messageBar().INFO)
+                                                   self.iface.messageBar().INFO)
 
                 # If we have custom options for TS, get them
                 if self.ctrl.custom_form is not None and \
-                    hasattr(self.ts, '__custom_controls__'):
+                        hasattr(tsm.ts, '__custom_controls__'):
 
                     try:
                         options = self.ctrl.custom_form.get()
-                        self.ts.set_custom_controls(options)
+                        tsm.ts.set_custom_controls(options)
                     except:
                         print sys.exc_info()[0]
                         self.ctrl.custom_form.reset()
 
                         self.retrieval_cancel()
                         self.iface.messageBar().pushMessage('Error',
-                                'Could not use custom options for timeseries',
-                                level=QgsMessageBar.CRITICAL,
-                                duration=3)
+                                                            'Could not use custom options for timeseries',
+                                                            level=QgsMessageBar.CRITICAL,
+                                                            duration=3)
                         return
 
                 # Fetch pixel values
@@ -433,7 +428,7 @@ class Controller(QtCore.QObject):
         # Record currently selected feature so we can restore it
         last_selected = self.iface.activeLayer()
         # Get raster pixel px py for pos
-        gt = self.ts.geo_transform
+        gt = tsm.ts.geo_transform
         px = int((pos[0] - gt[0]) / gt[1])
         py = int((pos[1] - gt[3]) / gt[5])
 
@@ -442,11 +437,11 @@ class Controller(QtCore.QObject):
         uly = (gt[3] + px * gt[4] + py * gt[5])
 
         # Create geometry
-        gSquare = QgsGeometry.fromPolygon( [[
-            QgsPoint(ulx, uly), # upper left
-            QgsPoint(ulx + gt[1], uly), # upper right
-            QgsPoint(ulx + gt[1], uly + gt[5]), # lower right
-            QgsPoint(ulx, uly + gt[5]) # lower left
+        gSquare = QgsGeometry.fromPolygon([[
+            QgsPoint(ulx, uly),  # upper left
+            QgsPoint(ulx + gt[1], uly),  # upper right
+            QgsPoint(ulx + gt[1], uly + gt[5]),  # lower right
+            QgsPoint(ulx, uly + gt[5])  # lower left
         ]])
 
         # Do we need to update or create the box?
@@ -466,12 +461,12 @@ class Controller(QtCore.QObject):
             vlayer.triggerRepaint()
         else:
             # Create layer
-            uri = 'polygon?crs=%s' % self.ts.projection
+            uri = 'polygon?crs=%s' % tsm.ts.projection
             vlayer = QgsVectorLayer(uri, 'Query', 'memory')
             pr = vlayer.dataProvider()
             vlayer.startEditing()
-            pr.addAttributes( [ QgsField('row', QVariant.Int),
-                               QgsField('col', QVariant.Int) ] )
+            pr.addAttributes([QgsField('row', QtCore.QVariant.Int),
+                              QgsField('col', QtCore.QVariant.Int)])
             feat = QgsFeature()
             feat.setGeometry(gSquare)
             feat.setAttributes([py, px])
@@ -479,10 +474,10 @@ class Controller(QtCore.QObject):
             # Symbology
             # Reference:
             # http://lists.osgeo.org/pipermail/qgis-developer/2011-April/013772.html
-            props = { 'color_border'    : '255, 0, 0, 255',
-                     'style'            : 'no',
-                     'style_border'     : 'solid',
-                     'width'            : '0.40' }
+            props = {'color_border': '255, 0, 0, 255',
+                     'style': 'no',
+                     'style_border': 'solid',
+                     'width': '0.40'}
             s = QgsFillSymbolV2.createSimple(props)
             vlayer.setRendererV2(QgsSingleSymbolRendererV2(s))
 
@@ -497,21 +492,21 @@ class Controller(QtCore.QObject):
         # Restore active layer
         self.iface.setActiveLayer(last_selected)
 
-## Slots for options tab
+# Slots for options tab
     def set_show_click(self, state):
         """
         Updates showing/not showing of polygon where user clicked
         """
-        if state == Qt.Checked:
+        if state == QtCore.Qt.Checked:
             setting.canvas['show_click'] = True
-        elif state == Qt.Unchecked:
+        elif state == QtCore.Qt.Unchecked:
             setting.canvas['show_click'] = False
             if setting.canvas['click_layer_id']:
                 QgsMapLayerRegistry.instance().removeMapLayer(
                     setting.canvas['click_layer_id'])
                 setting.canvas['click_layer_id'] = None
 
-## Slots for time series table tab
+# Slots for time series table tab
     def get_tablerow_clicked(self, item):
         """
         If user clicks checkbox for image in image table, will add/remove
@@ -520,24 +515,24 @@ class Controller(QtCore.QObject):
         print '----------: get_tablerow_clicked'
         if item.column() != 0:
             return
-        if item.checkState() == Qt.Checked:
+        if item.checkState() == QtCore.Qt.Checked:
             self.add_map_layer(item.row())
-        elif item.checkState() == Qt.Unchecked:
+        elif item.checkState() == QtCore.Qt.Unchecked:
             # If added is true and we now have unchecked, remove
             for layer in setting.image_layers:
                 print layer
                 print setting.image_layers
-                if self.ts.filepaths[item.row()] == layer.source():
+                if tsm.ts.filepaths[item.row()] == layer.source():
                     QgsMapLayerRegistry.instance().removeMapLayer(layer.id())
 
-## Symbology tab
+# Symbology tab
     def apply_symbology(self, rlayers=None):
         """ Apply consistent raster symbology to all raster layers in time
         series
         """
         if rlayers is None:
             rlayers = setting.image_layers
-        elif type(rlayers) != type([]):
+        elif not isinstance(rlayers, list):
             rlayers = [rlayers]
 
         # Fetch band indexes
@@ -567,7 +562,9 @@ class Controller(QtCore.QObject):
             b_ce.setContrastEnhancementAlgorithm(setting.symbol['contrast'])
 
             renderer = QgsMultiBandColorRenderer(rlayer.dataProvider(),
-                r_band + 1, g_band + 1, b_band + 1)
+                                                 r_band + 1,
+                                                 g_band + 1,
+                                                 b_band + 1)
             renderer.setRedContrastEnhancement(r_ce)
             renderer.setGreenContrastEnhancement(g_ce)
             renderer.setBlueContrastEnhancement(b_ce)
@@ -581,19 +578,18 @@ class Controller(QtCore.QObject):
             rlayer.triggerRepaint()
             self.iface.legendInterface().refreshLayerSymbology(rlayer)
 
-
-## Slots for plot window signals
+# Slots for plot window signals
     def set_plotlayer(self, state):
         """
         Turns on or off the adding of map layers for a data point on plot
         """
-        if state == Qt.Checked:
+        if state == QtCore.Qt.Checked:
             setting.plot['plot_layer'] = True
             self.ts_cid = self.ts_plot.fig.canvas.mpl_connect('pick_event',
-                                                       self.plot_add_layer)
+                                                              self.plot_add_layer)
             self.doy_cid = self.doy_plot.fig.canvas.mpl_connect('pick_event',
-                                                        self.plot_add_layer)
-        elif state == Qt.Unchecked:
+                                                                self.plot_add_layer)
+        elif state == QtCore.Qt.Unchecked:
             setting.plot['plot_layer'] = False
             self.ts_plot.fig.canvas.mpl_disconnect(self.ts_cid)
             self.doy_plot.fig.canvas.mpl_disconnect(self.doy_cid)
@@ -621,20 +617,19 @@ class Controller(QtCore.QObject):
             self.add_map_layer(ind)
         # doy_plot
         elif type(event.artist) == mpl.collections.PathCollection:
-            # Scatter indexes based on self.ts._data.compressed() so check if
+            # Scatter indexes based on tsm.ts._data.compressed() so check if
             #   we've applied a mask and adjust index we add accordingly
-            if (type(self.ts.get_data(setting.plot['mask'])) ==
+            if (type(tsm.ts.get_data(setting.plot['mask'])) ==
                     np.ma.core.MaskedArray):
 
-                date = self.ts.dates[~self.ts.get_data().mask[0,
-                                        self.doy_plot.yr_range]][ind]
-                ind = np.where(self.ts.dates == date)[0][0]
+                date = tsm.ts.dates[~tsm.ts.get_data().
+                                    mask[0, self.doy_plot.yr_range]][ind]
+                ind = np.where(tsm.ts.dates == date)[0][0]
                 self.add_map_layer(ind)
             else:
                 self.add_map_layer(ind)
         else:
             print 'Unrecognized plot type. Cannot add image.'
-
 
     def calculate_scale(self):
         """
@@ -642,7 +637,7 @@ class Controller(QtCore.QObject):
         2nd and 98th percentile of each band's time series
         """
         # Get data with mask option
-        data = self.ts.get_data(setting.plot['mask'])
+        data = tsm.ts.get_data(setting.plot['mask'])
 
         # Check for case where all data is masked
         if hasattr(data, 'mask'):
@@ -669,10 +664,10 @@ class Controller(QtCore.QObject):
 
 #        setting.plot['min'] = [min(0, np.min(band) *
 #                                   (1 - setting.plot['scale_factor']))
-#                           for band in self.ts.get_data()[:, ]]
+#                           for band in tsm.ts.get_data()[:, ]]
 #        setting.plot['max'] = [max(10000, np.max(band) *
 #                                   (1 + setting.plot['scale_factor']))
-#                           for band in self.ts.get_data()[:, ]]
+#                           for band in tsm.ts.get_data()[:, ]]
 
     def disconnect(self):
         """
@@ -687,4 +682,3 @@ class Controller(QtCore.QObject):
             self.ctrl.cbox_plotlayer.stateChanged.disconnect()
             QgsMapLayerRegistry.instance().layersAdded.disconnect()
             QgsMapLayerRegistry.instance().layersWillBeRemoved.disconnect()
-
