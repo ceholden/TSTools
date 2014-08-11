@@ -66,32 +66,23 @@ class ControlPanel(QWidget, Ui_Widget):
         self.cbox_showclick.setChecked(setting.canvas['show_click'])
 
     def init_custom_options(self):
+        # Try to remove pre-existing custom options
+        self.remove_custom_options()
         # Check to see if TS class has UI elements described
         if not hasattr(tsm.ts, '__custom_controls__') or \
                 not callable(getattr(tsm.ts, 'set_custom_controls', None)):
-
-            self.custom_form = None
             return
         else:
             if not isinstance(tsm.ts.__custom_controls__, list):
                 print 'Custom controls for timeseries improperly described'
-                self.custom_form = None
                 return
             if len(tsm.ts.__custom_controls__) == 0:
                 print 'Custom controls for timeseries improperly described'
-                self.custom_form = None
                 return
 
         # Add form
         if not hasattr(tsm.ts, '__custom_controls_title__'):
             tsm.ts.__custom_controls_title__ = None
-
-        self.custom_form = getattr(self, 'custom_form', None)
-        if self.custom_form is not None:
-            print 'Deleting preexisting custom form'
-            self.custom_form.deleteLater()
-            self.tab_options.layout().removeWidget(self.custom_form)
-            self.custom_form = None
 
         print 'Adding custom form for TS {ts}'.format(ts=repr(tsm.ts))
         config = OrderedDict([
@@ -100,6 +91,15 @@ class ControlPanel(QWidget, Ui_Widget):
         ])
         self.custom_form = CustomForm(config, tsm.ts.__custom_controls_title__)
         self.tab_options.layout().addWidget(self.custom_form)
+
+    def remove_custom_options(self):
+        """ Removes pre-existing custom options widget """
+        self.custom_form = getattr(self, 'custom_form', None)
+        if self.custom_form:
+            print 'Deleting preexisting custom form'
+            self.custom_form.deleteLater()
+            self.tab_options.layout().removeWidget(self.custom_form)
+            self.custom_form = None
 
     def init_plot_options(self):
         print 'Plot options init'
@@ -133,9 +133,9 @@ class ControlPanel(QWidget, Ui_Widget):
         self.lab_xmax.setText(str(setting.plot['xmax']))
 
         self.scroll_xmin.setRange(setting.plot['xmin'],
-            setting.plot['xmax'] - 1)
+                                  setting.plot['xmax'] - 1)
         self.scroll_xmax.setRange(setting.plot['xmin'] + 1,
-            setting.plot['xmax'])
+                                  setting.plot['xmax'])
         self.scroll_xmin.setValue(setting.plot['xmin'])
         self.scroll_xmax.setValue(setting.plot['xmax'])
         self.scroll_xmin.setSingleStep(1)
@@ -303,7 +303,7 @@ class ControlPanel(QWidget, Ui_Widget):
         if state == Qt.Checked:
             setting.plot['xscale_fix'] = True
             setting.plot['xscale_range'] = (self.scroll_xmax.value() -
-                self.scroll_xmin.value())
+                                            self.scroll_xmin.value())
             # Set new min/max ranges
             self.scroll_xmin.setMaximum(self.scroll_xmax.maximum() -
                                         setting.plot['xscale_range'])
@@ -550,7 +550,8 @@ class ControlPanel(QWidget, Ui_Widget):
 
         # Propagate table
         self.image_table.setRowCount(tsm.ts.length)
-        for row, (date, img) in enumerate(izip(tsm.ts.dates, tsm.ts.image_names)):
+        for row, (date, img) in enumerate(izip(tsm.ts.dates,
+                                               tsm.ts.image_names)):
             cbox = QTableWidgetItem()
             cbox.setFlags(Qt.ItemIsUserCheckable |
                           Qt.ItemIsEnabled)
