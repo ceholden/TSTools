@@ -286,7 +286,7 @@ class SymbologyControl(QtGui.QDialog, Ui_Widget):
                                                tsm.ts.__metadata__str__)):
             if _md not in self.metadata:
                 self.metadata.append(_md)
-                self.md.append(getattr(self.ts, _md))
+                self.md.append(getattr(tsm.ts, _md))
                 self.md_str.append(_md_str)
                 new_i.append(i)
 
