@@ -93,7 +93,6 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
 
     sensor = np.array([])
     pathrow = np.array([])
-    cloudcover = np.array([])
 
     __metadata__ = ['sensor', 'pathrow']
     __metadata__str__ = ['Sensor', 'Path/Row']

@@ -53,13 +53,14 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
 
     crossvalidate_lambda = False
     consecutive = 5
-    min_obs = 12
-    threshold = 2.57
-    enable_min_rmse = False
-    min_rmse = 0.0
-    freq = np.array([1, 2, 3])
+    min_obs = 16
+    threshold = 3
+    enable_min_rmse = True
+    min_rmse = 100
+    freq = np.array([1])
     reverse = False
-    test_indices = np.array([3, 4, 5, 6])
+    screen_lowess = False
+    test_indices = np.array([2, 3, 4, 5])
     robust_results = False
     debug = False
 
@@ -68,8 +69,16 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
                            'consecutive', 'min_obs', 'threshold',
                            'enable_min_rmse', 'min_rmse',
                            'freq', 'reverse',
+                           'screen_lowess',
                            'test_indices', 'robust_results',
-                            'debug']
+                           'debug']
+
+    sensor = np.empty(0)
+    pathrow = np.empty(0)
+    multitemp_screened = np.empty(0)
+
+    __metadata__ = ['sensor', 'pathrow', 'multitemp_screened']
+    __metadata__str__ = ['Sensor', 'Path/Row', 'Multitemporal Screen']
 
     def __init__(self, location, config=None):
 
@@ -125,6 +134,9 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
         else:
             logger.setLevel(logging.INFO)
 
+        # LOWESS screening, or RLM?
+        screen = 'LOWESS' if self.screen_lowess else 'RLM'
+
         if self.reverse:
             self.yatsm_model = YATSM(np.flipud(self.X[clear, :]),
                                      np.fliplr(self.Y[:-1, clear]),
@@ -133,6 +145,7 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
                                      min_obs=self.min_obs,
                                      min_rmse=self.min_rmse,
                                      test_indices=self.test_indices,
+                                     screening=screen,
                                      lassocv=self.crossvalidate_lambda,
                                      logger=logger)
         else:
@@ -143,6 +156,7 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
                                      min_obs=self.min_obs,
                                      min_rmse=self.min_rmse,
                                      test_indices=self.test_indices,
+                                     screening=screen,
                                      lassocv=self.crossvalidate_lambda,
                                      logger=logger)
 
@@ -157,6 +171,11 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
 
         # Reset logger level
         logger.setLevel(level)
+
+        # Update multitemporal screening metadata
+        self.multitemp_screened = np.in1d(self.X[clear, 1],
+                                          self.yatsm_model.X[:, 1],
+                                          invert=True).astype(np.uint8)
 
     def get_prediction(self, band, usermx=None):
         """ Return the time series model fit predictions for any single pixel
@@ -229,6 +248,19 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
                         by.append(self._data[band, index])
 
         return (bx, by)
+
+    def _get_metadata(self):
+        """ Parse timeseries attributes for metadata """
+        # Sensor ID
+        self.sensor = np.array([n[0:3] for n in self.image_names])
+        # Path/Row
+        self.pathrow = np.array(['p{p}r{r}'.format(p=n[3:6], r=n[6:9])
+                                for n in self.image_names])
+        # Multitemporal noise screening - init to 0 (not screened)
+        #   Will update this during model fitting
+        self.multitemp_screened = np.ones(self.length)
+        # Make an entry 0 so we get this in the unique values
+        self.multitemp_screened[0] = 0
 
 ### OVERRIDEN "ADDITIONAL" OPTIONAL METHODS SUPPORTED BY CCDCTimeSeries
 ### INTERNAL SETUP METHODS
