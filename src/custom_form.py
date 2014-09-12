@@ -24,8 +24,9 @@ import copy
 
 import numpy as np
 
-from PyQt4.QtCore import * # TODO remove *
-from PyQt4.QtGui import * #TODO
+from PyQt4 import QtCore
+from PyQt4 import QtGui
+
 
 def list_repr(l):
     """ custom string repr for a list or numpy array using commas """
@@ -43,7 +44,7 @@ def str2list(s, dtype):
     return map(dtype, l)
 
 
-class CustomForm(QWidget):
+class CustomForm(QtGui.QWidget):
     """ Easily creates a form in FormLayoutfrom a dict of names and
     example data
 
@@ -52,7 +53,7 @@ class CustomForm(QWidget):
     """
 
     def __init__(self, defaults, title=None, parent=None):
-        QWidget.__init__(self, parent)
+        QtGui.QWidget.__init__(self, parent)
 
         # validate input data
         if not isinstance(defaults, dict):
@@ -69,7 +70,7 @@ class CustomForm(QWidget):
         # list to store corresponding widgets
         self.widgets = []
         # store layout
-        self.form_layout = QFormLayout(self)
+        self.form_layout = QtGui.QFormLayout(self)
 
         self.init_form()
 
@@ -77,36 +78,37 @@ class CustomForm(QWidget):
         """ Loop through input data initializing widgets """
 
         if self.title:
-            self.form_layout.addRow(QLabel('<b>' + self.title + '</b>'))
-            self.form_layout.addRow(QLabel(''))
+            self.form_layout.addRow(QtGui.QLabel('<b>' + self.title + '</b>'))
+            self.form_layout.addRow(QtGui.QLabel(''))
 
         for name, value in self.defaults.itervalues():
             # int
             if isinstance(value, int) and not isinstance(value, bool):
-                field = QLineEdit(repr(value), self)
-                field.setValidator(QIntValidator(field))
+                field = QtGui.QLineEdit(repr(value), self)
+                field.setValidator(QtGui.QIntValidator(field))
             # float
             elif isinstance(value, float):
-                field = QLineEdit(repr(value), self)
-                field.setValidator(QDoubleValidator(field))
+                field = QtGui.QLineEdit(repr(value), self)
+                field.setValidator(QtGui.QDoubleValidator(field))
             # string
             elif isinstance(value, str):
-                field = QLineEdit(value, self)
+                field = QtGui.QLineEdit(value, self)
             # list or numpy array
             elif isinstance(value, list) or isinstance(value, np.ndarray):
-                field = QLineEdit(list_repr(value))
+                field = QtGui.QLineEdit(list_repr(value))
             # boolean
             elif isinstance(value, bool):
-                field = QCheckBox(self)
-                field.setCheckState(QtChecked if value else Qt.Unchecked)
+                field = QtGui.QCheckBox(self)
+                field.setCheckState(QtCore.Qt.Checked if value
+                                    else QtCore.Qt.Unchecked)
             # blank space
             elif name is None and value is None:
-                self.form_layout.addRow(QLabel(''), QLabel(''))
+                self.form_layout.addRow(QtGui.QLabel(''), QtGui.QLabel(''))
                 self.widgets.append(None)
                 field = None
             # comment / section header
             elif value is None:
-                self.form_layout.addRow(QLabel(value))
+                self.form_layout.addRow(QtGui.QLabel(value))
                 self.widgets.append(None)
                 field = None
             else:
@@ -117,11 +119,12 @@ class CustomForm(QWidget):
                 self.form_layout.addRow(name, field)
                 self.widgets.append(field)
 
-        self.error_label = QLabel('')
+        self.error_label = QtGui.QLabel('')
         self.form_layout.addRow(self.error_label)
 
     def get(self):
-        """ Loop through widgets returning current data from widgets as list """
+        """ Loop through widgets returning current data from widgets as list
+        """
         values = []
 
         for i, (name, default) in enumerate(self.defaults.itervalues()):
@@ -153,7 +156,7 @@ class CustomForm(QWidget):
                     value = np.array(value)
             # boolean
             elif isinstance(default, bool):
-                value = field.checkState() == Qt.Checked
+                value = field.checkState() == QtCore.Qt.Checked
             # blank space
             elif name is None or default is None:
                 value = None
@@ -183,7 +186,8 @@ class CustomForm(QWidget):
                 field.setText(list_repr(value))
             # boolean
             elif isinstance(value, bool):
-                field.setCheckState(QtChecked if value else Qt.Unchecked)
+                field.setCheckState(QtCore.Qt.Checked if value
+                                    else QtCore.Qt.Unchecked)
             # blank space / comment / section header
             elif name is None or value is None:
                 continue
