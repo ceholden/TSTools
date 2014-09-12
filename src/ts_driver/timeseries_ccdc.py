@@ -46,7 +46,8 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
     # __str__ name for TSTools data model plugin loader
     __str__ = 'CCDC Time Series'
 
-    # TODO add some container for "metadata" that can be used in table (hint: __metadata__)
+    # TODO add some container for "metadata" that can be used in table
+    #      (hint: __metadata__)
     image_names = []
     filenames = []
     filepaths = []
@@ -82,13 +83,13 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
     days_in_year = 365.25
 
     __configurable__ = ['image_pattern', 'stack_pattern',
-      'results_folder', 'results_pattern',
-      'cache_folder', 'mask_band',
-      'days_in_year']
+                        'results_folder', 'results_pattern',
+                        'cache_folder', 'mask_band',
+                        'days_in_year']
     __configurable__str__ = ['Image folder pattern', 'Stack Pattern',
-      'Results folder', 'Results pattern',
-      'Cache folder pattern', 'Mask band',
-      'Days in Year']
+                             'Results folder', 'Results pattern',
+                             'Cache folder pattern', 'Mask band',
+                             'Days in Year']
 
     sensor = np.array([])
     pathrow = np.array([])
@@ -145,11 +146,9 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
                 # Set attribute
                 setattr(self, k, v)
             else:
-                raise AttributeError, \
-                    'Cannot set value {v} for {o} (current value {cv})'.format(
-                    v=v,
-                    o=k,
-                    cv=current_value)
+                raise AttributeError(
+                    'Cannot set value {v} for {o} (current value {cv})'.
+                    format(v=v, o=k, cv=current_value))
 
     def get_ts_pixel(self, use_cache=True, do_cache=True):
         """ Fetch pixel data for the current pixel and set to self._data
@@ -186,7 +185,6 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
             else:
                 if wrote_data is True:
                     print 'Wrote to cache file'
-
 
     def retrieve_pixel(self, index):
         """ Retrieve pixel data for a given x/y and index in time series
@@ -227,8 +225,7 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
         record = self.results_pattern.replace(
             '*', str(self._py + 1)) + '.mat'
 
-        record = os.path.join(self.location,
-            self.results_folder, record)
+        record = os.path.join(self.location, self.results_folder, record)
 
         print 'Opening: {r}'.format(r=record)
 
@@ -288,7 +285,7 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
                 # Use user specified values, if possible
                 if has_mx:
                     _mx = usermx[np.where((usermx >= rec['t_start']) &
-                                      (usermx <= rec['t_end']))]
+                                          (usermx <= rec['t_end']))]
                     if len(_mx) == 0:
                         # User didn't ask for dates in this range
                         continue
@@ -304,13 +301,13 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
 
                 if coef.shape[0] == 2:
                     _my = (coef[0] +
-                            coef[1] * _mx)
+                           coef[1] * _mx)
                 elif coef.shape[0] == 4:
                     # 4 coefficient model
                     _my = (coef[0] +
-                            coef[1] * _mx +
-                            coef[2] * np.cos(w * _mx) +
-                            coef[3] * np.sin(w * _mx))
+                           coef[1] * _mx +
+                           coef[2] * np.cos(w * _mx) +
+                           coef[3] * np.sin(w * _mx))
                 elif coef.shape[0] == 6:
                     # 6 coefficient model
                     _my = (coef[0] +
@@ -322,19 +319,18 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
                 elif coef.shape[0] == 8:
                     # 8 coefficient model
                     _my = (coef[0] +
-                            coef[1] * _mx +
-                            coef[2] * np.cos(w * _mx) +
-                            coef[3] * np.sin(w * _mx) +
-                            coef[4] * np.cos(2 * w * _mx) +
-                            coef[5] * np.sin(2 * w * _mx) +
-                            coef[6] * np.cos(3 * w * _mx) +
-                            coef[7] * np.sin(3 * w * _mx))
+                           coef[1] * _mx +
+                           coef[2] * np.cos(w * _mx) +
+                           coef[3] * np.sin(w * _mx) +
+                           coef[4] * np.cos(2 * w * _mx) +
+                           coef[5] * np.sin(2 * w * _mx) +
+                           coef[6] * np.cos(3 * w * _mx) +
+                           coef[7] * np.sin(3 * w * _mx))
                 else:
                     break
                 ### Transform MATLAB ordinal date into Python datetime
                 _mx = [dt.datetime.fromordinal(int(m)) -
-                                dt.timedelta(days = 366)
-                                for m in _mx]
+                       dt.timedelta(days=366) for m in _mx]
                 ### Append
                 mx.append(np.array(_mx))
                 my.append(np.array(_my))
@@ -349,10 +345,10 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
             for rec in self.result:
                 if rec['t_break'] != 0:
                     bx.append(dt.datetime.fromordinal(int(rec['t_break'])) -
-                          dt.timedelta(days = 366))
+                              dt.timedelta(days=366))
                     print 'Break: %s' % str(bx)
                     index = [i for i, date in
-                                enumerate(self.dates) if date == bx[-1]][0]
+                             enumerate(self.dates) if date == bx[-1]][0]
                     print 'Index: %s' % str(index)
                     if index < self._data.shape[1]:
                         by.append(self._data[band, index])
@@ -420,7 +416,7 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
                 _read_data = np.load(cache)
             except:
                 print 'Error: could not open pixel {x}/{y} from cache ' \
-                        'file'.format(x=self._px, y=self._py)
+                    'file'.format(x=self._px, y=self._py)
                 print sys.exc_info()[0]
                 raise
             else:
@@ -455,7 +451,7 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
                 np.save(cache, np.array(self._data))
             except:
                 print 'Error: could not write pixel {x}/{y} to cache ' \
-                        'file'.format(x=self._px, y=self._py)
+                    'file'.format(x=self._px, y=self._py)
                 print sys.exc_info()[0]
                 raise
             else:
@@ -477,7 +473,7 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
             if self.results_folder is not None:
                 # Remove results folder if exists
                 dnames[:] = [d for d in dnames if
-                    self.results_folder not in d]
+                             self.results_folder not in d]
 
             # Force only 1 level
             num_sep_this = root.count(os.path.sep)
@@ -502,8 +498,11 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
             raise Exception('Zero stack images found')
 
         # Sort by image name/ID (i.e. Landsat ID)
-        self.image_names, self.filenames, self.filepaths = (list(t) for t in
-            zip(*sorted(zip(self.image_names, self.filenames, self.filepaths))))
+        self.image_names, self.filenames, self.filepaths = (
+            list(t) for t in zip(*sorted(zip(self.image_names,
+                                             self.filenames,
+                                             self.filepaths)))
+            )
 
     def _get_attributes(self):
         """ Fetch image stack attributes including number of rows, columns,
@@ -550,7 +549,7 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
         for i in range(ds.RasterCount):
             band = ds.GetRasterBand(i + 1)
             if (band.GetDescription() is not None and
-                len(band.GetDescription()) > 0):
+                    len(band.GetDescription()) > 0):
                 self.band_names.append(band.GetDescription())
             else:
                 self.band_names.append('Band %s' % str(i + 1))
@@ -582,7 +581,7 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
         """ Checks for results """
         results = os.path.join(self.location, self.results_folder)
         if (os.path.exists(results) and os.path.isdir(results) and
-            os.access(results, os.R_OK)):
+                os.access(results, os.R_OK)):
             # Check for any results
             for root, dname, fname in os.walk(results):
                 for f in fnmatch.filter(fname, self.results_pattern):
@@ -635,7 +634,6 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
         self.pathrow = np.array(['p{p}r{r}'.format(p=n[3:6], r=n[6:9])
                                 for n in self.image_names])
 
-
 ### Additional methods dealing with caching
     def cache_name_lookup(self, x, y):
         """ Return cache filename for given x/y """
@@ -679,20 +677,19 @@ class CCDCBinaryReader(object):
 
     def __BIP_get_pixel(self, row, col):
         if row < 0 or row >= self.size[0] or col < 0 or col >= self.size[1]:
-            raise ValueError, 'Cannot select row,col %s,%s' % (row, col)
+            raise ValueError('Cannot select row,col %s,%s' % (row, col))
 
         with open(self.filename, 'rb') as f:
             # Skip to location of data in file
             f.seek(self.dt.itemsize * (row * self.size[1] + col) *
-                self.n_band)
+                   self.n_band)
             # Read in
             dat = np.fromfile(f, dtype=self.dt, count=self.n_band)
-            f.close()
-            return dat
+        return dat
 
     def __band_get_pixel(self, row, col):
         if row < 0 or row >= self.size[0] or col < 0 or col >= self.size[1]:
-            raise ValueError, 'Cannot select row,col %s,%s' % (row, col)
+            raise ValueError('Cannot select row,col %s,%s' % (row, col))
 
         ds = gdal.Open(self.filename, gdal.GA_ReadOnly)
 
