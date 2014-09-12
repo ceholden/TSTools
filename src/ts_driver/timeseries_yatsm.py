@@ -31,6 +31,8 @@ except:
 
 import timeseries_ccdc
 
+logger = logging.getLogger()
+
 
 class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
     """Class holding data and methods for time series used by CCDC
@@ -116,10 +118,12 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
         if not self.enable_min_rmse:
             self.min_rmse = None
 
+        # Set logger level for verbose if wanted
+        level = logger.level
         if self.debug:
-            loglevel = logging.DEBUG
+            logger.setLevel(logging.DEBUG)
         else:
-            loglevel = logging.INFO
+            logger.setLevel(logging.INFO)
 
         if self.reverse:
             self.yatsm_model = YATSM(np.flipud(self.X[clear, :]),
@@ -130,7 +134,7 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
                                      min_rmse=self.min_rmse,
                                      test_indices=self.test_indices,
                                      lassocv=self.crossvalidate_lambda,
-                                     loglevel=loglevel)
+                                     logger=logger)
         else:
             self.yatsm_model = YATSM(self.X[clear, :],
                                      self.Y[:-1, clear],
@@ -140,7 +144,7 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
                                      min_rmse=self.min_rmse,
                                      test_indices=self.test_indices,
                                      lassocv=self.crossvalidate_lambda,
-                                     loglevel=loglevel)
+                                     logger=logger)
 
         # Run
         self.yatsm_model.run()
@@ -150,6 +154,9 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
             self.result = self.yatsm_model.robust_record
         else:
             self.result = self.yatsm_model.record
+
+        # Reset logger level
+        logger.setLevel(level)
 
     def get_prediction(self, band, usermx=None):
         """ Return the time series model fit predictions for any single pixel
@@ -195,39 +202,12 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
                                     i_step)
                 coef = rec['coef'][:, band]
 
-                ### Calculate model predictions
-                w = 2 * np.pi / 365.25
+                _mX = make_X(_mx, self.freq)
 
-                if coef.shape[0] == 2:
-                    _my = (coef[0] +
-                           coef[1] * _mx)
-                elif coef.shape[0] == 4:
-                    # 4 coefficient model
-                    _my = (coef[0] +
-                           coef[1] * _mx +
-                           coef[2] * np.cos(w * _mx) +
-                           coef[3] * np.sin(w * _mx))
-                elif coef.shape[0] == 6:
-                    # 6 coefficient model
-                    _my = (coef[0] +
-                           coef[1] * _mx +
-                           coef[2] * np.cos(w * _mx) +
-                           coef[3] * np.sin(w * _mx) +
-                           coef[4] * np.cos(2 * w * _mx) +
-                           coef[5] * np.sin(2 * w * _mx))
-                elif coef.shape[0] == 8:
-                    # 8 coefficient model
-                    _my = (coef[0] +
-                           coef[1] * _mx +
-                           coef[2] * np.cos(w * _mx) +
-                           coef[3] * np.sin(w * _mx) +
-                           coef[4] * np.cos(2 * w * _mx) +
-                           coef[5] * np.sin(2 * w * _mx) +
-                           coef[6] * np.cos(3 * w * _mx) +
-                           coef[7] * np.sin(3 * w * _mx))
-                else:
-                    break
-                ### Transform MATLAB ordinal date into Python datetime
+                ### Calculate model predictions
+                _my = np.dot(coef, _mX)
+
+                ### Transform ordinal back into Python datetime
                 _mx = [dt.fromordinal(int(m)) for m in _mx]
                 ### Append
                 mx.append(np.array(_mx))
