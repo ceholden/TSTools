@@ -608,22 +608,31 @@ class Controller(QtCore.QObject):
         """
         Receives matplotlib event and adds layer for data point picked
 
+        Note:   If the plot has symbology added, then it is using multiple
+                lines. Instead of simply using event.ind, we need to get the
+                line that was drawn (event.artist) to get the xdata, and pair
+                the xdata[event.ind] with our TS's dates to get the correct
+                index to add.
+
         Reference:
             http://matplotlib.org/users/event_handling.html
         """
+        # Index of event for plotted data
         ind = np.array(event.ind)
+        # Get index from TS's dates for event index
+        x_ind = np.where(tsm.ts.dates == event.artist.get_data()[0][ind][0])[0]
+
         # ts_plot
         if type(event.artist) == mpl.lines.Line2D:
-            self.add_map_layer(ind)
+            self.add_map_layer(x_ind)
         # doy_plot
         elif type(event.artist) == mpl.collections.PathCollection:
             # Scatter indexes based on tsm.ts._data.compressed() so check if
             #   we've applied a mask and adjust index we add accordingly
-            if (type(tsm.ts.get_data(setting.plot['mask'])) ==
-                    np.ma.core.MaskedArray):
-
-                date = tsm.ts.dates[~tsm.ts.get_data().
-                                    mask[0, self.doy_plot.yr_range]][ind]
+            if isinstance(tsm.ts.get_data(setting.plot['mask']),
+                          np.ma.core.MaskedArray):
+                date = tsm.ts.dates[~tsm.ts.get_data().mask[
+                    0, self.doy_plot.yr_range]][ind]
                 ind = np.where(tsm.ts.dates == date)[0][0]
                 self.add_map_layer(ind)
             else:
