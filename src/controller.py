@@ -164,13 +164,14 @@ class Controller(QtCore.QObject):
             self.configured = True
             return True
 
-# Communications
-
+### Communications
     def update_display(self):
         """
         Once ts is read, update controls & plot with relevant information
         (i.e. update)
         """
+        # Update metadata
+        self.ctrl.symbology_controls.parse_metadata_symbology()
         if setting.plot['auto_scale']:
             self.calculate_scale()
         self.ctrl.update_plot_options()
@@ -184,8 +185,7 @@ class Controller(QtCore.QObject):
         tsm.ts.apply_mask(mask_val=setting.plot['mask_val'])
         self.update_display()
 
-# Common layer manipulation
-
+### Common layer manipulation
     def add_map_layer(self, index):
         """
         Method called when adding an image via the table or plot.
@@ -321,8 +321,7 @@ class Controller(QtCore.QObject):
         # Image tab panel
         self.ctrl.image_table.itemClicked.connect(self.get_tablerow_clicked)
 
-# Slots for signals
-
+### Slots for signals
 # Slot for plot tab management
     @QtCore.pyqtSlot(int)
     def changed_tab(self, index):
@@ -371,8 +370,8 @@ class Controller(QtCore.QObject):
                 self.cancel_retrieval = QtGui.QPushButton('Cancel')
                 self.cancel_retrieval.pressed.connect(self.retrieval_cancel)
                 self.progress_bar.layout().addWidget(self.cancel_retrieval)
-                self.iface.messageBar().pushWidget(self.progress_bar,
-                                                   self.iface.messageBar().INFO)
+                self.iface.messageBar().pushWidget(
+                    self.progress_bar, self.iface.messageBar().INFO)
 
                 # If we have custom options for TS, get them
                 if self.ctrl.custom_form is not None and \
@@ -386,10 +385,11 @@ class Controller(QtCore.QObject):
                         self.ctrl.custom_form.reset()
 
                         self.retrieval_cancel()
-                        self.iface.messageBar().pushMessage('Error',
-                                                            'Could not use custom options for timeseries',
-                                                            level=QgsMessageBar.CRITICAL,
-                                                            duration=3)
+                        self.iface.messageBar().pushMessage(
+                            'Error',
+                            'Could not use custom options for timeseries',
+                            level=QgsMessageBar.CRITICAL,
+                            duration=3)
                         return
 
                 # Fetch pixel values
@@ -585,10 +585,10 @@ class Controller(QtCore.QObject):
         """
         if state == QtCore.Qt.Checked:
             setting.plot['plot_layer'] = True
-            self.ts_cid = self.ts_plot.fig.canvas.mpl_connect('pick_event',
-                                                              self.plot_add_layer)
-            self.doy_cid = self.doy_plot.fig.canvas.mpl_connect('pick_event',
-                                                                self.plot_add_layer)
+            self.ts_cid = self.ts_plot.fig.canvas.mpl_connect(
+                'pick_event', self.plot_add_layer)
+            self.doy_cid = self.doy_plot.fig.canvas.mpl_connect(
+                'pick_event', self.plot_add_layer)
         elif state == QtCore.Qt.Unchecked:
             setting.plot['plot_layer'] = False
             self.ts_plot.fig.canvas.mpl_disconnect(self.ts_cid)

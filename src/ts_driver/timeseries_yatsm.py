@@ -173,7 +173,7 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
         logger.setLevel(level)
 
         # Update multitemporal screening metadata
-        self.multitemp_screened = np.in1d(self.X[clear, 1],
+        self.multitemp_screened = np.in1d(self.X[:, 1],
                                           self.yatsm_model.X[:, 1],
                                           invert=True).astype(np.uint8)
 
