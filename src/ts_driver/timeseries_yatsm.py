@@ -54,9 +54,9 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
     crossvalidate_lambda = False
     consecutive = 5
     min_obs = 16
-    threshold = 3
+    threshold = 3.0
     enable_min_rmse = True
-    min_rmse = 100
+    min_rmse = 100.0
     freq = np.array([1])
     reverse = False
     screen_lowess = False
@@ -176,6 +176,11 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
         self.multitemp_screened = np.in1d(self.X[:, 1],
                                           self.yatsm_model.X[:, 1],
                                           invert=True).astype(np.uint8)
+        print('****MASKED****')
+        print(np.in1d(self.X[:, 1],
+                      self.yatsm_model.X[:, 1]).astype(np.uint8).sum())
+        print(np.in1d(self.X[:, 1],
+                      self.yatsm_model._X[:, 1]).astype(np.uint8).sum())
 
     def get_prediction(self, band, usermx=None):
         """ Return the time series model fit predictions for any single pixel
