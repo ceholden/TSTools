@@ -557,16 +557,12 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
 
     def _get_dates(self):
         """ Get image dates as Python datetime
-
-        Note:   Because we're trying to get YEAR-DOY, we have to first get the
-                year and DOY separately to create the date using:
-                    datetime(year, 1, 1) + timedelta(doy - 1)
-
         """
         self.dates = []
         for image_name in self.image_names:
-            self.dates.append(dt.datetime(int(image_name[9:13]), 1, 1) +
-                              dt.timedelta(int(image_name[13:16]) - 1))
+            self.dates.append(dt.datetime.strptime(image_name[9:16], '%Y%j'))
+#            self.dates.append(dt.datetime(int(image_name[9:13]), 1, 1) +
+#                              dt.timedelta(int(image_name[13:16]) - 1))
         self.dates = np.array(self.dates)
 
         # Sort images by date
