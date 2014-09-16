@@ -2,7 +2,7 @@
 # vim: set expandtab:ts=4
 """
 /***************************************************************************
- Yet Another TimeSeries Model 
+ Yet Another TimeSeries Model
                                  A QGIS plugin
  Plugin for visualization and analysis of remote sensing time series
                              -------------------
@@ -35,10 +35,7 @@ logger = logging.getLogger()
 
 
 class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
-    """Class holding data and methods for time series used by CCDC
-    (Change Detection and Classification). Useful for QGIS plugin 'TSTools'.
-
-    More doc TODO
+    """ Timeseries "driver" for QGIS plugin that connects requests with model
     """
 
     # __str__ name for TSTools data model plugin loader
@@ -121,7 +118,10 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
             self.X = make_X(self.ord_dates, self.freq).T
         # Get Y
         self.Y = self.get_data(mask=False)
-        clear = self.Y[self.mask_band - 1, :] <= 1
+
+        # Mask out mask values
+        clear = np.logical_and.reduce([self.Y[self.mask_band - 1, :] != mv
+                                      for mv in self.mask_val])
 
         # Turn on/off minimum RMSE
         if not self.enable_min_rmse:
