@@ -33,7 +33,7 @@ except:
     import gdal
 
 import timeseries
-from timeseries import mat2dict, ml2pydate, py2mldate
+from timeseries import mat2dict, ImageReader
 
 
 class CCDCTimeSeries(timeseries.AbstractTimeSeries):
@@ -612,14 +612,15 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
         print 'Can cache?: {b}'.format(b=self.can_cache)
 
     def _open_ts(self):
-        """ Open timeseries as list of CCDCBinaryReaders """
+        """ Open timeseries as list of ImageReaders """
         self.readers = []
-        if (self.fformat == 'ENVI' or self.fformat == 'BIP' or self.fformat ==
-                'BSQ'):
-            for stack in self.filepaths:
-                self.readers.append(
-                    CCDCBinaryReader(stack, self.fformat, self.datatype,
-                                     (self.y_size, self.x_size), self.n_band))
+        for stack in self.filepaths:
+            self.readers.append(
+                ImageReader(stack,
+                            self.fformat,
+                            self.datatype,
+                            (self.y_size, self.x_size),
+                            self.n_band))
 
     def _get_metadata(self):
         """ Parse timeseries attributes for metadata """
@@ -638,62 +639,3 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
             return os.path.join(self.location, self.cache_folder, cache)
         else:
             return None
-
-
-class CCDCBinaryReader(object):
-    """
-    This class defines the methods for reading pixel values from a raster
-    dataset. I've coded this up because certain file formats are more
-    efficiently accessed via fopen than via GDAL (i.e. BIP).
-
-    http://osdir.com/ml/gdal-development-gis-osgeo/2007-04/msg00345.html
-
-    Args:
-    filename                    filename of the raster to read from
-    fformat                     file format of the raster
-    dt                          numpy datatype
-    size                        list of [nrow, ncol]
-    n_band                      number of bands in image
-    """
-    def __init__(self, filename, fformat, dt, size, n_band):
-        self.filename = filename
-        self.fformat = fformat
-        self.dt = dt
-        self.size = size
-        self.n_band = n_band
-
-        # Switch the actual definition of get_pixel by fformat
-        # TODO: reimplement this using class inheritance
-        # https://www.youtube.com/watch?v=miGolgp9xq8
-        if fformat == 'BIP':
-            self.get_pixel = self.__BIP_get_pixel
-        else:
-            self.get_pixel = self.__band_get_pixel
-
-    def __BIP_get_pixel(self, row, col):
-        if row < 0 or row >= self.size[0] or col < 0 or col >= self.size[1]:
-            raise ValueError('Cannot select row,col %s,%s' % (row, col))
-
-        with open(self.filename, 'rb') as f:
-            # Skip to location of data in file
-            f.seek(self.dt.itemsize * (row * self.size[1] + col) *
-                   self.n_band)
-            # Read in
-            dat = np.fromfile(f, dtype=self.dt, count=self.n_band)
-        return dat
-
-    def __band_get_pixel(self, row, col):
-        if row < 0 or row >= self.size[0] or col < 0 or col >= self.size[1]:
-            raise ValueError('Cannot select row,col %s,%s' % (row, col))
-
-        ds = gdal.Open(self.filename, gdal.GA_ReadOnly)
-
-        pixels = np.zeros(self.n_band)
-
-        for i in range(ds.RasterCount):
-            b = ds.GetRasterBand(i + 1)
-            pixels[i] = b.ReadAsArray(col, row, 1, 1)
-
-        ds = None
-
-        return pixels
