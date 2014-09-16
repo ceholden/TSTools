@@ -264,18 +264,15 @@ class CCDCTimeSeries_v9LIVE(timeseries_ccdc.CCDCTimeSeries):
                     break
                 ### Transform MATLAB ordinal date into Python datetime
                 _mx = [dt.datetime.fromordinal(int(m)) -
-                                dt.timedelta(days = 366)
-                                for m in _mx]
+                       dt.timedelta(days=366)
+                       for m in _mx]
                 ### Append
                 mx.append(np.array(_mx))
                 my.append(np.array(_my))
 
         return (mx, my)
 
-
 ### OVERRIDEN "ADDITIONAL" OPTIONAL METHODS SUPPORTED BY CCDCTimeSeries
-
-
 ### INTERNAL SETUP METHODS
     def _check_matlab(self, folder='CCDC',
                       function='TrendSeasonalFit_v9_QGIS_max',
@@ -301,7 +298,7 @@ class CCDCTimeSeries_v9LIVE(timeseries_ccdc.CCDCTimeSeries):
         folder = os.path.join(here, folder)
         if not os.path.isdir(folder):
             print folder
-            raise ImportError, 'cannot find CCDC source code folder'
+            raise ImportError('Cannot find CCDC source code folder')
         else:
             folder = os.path.abspath(folder)
 
@@ -311,12 +308,13 @@ class CCDCTimeSeries_v9LIVE(timeseries_ccdc.CCDCTimeSeries):
                 fn.append(os.path.join(root, result))
 
         if len(fn) > 1:
-            raise ImportError, 'found more than one function matching description'
+            raise ImportError(
+                'Found more than one function matching description')
         else:
             f = fn[0]
 
         if not os.path.isfile(f):
-            raise ImportError, 'cannot find CCDC source code flie'
+            raise ImportError('Cannot find CCDC source code file')
 
         self.CCDC_function = function
         self.CCDC_folder = folder
