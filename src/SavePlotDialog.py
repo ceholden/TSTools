@@ -2,13 +2,13 @@
 # vim: set expandtab:ts=4
 """
 /***************************************************************************
- CCDCToolsDialog
+ Plot save dialog
                                  A QGIS plugin
- Plotting & visualization tools for CCDC Landsat time series analysis
+ Plugin for visualization and analysis of remote sensing time series
                              -------------------
         begin                : 2013-03-15
         copyright            : (C) 2013 by Chris Holden
-        email                : ceholden@bu.edu
+        email                : ceholden@gmail.com
  ***************************************************************************/
 
 /***************************************************************************
