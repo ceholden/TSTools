@@ -46,15 +46,18 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
     __str__ = 'MODYATSM Live Plotter'
 
     stack_pattern = 'M*D*stack.gtif'
-    mask_band = 5
-    vza_band = 6
+    date_index = [5, 12]
+    mask_band = 7
+    vza_band = 8
 
     mask_val = [0]
 
     __configurable__ = ['stack_pattern',
+                        'date_index',
                         'cache_folder',
                         'mask_band', 'vza_band']
     __configurable__str__ = ['Stack pattern',
+                             'Index of date in name',
                              'Cache folder',
                              'Mask band',
                              'View Zenith Angle band']
@@ -107,11 +110,14 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
         # Get Y
         self.Y = self.get_data(mask=False)
 
-        # Apply mask -- QA/QC band and VZA
+        # Apply mask -- QA/QC band, valid value ranges, and VZA
         clear = np.logical_and.reduce([self.Y[self.mask_band - 1, :] != mv
                                        for mv in self.mask_val])
-        clear = np.logical_and(clear,
-                               self.Y[self.vza_band - 1, :] < max_VZA * 100)
+        valid = np.logical_and.reduce([
+            (self.Y[test, :] <= 10000) & (self.Y[test, :] >= 0) for
+            test in self.test_indices])
+        clear = (clear & valid & 
+                 self.Y[self.vza_band - 1, :] < self.max_VZA * 100)
 
         # Turn on/off minimum RMSE
         if not self.enable_min_rmse:
@@ -302,7 +308,9 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
         """
         self.dates = []
         for image_name in self.image_names:
-            self.dates.append(dt.strptime(image_name[5:12], '%Y%j'))
+            self.dates.append(dt.strptime(
+                    image_name[self.date_index[0]:self.date_index[1]], 
+                    '%Y%j'))
 
         self.dates = np.array(self.dates)
 
