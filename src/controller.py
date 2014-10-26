@@ -619,14 +619,15 @@ class Controller(QtCore.QObject):
         """
         # Index of event for plotted data
         ind = np.array(event.ind)
-        # Get index from TS's dates for event index
-        x_ind = np.where(tsm.ts.dates == event.artist.get_data()[0][ind][0])[0]
 
         # ts_plot
-        if type(event.artist) == mpl.lines.Line2D:
+        if isinstance(event.artist, mpl.lines.Line2D):
+            # Get index from TS's dates for event index
+            x_ind = np.where(tsm.ts.dates ==
+                             event.artist.get_data()[0][ind][0])[0]
             self.add_map_layer(x_ind)
         # doy_plot
-        elif type(event.artist) == mpl.collections.PathCollection:
+        elif isinstance(event.artist, mpl.collections.PathCollection):
             # Scatter indexes based on tsm.ts._data.compressed() so check if
             #   we've applied a mask and adjust index we add accordingly
             if isinstance(tsm.ts.get_data(setting.plot['mask']),
