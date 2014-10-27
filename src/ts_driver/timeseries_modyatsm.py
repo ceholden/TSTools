@@ -43,7 +43,7 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
     (MOD09GA/GQ) by masking according to view zenith angle.
     """
 
-    __str__ = 'MODYATSM Live Plotter'
+    description = 'MODYATSM Live Plotter'
 
     stack_pattern = 'M*D*stack.gtif'
     date_index = [5, 12]
@@ -52,15 +52,16 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
 
     mask_val = [0]
 
-    __configurable__ = ['stack_pattern',
-                        'date_index',
-                        'cache_folder',
-                        'mask_band', 'vza_band']
-    __configurable__str__ = ['Stack pattern',
-                             'Index of date in name',
-                             'Cache folder',
-                             'Mask band',
-                             'View Zenith Angle band']
+    configurable = ['stack_pattern',
+                    'date_index',
+                    'cache_folder',
+                    'mask_band',
+                    'vza_band']
+    configurable_str = ['Stack pattern',
+                        'Index of date in name',
+                        'Cache folder',
+                        'Mask band',
+                        'View Zenith Angle band']
 
     max_VZA = 25.0
     crossvalidate_lambda = False
@@ -76,8 +77,8 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
     robust_results = False
     debug = False
 
-    __custom_controls_title__ = 'YATSM Options'
-    __custom_controls__ = ['max_VZA',
+    custom_controls_title = 'YATSM Options'
+    custom_controls = ['max_VZA',
                            'crossvalidate_lambda',
                            'consecutive', 'min_obs', 'threshold',
                            'enable_min_rmse', 'min_rmse',
@@ -89,8 +90,8 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
     sensor = np.empty(0)
     multitemp_screened = np.empty(0)
 
-    __metadata__ = ['sensor', 'multitemp_screened']
-    __metadata__str__ = ['Sensor', 'Multitemporal Screen']
+    metadata = ['sensor', 'multitemp_screened']
+    metadata_str = ['Sensor', 'Multitemporal Screen']
 
     def __init__(self, location, config=None):
 
@@ -116,7 +117,7 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
         valid = np.logical_and.reduce([
             (self.Y[test, :] <= 10000) & (self.Y[test, :] >= 0) for
             test in self.test_indices])
-        clear = (clear & valid & 
+        clear = (clear & valid &
                  self.Y[self.vza_band - 1, :] < self.max_VZA * 100)
 
         # Turn on/off minimum RMSE
@@ -309,7 +310,7 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
         self.dates = []
         for image_name in self.image_names:
             self.dates.append(dt.strptime(
-                    image_name[self.date_index[0]:self.date_index[1]], 
+                    image_name[self.date_index[0]:self.date_index[1]],
                     '%Y%j'))
 
         self.dates = np.array(self.dates)

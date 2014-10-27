@@ -38,15 +38,17 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
     """ Timeseries "driver" for QGIS plugin that connects requests with model
     """
 
-    # __str__ name for TSTools data model plugin loader
-    __str__ = 'YATSM Live Plotter'
+    # description name for TSTools data model plugin loader
+    description = 'YATSM Live Plotter'
 
-    __configurable__ = ['image_pattern', 'stack_pattern',
-                        'cache_folder', 'mask_band']
-    __configurable__str__ = ['Image folder pattern',
-                             'Stack pattern',
-                             'Cache folder',
-                             'Mask band']
+    configurable = ['image_pattern',
+                    'stack_pattern',
+                    'cache_folder',
+                    'mask_band']
+    configurable_str = ['Image folder pattern',
+                        'Stack pattern',
+                        'Cache folder',
+                        'Mask band']
 
     crossvalidate_lambda = False
     consecutive = 5
@@ -61,21 +63,21 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
     robust_results = False
     debug = False
 
-    __custom_controls_title__ = 'YATSM Options'
-    __custom_controls__ = ['crossvalidate_lambda',
-                           'consecutive', 'min_obs', 'threshold',
-                           'enable_min_rmse', 'min_rmse',
-                           'freq', 'reverse',
-                           'screen_lowess',
-                           'test_indices', 'robust_results',
-                           'debug']
+    custom_controls_title = 'YATSM Options'
+    custom_controls = ['crossvalidate_lambda',
+                       'consecutive', 'min_obs', 'threshold',
+                       'enable_min_rmse', 'min_rmse',
+                       'freq', 'reverse',
+                       'screen_lowess',
+                       'test_indices', 'robust_results',
+                       'debug']
 
     sensor = np.empty(0)
     pathrow = np.empty(0)
     multitemp_screened = np.empty(0)
 
-    __metadata__ = ['sensor', 'pathrow', 'multitemp_screened']
-    __metadata__str__ = ['Sensor', 'Path/Row', 'Multitemporal Screen']
+    metadata = ['sensor', 'pathrow', 'multitemp_screened']
+    metadata_str = ['Sensor', 'Path/Row', 'Multitemporal Screen']
 
     def __init__(self, location, config=None):
 
@@ -93,7 +95,7 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
             values          list of values to be inserted into OrderedDict
 
         """
-        for v, k in zip(values, self.__custom_controls__):
+        for v, k in zip(values, self.custom_controls):
             current_value = getattr(self, k)
             if isinstance(v, type(current_value)):
                 # Check if we need to update the frequency of X

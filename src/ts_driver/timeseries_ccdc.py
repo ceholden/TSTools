@@ -43,11 +43,11 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
     More doc TODO
     """
 
-    # __str__ name for TSTools data model plugin loader
-    __str__ = 'CCDC Time Series'
+    # description name for TSTools data model plugin loader
+    description = 'CCDC Time Series'
 
     # TODO add some container for "metadata" that can be used in table
-    #      (hint: __metadata__)
+    #      (hint: metadata)
     image_names = []
     filenames = []
     filepaths = []
@@ -82,20 +82,20 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
     mask_band = 8
     days_in_year = 365.25
 
-    __configurable__ = ['image_pattern', 'stack_pattern',
-                        'results_folder', 'results_pattern',
-                        'cache_folder', 'mask_band',
-                        'days_in_year']
-    __configurable__str__ = ['Image folder pattern', 'Stack Pattern',
-                             'Results folder', 'Results pattern',
-                             'Cache folder pattern', 'Mask band',
-                             'Days in Year']
+    configurable = ['image_pattern', 'stack_pattern',
+                    'results_folder', 'results_pattern',
+                    'cache_folder', 'mask_band',
+                    'days_in_year']
+    configurable_str = ['Image folder pattern', 'Stack Pattern',
+                        'Results folder', 'Results pattern',
+                        'Cache folder pattern', 'Mask band',
+                        'Days in Year']
 
     sensor = np.array([])
     pathrow = np.array([])
 
-    __metadata__ = ['sensor', 'pathrow']
-    __metadata__str__ = ['Sensor', 'Path/Row']
+    metadata = ['sensor', 'pathrow']
+    metadata_str = ['Sensor', 'Path/Row']
 
     def __init__(self, location, config=None):
         if config is not None:
@@ -123,14 +123,14 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
         """ Set custom configuration options
 
         Arguments:
-            values          list of values matched to self.__configurable__
+            values          list of values matched to self.configurable
 
         """
         print "SETTING CUSTOM VALUES"
         print values
-        print self.__configurable__
+        print self.configurable
 
-        for v, k in zip(values, self.__configurable__):
+        for v, k in zip(values, self.configurable):
             # Lookup current value for configurable item
             current_value = getattr(self, k, None)
 

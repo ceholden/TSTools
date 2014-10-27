@@ -375,7 +375,7 @@ class Controller(QtCore.QObject):
 
                 # If we have custom options for TS, get them
                 if self.ctrl.custom_form is not None and \
-                        hasattr(tsm.ts, '__custom_controls__'):
+                        hasattr(tsm.ts, 'custom_controls'):
 
                     try:
                         options = self.ctrl.custom_form.get()

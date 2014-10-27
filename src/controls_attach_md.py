@@ -201,9 +201,9 @@ class AttachMetadata(QtGui.QDialog, Ui_Widget):
             # Ignore match column
             if i == match_col:
                 continue
-            if md not in tsm.ts.__metadata__ and not hasattr(tsm.ts, md):
-                tsm.ts.__metadata__.append(md)
-                tsm.ts.__metadata__str__.append(md)
+            if md not in tsm.ts.metadata and not hasattr(tsm.ts, md):
+                tsm.ts.metadata.append(md)
+                tsm.ts.metadata_str.append(md)
                 setattr(tsm.ts, md, self.md_sorted[:, i])
             else:
                 print 'TS already has metadata item {m}'.format(m=md)

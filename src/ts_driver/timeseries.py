@@ -64,7 +64,7 @@ class AbstractTimeSeries(object):
         cache_folder                location of cache, if any
         mask_band                   band (index on 0) of mask within images
         mask_val                    values to mask
-        __metadata__                list of attributes containing metadata
+        metadata                    list of attributes containing metadata
 
     Additional methods:
         apply_mask                  apply mask to dataset
@@ -81,8 +81,8 @@ class AbstractTimeSeries(object):
     cache_folder = None
     mask_band = None
     mask_val = None
-    __metadata__ = []
-    __metadata__str__ = []
+    metadata = []
+    metadata_str = []
 
     def __init__(self, location, image_pattern, stack_pattern):
         # Basic, required information

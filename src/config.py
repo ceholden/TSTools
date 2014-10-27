@@ -43,7 +43,7 @@ class Config(QtGui.QDialog, Ui_Config):
         self.location = location
 
         ### Setup required information
-        self.data_model_str = [_ts.__str__ for _ts in tsm.ts_drivers]
+        self.data_model_str = [_ts.description for _ts in tsm.ts_drivers]
         self.custom_options = None
 
         ### Finish setup
@@ -70,15 +70,15 @@ class Config(QtGui.QDialog, Ui_Config):
 
             has_custom_form = True
 
-            if not hasattr(_ts, '__configurable__') or \
-                not hasattr(_ts, '__configurable__str__') or \
+            if not hasattr(_ts, 'configurable') or \
+                not hasattr(_ts, 'configurable_str') or \
                 not callable(getattr(_ts, 'set_custom_config', None)):
                 has_custom_form = False
             else:
-                if not isinstance(_ts.__configurable__, list):
+                if not isinstance(_ts.configurable, list):
                     print 'Custom options for timeseries improperly described'
                     has_custom_form = False
-                if len(_ts.__configurable__) == 0:
+                if len(_ts.configurable) == 0:
                     print 'Custom controls for timeseries improperly described'
                     has_custom_form = False
 
@@ -86,7 +86,7 @@ class Config(QtGui.QDialog, Ui_Config):
                 # Create OrderedDict for CustomForm
                 default_config = OrderedDict([
                     [key, [name, getattr(_ts, key)]] for key, name in
-                    zip(_ts.__configurable__, _ts.__configurable__str__)
+                    zip(_ts.configurable, _ts.configurable_str)
                 ])
 
                 custom_form = CustomForm(default_config)

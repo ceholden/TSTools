@@ -71,7 +71,7 @@ class SymbologyControl(QtGui.QDialog, Ui_Widget):
     def setup_tables(self):
         """ Setup tables """
         # Check for metadata
-        md = getattr(tsm.ts, '__metadata__', None)
+        md = getattr(tsm.ts, 'metadata', None)
         if not isinstance(md, list) or len(md) == 0:
             self.has_metadata = False
             self.setup_gui_nomd()
@@ -84,7 +84,7 @@ class SymbologyControl(QtGui.QDialog, Ui_Widget):
         self.has_metadata = True
 
         # Setup metadata listing
-        self.md_str = getattr(tsm.ts, '__metadata__str__', None)
+        self.md_str = getattr(tsm.ts, 'metadata_str', None)
         if not isinstance(self.md_str, list) or \
                 len(self.md_str) != len(self.md):
             # If there is no description string, just use variable names
@@ -263,8 +263,8 @@ class SymbologyControl(QtGui.QDialog, Ui_Widget):
         """ Setup tables """
         # Check for new metadata
         new_i = []
-        for i, (_md, _md_str) in enumerate(zip(tsm.ts.__metadata__,
-                                               tsm.ts.__metadata__str__)):
+        for i, (_md, _md_str) in enumerate(zip(tsm.ts.metadata,
+                                               tsm.ts.metadata_str)):
             if _md not in self.metadata:
                 self.metadata.append(_md)
                 self.md.append(getattr(tsm.ts, _md))
@@ -318,7 +318,7 @@ class SymbologyControl(QtGui.QDialog, Ui_Widget):
             row = self.list_metadata.currentRow()
 
             # Update metadata
-            self.md[row - 1] = getattr(tsm.ts, tsm.ts.__metadata__[row - 1])
+            self.md[row - 1] = getattr(tsm.ts, tsm.ts.metadata[row - 1])
 
             # Grab unique values
             keys = self.unique_symbologies[row].keys()

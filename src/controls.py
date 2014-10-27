@@ -69,27 +69,27 @@ class ControlPanel(QWidget, Ui_Widget):
         # Try to remove pre-existing custom options
         self.remove_custom_options()
         # Check to see if TS class has UI elements described
-        if not hasattr(tsm.ts, '__custom_controls__') or \
+        if not hasattr(tsm.ts, 'custom_controls') or \
                 not callable(getattr(tsm.ts, 'set_custom_controls', None)):
             return
         else:
-            if not isinstance(tsm.ts.__custom_controls__, list):
+            if not isinstance(tsm.ts.custom_controls, list):
                 print 'Custom controls for timeseries improperly described'
                 return
-            if len(tsm.ts.__custom_controls__) == 0:
+            if len(tsm.ts.custom_controls) == 0:
                 print 'Custom controls for timeseries improperly described'
                 return
 
         # Add form
-        if not hasattr(tsm.ts, '__custom_controls_title__'):
-            tsm.ts.__custom_controls_title__ = None
+        if not hasattr(tsm.ts, 'custom_controls_title'):
+            tsm.ts.custom_controls_title = None
 
         print 'Adding custom form for TS {ts}'.format(ts=repr(tsm.ts))
         config = OrderedDict([
             [key, [key, getattr(tsm.ts, key)]] for key in
-            tsm.ts.__custom_controls__
+            tsm.ts.custom_controls
         ])
-        self.custom_form = CustomForm(config, tsm.ts.__custom_controls_title__)
+        self.custom_form = CustomForm(config, tsm.ts.custom_controls_title)
         self.tab_options.layout().addWidget(self.custom_form)
 
     def remove_custom_options(self):
