@@ -315,7 +315,7 @@ class SymbologyControl(QtGui.QDialog, Ui_Widget):
 
     def parse_metadata_symbology(self):
         """ Parses TS's metadata to update the symbology attributes """
-        logger.info(
+        logger.debug(
             'Updating symbology?: %s' % str(setting.plot_symbol['enabled']))
 
         if setting.plot_symbol['enabled']:
