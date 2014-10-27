@@ -80,13 +80,13 @@ class TSTools(QObject):
     def init_toolbar(self):
         """ Creates and populates the toolbar for plugin """
         # MapTool button
-        self.action = QAction(QIcon(':/plugins/tstools/tstools_click.png'),
+        self.action = QAction(QIcon(':/plugins/tstools/media/tstools_click.png'),
                               'Time Series Tools', self.iface.mainWindow())
         self.action.triggered.connect(self.set_tool)
         self.iface.addToolBarIcon(self.action)
 
         # Configuration menu button
-        self.action_cfg = QAction(QIcon(':/plugins/tstools/tstools_config.png'),
+        self.action_cfg = QAction(QIcon(':/plugins/tstools/media/tstools_config.png'),
                                   'Configure', self.iface.mainWindow())
         self.action_cfg.triggered.connect(self.handle_config)
         self.iface.addToolBarIcon(self.action_cfg)
