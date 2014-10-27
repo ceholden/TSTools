@@ -25,7 +25,7 @@ import logging
 import os
 import pkgutil
 
-logger = logging.getLogger()
+logger = logging.getLogger('tstools')
 
 
 class TSManager(object):

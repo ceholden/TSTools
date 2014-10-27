@@ -20,10 +20,11 @@
  *                                                                         *
  ***************************************************************************/
 """
+from functools import partial
+import logging
+
 from PyQt4 import QtCore
 from PyQt4 import QtGui
-
-from functools import partial
 
 import numpy as np
 import matplotlib as mpl
@@ -33,6 +34,9 @@ from ui_symbology import Ui_Symbology as Ui_Widget
 from controls_attach_md import AttachMetadata
 from .ts_driver.ts_manager import tsm
 from . import settings as setting
+
+logger = logging.getLogger('tstools')
+
 
 class SymbologyControl(QtGui.QDialog, Ui_Widget):
     """ Plot symbology controls """
@@ -121,9 +125,9 @@ class SymbologyControl(QtGui.QDialog, Ui_Widget):
 
         # Setup initial set of symbology for item selected
         self.tables = []
-        print self.unique_values
+        logger.debug(self.unique_values)
         for i_md, unique_values in enumerate(self.unique_values):
-            print 'Init table {i}'.format(i=i_md)
+            logger.debug('Init table {i}'.format(i=i_md))
             self.init_metadata(i_md)
         self.stack_widget.setCurrentIndex(0)
 
@@ -311,7 +315,8 @@ class SymbologyControl(QtGui.QDialog, Ui_Widget):
 
     def parse_metadata_symbology(self):
         """ Parses TS's metadata to update the symbology attributes """
-        print 'Updating symbology?: %s' % str(setting.plot_symbol['enabled'])
+        logger.info(
+            'Updating symbology?: %s' % str(setting.plot_symbol['enabled']))
 
         if setting.plot_symbol['enabled']:
             # Determine current metadata

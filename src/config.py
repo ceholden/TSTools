@@ -21,6 +21,7 @@
  ***************************************************************************/
 """
 from collections import OrderedDict
+import logging
 
 from PyQt4 import QtCore
 from PyQt4 import QtGui
@@ -29,6 +30,9 @@ from ui_config import Ui_Config
 
 from .ts_driver.ts_manager import tsm
 from .custom_form import CustomForm
+
+logger = logging.getLogger('tstools')
+
 
 class Config(QtGui.QDialog, Ui_Config):
 
@@ -71,15 +75,17 @@ class Config(QtGui.QDialog, Ui_Config):
             has_custom_form = True
 
             if not hasattr(_ts, 'configurable') or \
-                not hasattr(_ts, 'configurable_str') or \
-                not callable(getattr(_ts, 'set_custom_config', None)):
+                    not hasattr(_ts, 'configurable_str') or \
+                    not callable(getattr(_ts, 'set_custom_config', None)):
                 has_custom_form = False
             else:
                 if not isinstance(_ts.configurable, list):
-                    print 'Custom options for timeseries improperly described'
+                    logger.error(
+                        'Custom options for timeseries improperly described')
                     has_custom_form = False
                 if len(_ts.configurable) == 0:
-                    print 'Custom controls for timeseries improperly described'
+                    logger.error(
+                        'Custom controls for timeseries improperly described')
                     has_custom_form = False
 
             if has_custom_form is True:
@@ -122,10 +128,11 @@ class Config(QtGui.QDialog, Ui_Config):
         """
         Brings up a QFileDialog allowing user to select a folder
         """
-        self.location = QtGui.QFileDialog.getExistingDirectory(self,
-                            'Select stack location',
-                            self.location,
-                            QtGui.QFileDialog.ShowDirsOnly)
+        self.location = QtGui.QFileDialog.getExistingDirectory(
+            self,
+            'Select stack location',
+            self.location,
+            QtGui.QFileDialog.ShowDirsOnly)
         self.edit_location.setText(self.location)
 
     @QtCore.pyqtSlot()
@@ -135,7 +142,7 @@ class Config(QtGui.QDialog, Ui_Config):
 
         self.model_index = self.combox_ts_model.currentIndex()
 
-        if self.custom_forms[self.model_index] != None:
+        if self.custom_forms[self.model_index] is not None:
             self.custom_options = self.custom_forms[self.model_index].get()
         else:
             self.custom_options = None
@@ -144,19 +151,5 @@ class Config(QtGui.QDialog, Ui_Config):
 
     @QtCore.pyqtSlot()
     def cancel_config(self):
-        print 'Cancel pressed!'
+        logger.info('Cancel pressed!')
         self.canceled.emit()
-
-# main function for testing
-if __name__ == "__main__":
-    import os
-    import sys
-    app = QtGui.QApplication(sys.argv)
-
-    from timeseries_ccdc import CCDCTimeSeries
-    from timeseries_ccdc_v9LIVE import CCDCTimeSeries_v9LIVE
-
-    widget = Config(app, os.getcwd(), [CCDCTimeSeries, CCDCTimeSeries_v9LIVE])
-
-    widget.show()
-    sys.exit(app.exec_())
