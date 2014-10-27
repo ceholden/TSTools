@@ -79,13 +79,11 @@ class Config(QtGui.QDialog, Ui_Config):
                     not callable(getattr(_ts, 'set_custom_config', None)):
                 has_custom_form = False
             else:
-                if not isinstance(_ts.configurable, list):
+                if not isinstance(_ts.configurable, list) or \
+                        not _ts.configurable:
                     logger.error(
-                        'Custom options for timeseries improperly described')
-                    has_custom_form = False
-                if len(_ts.configurable) == 0:
-                    logger.error(
-                        'Custom controls for timeseries improperly described')
+                        'Custom options for timeseries {ts} improperly '
+                        'described'.format(ts=_ts))
                     has_custom_form = False
 
             if has_custom_form is True:
