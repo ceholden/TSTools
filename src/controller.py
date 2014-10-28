@@ -136,6 +136,53 @@ class Controller(QtCore.QObject):
 #        self.retriever.moveToThread(self.retrieve_thread)
 
 # Setup
+    def _init_symbology(self):
+        """
+        Initializes the layer symbology using defaults or specified hints
+        """
+        # Default band min/max
+        setting.symbol['min'], setting.p_symbol['min'] = \
+            (np.zeros(tsm.ts.n_band, dtype=np.int), ) * 2
+        setting.symbol['max'], setting.p_symbol['max'] = \
+            (np.ones(tsm.ts.n_band, dtype=np.int) * 10000, ) * 2
+
+        # Apply symbology hints if exists
+        if hasattr(tsm.ts, 'symbology_hint_indices'):
+            i = tsm.ts.symbology_hint_indices
+            if isinstance(i, (tuple, list)) and len(i) == 3:
+                logger.debug('Applying RGB index symbology hint')
+                setting.p_symbol['band_red'], \
+                    setting.p_symbol['band_green'], \
+                    setting.p_symbol['band_blue'] = i[0], i[1], i[2]
+                setting.symbol['band_red'], \
+                    setting.symbol['band_green'], \
+                    setting.symbol['band_blue'] = i[0], i[1], i[2]
+            else:
+                logger.warning(
+                    'RGB index symbology hint improperly described')
+
+        if hasattr(tsm.ts, 'symbology_hint_minmax'):
+            i = tsm.ts.symbology_hint_minmax
+            if isinstance(i, (tuple, list)) and len(i) == 2:
+                logger.debug('Applying RGB min/max symbology hint')
+                # One min/max for all bands
+                if isinstance(i[1], (int, float)) and \
+                        isinstance(i[0], (int, float)):
+                    setting.symbol['min'], setting.p_symbol['min'] = \
+                        (np.ones(tsm.ts.n_band) * i[0], ) * 2
+                    setting.symbol['max'], setting.p_symbol['max'] = \
+                        (np.ones(tsm.ts.n_band) * i[1], ) * 2
+                # Specified min/max for all bands
+                elif isinstance(i[0], np.ndarray) and \
+                        isinstance(i[1], np.ndarray):
+                    setting.symbol['min'] = i[0]
+                    setting.symbol['max'] = i[1]
+                else:
+                    logger.warning('Could not use symbology min/max hint')
+            else:
+                logger.warning(
+                    'RGB min/max symbology hint improperly described')
+
     def get_time_series(self, TimeSeries,
                         location, custom_options=None):
         """
@@ -148,6 +195,9 @@ class Controller(QtCore.QObject):
             raise
 
         if tsm.ts:
+            # Setup raster display symbology
+            self._init_symbology()
+
             # Control panel
             self.ctrl.init_options()
             self.ctrl.init_custom_options()

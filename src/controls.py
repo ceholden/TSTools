@@ -397,12 +397,6 @@ class ControlPanel(QWidget, Ui_Widget):
         # Control symbology
         self.cbox_symbolcontrol.setChecked(setting.symbol['control'])
 
-        # Band min/max
-        setting.symbol['min'] = np.zeros(tsm.ts.n_band, dtype=np.int)
-        setting.symbol['max'] = np.ones(tsm.ts.n_band, dtype=np.int) * 10000
-        setting.p_symbol['min'] = np.zeros(tsm.ts.n_band, dtype=np.int)
-        setting.p_symbol['max'] = np.ones(tsm.ts.n_band, dtype=np.int) * 10000
-
         # Contrast enhancement
         self.combox_cenhance.setCurrentIndex(setting.symbol['contrast'])
 

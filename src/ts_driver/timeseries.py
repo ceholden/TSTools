@@ -65,6 +65,9 @@ class AbstractTimeSeries(object):
         mask_band                   band (index on 0) of mask within images
         mask_val                    values to mask
         metadata                    list of attributes containing metadata
+        metadata_str                list of strings describing metadata
+        symbology_hint_indices      list of default indices for RGB symbology
+        symbology_hint_minmax       tuple of min, max for RGB symbology
 
     Additional methods:
         apply_mask                  apply mask to dataset
@@ -83,6 +86,12 @@ class AbstractTimeSeries(object):
     mask_val = None
     metadata = []
     metadata_str = []
+
+    symbology_hint_indices = (4, 3, 2)
+    # Specify two numbers (int or float) for one min/max for all bands
+    # OR specify np.ndarray for each band in dataset for min and max
+    #     e.g. symbology_hint_minmax = (np.zeros(8), np.ones(8) * 10000)
+    symbology_hint_minmax = (0, 10000)
 
     def __init__(self, location, image_pattern, stack_pattern):
         # Basic, required information
