@@ -161,6 +161,22 @@ class Controller(QtCore.QObject):
                 logger.warning(
                     'RGB index symbology hint improperly described')
 
+        # Make sure band used in symbology exists
+        if setting.symbol['band_red'] > tsm.ts.n_band:
+            logger.warning('Fixing red band to largest band in dataset')
+            setting.symbol['band_red'] = tsm.ts.n_band - 1
+            setting.p_symbol['band_red'] = tsm.ts.n_band - 1
+
+        if setting.symbol['band_green'] > tsm.ts.n_band:
+            logger.warning('Fixing green band to largest band in dataset')
+            setting.symbol['band_green'] = tsm.ts.n_band - 1
+            setting.p_symbol['band_green'] = tsm.ts.n_band - 1
+
+        if setting.symbol['band_blue'] > tsm.ts.n_band:
+            logger.warning('Fixing blue band to largest band in dataset')
+            setting.symbol['band_blue'] = tsm.ts.n_band - 1
+            setting.p_symbol['band_blue'] = tsm.ts.n_band - 1
+
         if hasattr(tsm.ts, 'symbology_hint_minmax'):
             i = tsm.ts.symbology_hint_minmax
             if isinstance(i, (tuple, list)) and len(i) == 2:
