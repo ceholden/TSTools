@@ -134,10 +134,11 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
             # Lookup current value for configurable item
             current_value = getattr(self, k, None)
 
-            print '    {k} : {cv} <-- {v}'.format(
+            print '    {k} : {cv} <-- {v} ({t})'.format(
                 k=k,
                 v=v,
-                cv=current_value
+                cv=current_value,
+                t=type(v)
             )
 
             # Make sure new value is of same type
@@ -469,7 +470,7 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
         self.location = self.location.rstrip(os.path.sep)
         num_sep = self.location.count(os.path.sep)
         for root, dnames, fnames in os.walk(self.location, followlinks=True):
-            if self.results_folder is not None:
+            if self.results_folder is not None and self.results_folder != '':
                 # Remove results folder if exists
                 dnames[:] = [d for d in dnames if
                              self.results_folder not in d]
