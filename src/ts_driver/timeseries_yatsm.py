@@ -241,11 +241,6 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
         if 'freq' in z.files:
             self.freq = z['freq']
 
-
-    ## TODO: implement `retrieve_from_cache` and `write_to_cache`
-    #   `retrieve_from_cache` should open up the entire line
-    #   `write_to_cache` is just a pass if we're using entire lines
-
     def get_prediction(self, band, usermx=None):
         """ Return the time series model fit predictions for any single pixel
 
@@ -318,6 +313,66 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
                         by.append(self._data[band, index])
 
         return (bx, by)
+
+    def retrieve_from_cache(self):
+        """ Retrieve a timeseries pixel from cache
+
+        Will attempt to read from an entire line of cached data, or from
+        one single pixel of cached data.
+
+        Returns:
+          success (bool): True if read in from cache, False otherwise
+
+        """
+        cache_pixel = self.cache_name_lookup(self._px, self._py)
+        cache_line = os.path.join(
+            self.location, self.cache_folder,
+            'yatsm_r{r}_n{n}_b{b}.npy'.format(r=self._py,
+                                              n=self.length,
+                                              b=self.n_band))
+
+        if self.read_cache and os.path.exists(cache_pixel):
+            try:
+                _read_data = np.load(cache_pixel)
+            except:
+                logger.error('Could not read from pixel cache file {f}'.format(
+                    f=cache_pixel))
+                pass
+            else:
+                # Test if newly read data is same size as current
+                if _read_data.shape != self._data.shape:
+                    logger.warning('Cached data may be out of date')
+                    return False
+
+                self._data = _read_data
+
+                # We've read data, apply mask and return True
+                self.apply_mask()
+                logger.info('Read in from single pixel cache')
+                return True
+
+        elif self.read_cache and os.path.exists(cache_line):
+            try:
+                _read_data = np.load(cache_line)
+            except:
+                logger.error('Could not read from line cache file {f}'.format(
+                    f=cache_line))
+            else:
+                # Test if certain dimensions are compatible
+                # self._data.shape ==> (n_band, length)
+                # _read_data.shape ==> (n_band, length, ncol)
+                if (self._data.shape[0] != _read_data.shape[0] or
+                        self._data.shape[1] != _read_data.shape[1]):
+                    logger.warning('Cached data may be out of date')
+                    return False
+
+                self._data = np.squeeze(_read_data[:, :, self._px])
+                self.apply_mask()
+                logger.info('Read in from entire line cache')
+                return True
+
+        return False
+
 
     def _get_metadata(self):
         """ Parse timeseries attributes for metadata """

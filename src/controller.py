@@ -46,7 +46,7 @@ class DataRetriever(QtCore.QObject):
     def __init__(self):
         QtCore.QObject.__init__(self)
         self.running = False
-        self.can_readcache = False
+        self.read_from_cache = False
         self.can_writecache = False
         self.index = 0
 
@@ -77,7 +77,7 @@ class DataRetriever(QtCore.QObject):
         """ Finish off rest of process when getting pixel data """
         tsm.ts.apply_mask()
 
-        if tsm.ts.has_cache and tsm.ts.can_cache:
+        if tsm.ts.write_cache and not self.read_from_cache:
             try:
                 self.can_writecache = tsm.ts.write_to_cache()
             except:
@@ -94,13 +94,13 @@ class DataRetriever(QtCore.QObject):
     def get_ts_pixel(self):
         """ Retrieves time series, emitting status updates """
         # First check if time series has a readable cache
-        if tsm.ts.has_cache and tsm.ts.cache_folder is not None:
-            self.can_readcache = tsm.ts.retrieve_from_cache()
+        if tsm.ts.read_cache and tsm.ts.cache_folder is not None:
+            self.read_from_cache = tsm.ts.retrieve_from_cache()
 
-        if self.can_readcache:
+        if self.read_from_cache:
             # We've read from cache - finish process
             self._got_ts_pixel()
-        if not self.can_readcache:
+        if not self.read_from_cache:
             # We can't read from or there is no cache - retrieve from images
             self.index = 0
             self.running = True

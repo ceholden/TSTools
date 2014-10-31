@@ -59,8 +59,8 @@ class AbstractTimeSeries(object):
         get_breaks                  return break points for time segments
 
     Additional attributes:
-        has_cache                   boolean indicating existence of cached data
-        can_cache                   boolean indicating potential to cache data
+        read_cache                  boolean indicating existence of cached data
+        write_cache                 boolean indicating potential to cache data
         cache_folder                location of cache, if any
         mask_band                   band (index on 0) of mask within images
         mask_val                    values to mask
@@ -79,8 +79,8 @@ class AbstractTimeSeries(object):
     __metaclass__ = abc.ABCMeta
 
     # Overide/set these within subclasser as needed
-    has_cache = False
-    can_cache = False
+    read_cache = False
+    write_cache = False
     cache_folder = None
     mask_band = None
     mask_val = None
