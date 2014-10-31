@@ -23,12 +23,13 @@
 
 import logging
 
-frmat = '%(filename)s.%(funcName)s - %(levelname)s: %(message)s'
-logging.basicConfig(
-    format=frmat,
-    level=logging.DEBUG,
-    datefmt='%H:%M:%S')
+FORMAT = '%(filename)s.%(funcName)s - %(levelname)s: %(message)s'
+formatter = logging.Formatter(FORMAT)
+handler = logging.StreamHandler()
+handler.setFormatter(formatter)
 logger = logging.getLogger('tstools')
+logger.addHandler(handler)
+logger.setLevel(logging.INFO)
 
 
 def name():
