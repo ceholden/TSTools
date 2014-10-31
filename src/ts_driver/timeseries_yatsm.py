@@ -22,6 +22,7 @@
 """
 from datetime import datetime as dt
 import logging
+import os
 
 import numpy as np
 try:
@@ -31,7 +32,7 @@ except:
 
 import timeseries_ccdc
 
-logger = logging.getLogger()
+logger = logging.getLogger('tstools')
 
 
 class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
@@ -41,15 +42,23 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
     # description name for TSTools data model plugin loader
     description = 'YATSM Live Plotter'
 
+    results_folder = 'YATSM'
+    results_pattern = 'yatsm_r*'
+
     configurable = ['image_pattern',
                     'stack_pattern',
                     'cache_folder',
+                    'results_folder',
+                    'results_pattern',
                     'mask_band']
     configurable_str = ['Image folder pattern',
                         'Stack pattern',
                         'Cache folder',
+                        'Results folder (if any)',
+                        'Results file pattern (if any)',
                         'Mask band']
 
+    calculate_live = True
     crossvalidate_lambda = False
     consecutive = 5
     min_obs = 16
@@ -64,7 +73,8 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
     debug = False
 
     custom_controls_title = 'YATSM Options'
-    custom_controls = ['crossvalidate_lambda',
+    custom_controls = ['calculate_live',
+                       'crossvalidate_lambda',
                        'consecutive', 'min_obs', 'threshold',
                        'enable_min_rmse', 'min_rmse',
                        'freq', 'reverse',
@@ -80,7 +90,6 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
     metadata_str = ['Sensor', 'Path/Row', 'Multitemporal Screen']
 
     def __init__(self, location, config=None):
-
         super(YATSM_LIVE, self).__init__(location, config)
 
         self.ord_dates = np.array(map(dt.toordinal, self.dates))
@@ -113,6 +122,21 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
                     print current_value, v
 
     def retrieve_result(self):
+        """ Returns the results either calculated live or from a model run
+        """
+        logger.info('Calculating live?: {b}'.format(b=self.calculate_live))
+        if self.calculate_live:
+            self._retrieve_result_live()
+        else:
+            self._retrieve_result_saved()
+
+        # Update multitemporal screening metadata
+        if self.yatsm_model:
+            self.multitemp_screened = np.in1d(self.X[:, 1],
+                                              self.yatsm_model.X[:, 1],
+                                              invert=True).astype(np.uint8)
+
+    def _retrieve_result_live(self):
         """ Returns the record changes for the current pixel
         """
         # Note: X recalculated during variable setting, if needed, unless None
@@ -174,15 +198,50 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
         # Reset logger level
         logger.setLevel(level)
 
-        # Update multitemporal screening metadata
-        self.multitemp_screened = np.in1d(self.X[:, 1],
-                                          self.yatsm_model.X[:, 1],
-                                          invert=True).astype(np.uint8)
-        print('****MASKED****')
-        print(np.in1d(self.X[:, 1],
-                      self.yatsm_model.X[:, 1]).astype(np.uint8).sum())
-        print(np.in1d(self.X[:, 1],
-                      self.yatsm_model._X[:, 1]).astype(np.uint8).sum())
+    def _retrieve_result_saved(self):
+        """ Returns results opened from an existing model run
+        """
+        self.result = []
+        # Set self.yatsm_model to None since we don't serialize the
+        # reference to it
+        self.yatsm_model = None
+
+        record = self.results_pattern.replace('*', str(self._py)) + '.npz'
+        record = os.path.join(self.location, self.results_folder, record)
+
+        logger.info('Attempting to open: {f}'.format(f=record))
+
+        if not os.path.isfile(record):
+            logger.info('Could not find result for row {r}'.format(
+                r=self._py))
+            return
+
+        z = np.load(record)
+        if 'record' not in z.files:
+            logger.error('Cannot find "record" file within saved result')
+            return
+        rec = z['record']
+
+        result = np.where((rec['px'] == self._px) &
+                          (rec['py'] == self._py))[0]
+
+        logger.info(result)
+
+        if result.size == 0:
+            logger.info('Could not find result for column {px}'.format(
+                px=self._px))
+            return
+
+        self.result = rec[result]
+
+        # Set frequency from file
+        if 'freq' in z.files:
+            self.freq = z['freq']
+
+
+    ## TODO: implement `retrieve_from_cache` and `write_to_cache`
+    #   `retrieve_from_cache` should open up the entire line
+    #   `write_to_cache` is just a pass if we're using entire lines
 
     def get_prediction(self, band, usermx=None):
         """ Return the time series model fit predictions for any single pixel
@@ -205,6 +264,7 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
         my = []
 
         if len(self.result) > 0:
+            logger.info('Plotting result')
             for rec in self.result:
                 if band >= rec['coef'].shape[1]:
                     break
