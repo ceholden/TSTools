@@ -58,13 +58,13 @@ class TSManager(object):
             logger.warning('Could not import "timeseries". Check your path')
             raise
         else:
-            logger.info('Found "timeseries" module')
+            logger.debug('Found "timeseries" module')
 
         # Use pkgutil to search for timeseries
-        logger.info('Module name: {n}'.format(n=__name__))
+        logger.debug('Module name: {n}'.format(n=__name__))
         for loader, modname, ispkg in pkgutil.iter_modules(self.plugin_dir):
             if modname != __name__.split('.')[-1]:
-                logger.info('Loading {m}'.format(m=modname))
+                logger.debug('Loading {m}'.format(m=modname))
 
                 importlib.import_module('.'.join(__name__.split('.')[:-1]) +
                                         '.' + modname)
@@ -85,7 +85,7 @@ class TSManager(object):
         for sub_subclass in sub_subclasses:
             if sub_subclass not in self.ts_drivers:
                 self.ts_drivers.append(sub_subclass)
-                logger.info('Found driver: {tsd}'.format(tsd=sub_subclass))
+                logger.debug('Found driver: {tsd}'.format(tsd=sub_subclass))
             self.recursive_find_subclass(sub_subclass)
 
 

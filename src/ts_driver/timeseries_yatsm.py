@@ -45,6 +45,9 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
     results_folder = 'YATSM'
     results_pattern = 'yatsm_r*'
 
+    results_folder = 'YATSM'
+    results_pattern = 'yatsm_r*'
+
     configurable = ['image_pattern',
                     'stack_pattern',
                     'cache_folder',
