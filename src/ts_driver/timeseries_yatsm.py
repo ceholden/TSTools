@@ -346,8 +346,6 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
 
                 self._data = _read_data
 
-                # We've read data, apply mask and return True
-                self.apply_mask()
                 logger.info('Read in from single pixel cache')
                 return True
 
@@ -367,7 +365,6 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
                     return False
 
                 self._data = np.squeeze(_read_data[:, :, self._px])
-                self.apply_mask()
                 logger.info('Read in from entire line cache')
                 return True
 

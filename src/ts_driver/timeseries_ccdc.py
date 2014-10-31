@@ -396,7 +396,7 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
 ### OVERRIDEN "ADDITIONAL" OPTIONAL METHODS SUPPORTED BY CCDCTimeSeries
     def apply_mask(self, mask_band=None, mask_val=None):
         """ Apply mask to self._data """
-
+        logger.info('Apply mask to data')
         if mask_band is None:
             mask_band = self.mask_band
 
@@ -434,9 +434,6 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
                     return False
 
                 self._data = _read_data
-
-                # We've read data, apply mask and return True
-                self.apply_mask()
 
                 return True
 
