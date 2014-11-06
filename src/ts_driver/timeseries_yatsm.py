@@ -327,9 +327,9 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
         cache_pixel = self.cache_name_lookup(self._px, self._py)
         cache_line = os.path.join(
             self.location, self.cache_folder,
-            'yatsm_r{r}_n{n}_b{b}.npy'.format(r=self._py,
-                                              n=self.length,
-                                              b=self.n_band))
+            'yatsm_r{r}_n{n}_b{b}.npy.npz'.format(r=self._py,
+                                                  n=self.length,
+                                                  b=self.n_band))
 
         if self.read_cache and os.path.exists(cache_pixel):
             try:
@@ -351,7 +351,7 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
 
         elif self.read_cache and os.path.exists(cache_line):
             try:
-                _read_data = np.load(cache_line)
+                _read_data = np.load(cache_line)['Y']
             except:
                 logger.error('Could not read from line cache file {f}'.format(
                     f=cache_line))
