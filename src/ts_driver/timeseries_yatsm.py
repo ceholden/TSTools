@@ -391,7 +391,8 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
         try:
             global YATSM
             global make_X
-            from ..yatsm.yatsm import YATSM, make_X
+            from ..yatsm.yatsm import YATSM
+            from ..yatsm.utils import make_X
         except:
             raise Exception('Could not import YATSM')
         else:
