@@ -328,7 +328,8 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
         try:
             global YATSM
             global make_X
-            from ..yatsm.yatsm import YATSM, make_X
+            from ..yatsm.yatsm import YATSM
+            from ..yatsm.utils import make_X
         except:
             raise Exception('Could not import YATSM')
         else:
