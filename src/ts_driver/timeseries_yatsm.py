@@ -110,11 +110,6 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
         for v, k in zip(values, self.custom_controls):
             current_value = getattr(self, k)
             if isinstance(v, type(current_value)):
-                # Check if we need to update the frequency of X
-                if k == 'freq':
-                    if any([_v not in self.freq for _v in v]) or \
-                            any([_f not in v for _f in self.freq]):
-                        self.X = make_X(self.ord_dates, v).T
                 setattr(self, k, v)
             else:
                 # Make an exception for minimum RMSE since we can pass None
@@ -143,8 +138,7 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
         """ Returns the record changes for the current pixel
         """
         # Note: X recalculated during variable setting, if needed, unless None
-        if self.X is None:
-            self.X = make_X(self.ord_dates, self.freq).T
+        self.X = make_X(self.ord_dates, self.freq).T
         # Get Y
         self.Y = self.get_data(mask=False)
 
@@ -369,7 +363,6 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
                 return True
 
         return False
-
 
     def _get_metadata(self):
         """ Parse timeseries attributes for metadata """
