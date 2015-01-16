@@ -222,6 +222,7 @@ class Controller(QtCore.QObject):
             self.ctrl.update_table()
 
             # Wire signals for GUI
+            self.disconnect()
             self.add_signals()
 
             self.retriever.retrieve_update.connect(
