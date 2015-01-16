@@ -89,9 +89,10 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
 
     sensor = np.empty(0)
     multitemp_screened = np.empty(0)
+    vza_mask = np.empty(0)
 
-    metadata = ['sensor', 'multitemp_screened']
-    metadata_str = ['Sensor', 'Multitemporal Screen']
+    metadata = ['sensor', 'multitemp_screened', 'vza_mask']
+    metadata_str = ['Sensor', 'Multitemporal Screen', 'View Zenith Angle Mask']
 
     def __init__(self, location, config=None):
 
@@ -102,23 +103,38 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
         self.Y = None
         self._check_yatsm()
 
+    def apply_mask(self, mask_band=None, mask_val=None):
+        """ Apply mask to self._data """
+        logger.info('Apply mask to data')
+        if mask_band is None:
+            mask_band = self.mask_band
+
+        if mask_val is None:
+            mask_val = list(self.mask_val)
+
+        self._data = np.array(self._data)
+
+        # Mask band - 1  since GDAL is index on 1, but NumPy is index on 0
+        mask = np.logical_or.reduce([self._data[mask_band - 1, :] == mv
+                                    for mv in mask_val])
+        valid = np.logical_and.reduce([
+            (self._data[test, :] > 10000) | (self._data[test, :] < 0) for
+            test in self.test_indices])
+        self.vza_mask = self._data[self.vza_band - 1, :] > self.max_VZA * 100
+
+        mask = mask | valid | self.vza_mask
+
+        self._data = np.ma.MaskedArray(self._data,
+                                       mask=mask * np.ones_like(self._data))
+
     def retrieve_result(self):
         """ Returns the record changes for the current pixel
         """
-        # Note: X recalculated during variable setting, if needed, unless None
-        if self.X is None:
-            self.X = make_X(self.ord_dates, self.freq).T
+        self.X = make_X(self.ord_dates, self.freq).T
         # Get Y
-        self.Y = self.get_data(mask=False)
+        self.Y = self._data
 
-        # Apply mask -- QA/QC band, valid value ranges, and VZA
-        clear = np.logical_and.reduce([self.Y[self.mask_band - 1, :] != mv
-                                       for mv in self.mask_val])
-        valid = np.logical_and.reduce([
-            (self.Y[test, :] <= 10000) & (self.Y[test, :] >= 0) for
-            test in self.test_indices])
-        clear = (clear & valid &
-                 self.Y[self.vza_band - 1, :] < self.max_VZA * 100)
+        clear = ~self.Y.mask[0, :]
 
         # Turn on/off minimum RMSE
         if not self.enable_min_rmse:
@@ -170,14 +186,10 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
         logger.setLevel(level)
 
         # Update multitemporal screening metadata
-        self.multitemp_screened = np.in1d(self.X[:, 1],
-                                          self.yatsm_model.X[:, 1],
-                                          invert=True).astype(np.uint8)
-        print('****MASKED****')
-        print(np.in1d(self.X[:, 1],
-                      self.yatsm_model.X[:, 1]).astype(np.uint8).sum())
-        print(np.in1d(self.X[:, 1],
-                      self.yatsm_model._X[:, 1]).astype(np.uint8).sum())
+        if self.yatsm_model:
+            self.multitemp_screened = np.in1d(self.X[:, 1],
+                                              self.yatsm_model.X[:, 1],
+                                              invert=True).astype(np.uint8)
 
     def get_prediction(self, band, usermx=None):
         """ Return the time series model fit predictions for any single pixel
@@ -260,6 +272,9 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
         self.multitemp_screened = np.ones(self.length)
         # Make an entry 0 so we get this in the unique values
         self.multitemp_screened[0] = 0
+
+        self.vza_mask = np.ones(self.length)
+        self.vza_mask[0] = 0
 
 ### OVERRIDEN "ADDITIONAL" OPTIONAL METHODS SUPPORTED BY CCDCTimeSeries
     def _find_stacks(self):
