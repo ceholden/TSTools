@@ -62,7 +62,6 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
                         'Mask band']
 
     calculate_live = True
-    crossvalidate_lambda = False
     consecutive = 5
     min_obs = 16
     threshold = 3.0
@@ -71,18 +70,24 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
     freq = np.array([1])
     reverse = False
     screen_lowess = False
+    screen_crit = 400.0
+    remove_noise = True
+    dynamic_rmse = False
     test_indices = np.array([2, 3, 4, 5])
     robust_results = False
+    commit_test = False
+    commit_alpha = 0.01
     debug = False
 
     custom_controls_title = 'YATSM Options'
     custom_controls = ['calculate_live',
-                       'crossvalidate_lambda',
                        'consecutive', 'min_obs', 'threshold',
                        'enable_min_rmse', 'min_rmse',
                        'freq', 'reverse',
-                       'screen_lowess',
+                       'screen_lowess', 'screen_crit', 'remove_noise',
+                       'dynamic_rmse',
                        'test_indices', 'robust_results',
+                       'commit_test', 'commit_alpha',
                        'debug']
 
     sensor = np.empty(0)
@@ -169,7 +174,9 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
                                      min_rmse=self.min_rmse,
                                      test_indices=self.test_indices,
                                      screening=screen,
-                                     lassocv=self.crossvalidate_lambda,
+                                     screening_crit=self.screen_crit,
+                                     remove_noise=self.remove_noise,
+                                     dynamic_rmse=self.dynamic_rmse,
                                      logger=logger)
         else:
             self.yatsm_model = YATSM(self.X[clear, :],
@@ -180,11 +187,17 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
                                      min_rmse=self.min_rmse,
                                      test_indices=self.test_indices,
                                      screening=screen,
-                                     lassocv=self.crossvalidate_lambda,
+                                     screening_crit=self.screen_crit,
+                                     remove_noise=self.remove_noise,
+                                     dynamic_rmse=self.dynamic_rmse,
                                      logger=logger)
 
         # Run
         self.yatsm_model.run()
+
+        if self.commit_test:
+            self.yatsm_model.record = self.yatsm_model.commission_test(
+                self.commit_alpha)
 
         # List to store results
         if self.robust_results:
