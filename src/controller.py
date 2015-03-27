@@ -720,10 +720,10 @@ class Controller(QtCore.QObject):
             logger.debug('Data has no mask')
 
         setting.plot['min'] = np.array([
-            max(0, np.percentile(np.ma.compressed(band), 2) - 500)
+            np.percentile(np.ma.compressed(band), 2) - 500
             for band in data[:, ]])
         setting.plot['max'] = np.array([
-            min(10000, np.percentile(np.ma.compressed(band), 98) + 500)
+            np.percentile(np.ma.compressed(band), 98) + 500
             for band in data[:, ]])
 
 #        setting.plot['min'] = np.array([
