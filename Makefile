@@ -18,14 +18,14 @@
 # ***************************************************************************/
 
 # INSTALL LOCATION
-HOST=$(shell hostname)
-ifeq ($(HOST),geo)
-LOC=/project/earth/packages/CCDCTools_beta
-else ifeq ($(HOST),scc1)
-LOC=/project/earth/packages/CCDCTools_beta
-else
+# HOST=$(shell hostname)
+# ifeq ($(HOST),geo)
+# LOC=/project/earth/packages/CCDCTools_beta
+# else ifeq ($(HOST),scc1)
+# LOC=/project/earth/packages/CCDCTools_beta
+# else
 LOC=$(HOME)/.qgis2/python/plugins
-endif
+# endif
 
 # CONFIGURATION
 PLUGIN_UPLOAD = $(CURDIR)/plugin_upload.py
