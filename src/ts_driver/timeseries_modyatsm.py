@@ -49,6 +49,8 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
     date_index = [5, 12]
     mask_band = 7
     vza_band = 8
+    green_band = 1
+    swir1_band = 4
 
     mask_val = [0]
 
@@ -56,12 +58,16 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
                     'date_index',
                     'cache_folder',
                     'mask_band',
-                    'vza_band']
+                    'vza_band',
+                    'green_band',
+                    'swir1_band']
     configurable_str = ['Stack pattern',
                         'Index of date in name',
                         'Cache folder',
                         'Mask band',
-                        'View Zenith Angle band']
+                        'View Zenith Angle band',
+                        'Green band',
+                        'SWIR1 band']
 
     max_VZA = 25.0
     crossvalidate_lambda = False
@@ -160,7 +166,9 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
                                      test_indices=self.test_indices,
                                      screening=screen,
                                      lassocv=self.crossvalidate_lambda,
-                                     logger=logger)
+                                     logger=logger,
+                                     green_band=self.green_band,
+                                     swir1_band=self.swir1_band)
         else:
             self.yatsm_model = YATSM(self.X[clear, :],
                                      self.Y[:-1, clear],
@@ -171,7 +179,9 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
                                      test_indices=self.test_indices,
                                      screening=screen,
                                      lassocv=self.crossvalidate_lambda,
-                                     logger=logger)
+                                     logger=logger,
+                                     green_band=self.green_band,
+                                     swir1_band=self.swir1_band)
 
         # Run
         self.yatsm_model.run()
