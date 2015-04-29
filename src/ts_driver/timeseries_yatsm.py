@@ -47,19 +47,25 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
 
     results_folder = 'YATSM'
     results_pattern = 'yatsm_r*'
+    min_values = [0]
+    max_values = [10000]
 
     configurable = ['image_pattern',
                     'stack_pattern',
                     'cache_folder',
                     'results_folder',
                     'results_pattern',
-                    'mask_band']
+                    'mask_band',
+                    'min_values', 'max_values']
+
+
     configurable_str = ['Image folder pattern',
                         'Stack pattern',
                         'Cache folder',
                         'Results folder (if any)',
                         'Results file pattern (if any)',
-                        'Mask band']
+                        'Mask band',
+                        'Min data values', 'Max data values']
 
     calculate_live = True
     consecutive = 5
@@ -104,6 +110,13 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
         self.X = None
         self.Y = None
         self._check_yatsm()
+
+        if len(self.min_values) == 1:
+            self.min_values = self.min_values * (self.n_band - 1)
+        if len(self.max_values) == 1:
+            self.max_values = self.max_values * (self.n_band - 1)
+        self.min_values = np.asarray(self.min_values)
+        self.max_values = np.asarray(self.max_values)
 
     def set_custom_controls(self, values):
         """ Set custom control options
@@ -150,6 +163,10 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
         # Mask out mask values
         clear = np.logical_and.reduce([self.Y[self.mask_band - 1, :] != mv
                                       for mv in self.mask_val])
+        valid = get_valid_mask(self.Y[:self.mask_band - 1, :],
+                               self.min_values,
+                               self.max_values)
+        clear *= valid
 
         # Turn on/off minimum RMSE
         if not self.enable_min_rmse:
@@ -397,8 +414,10 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
         try:
             global YATSM
             global make_X
+            global get_valid_mask
             from ..yatsm.yatsm import YATSM
             from ..yatsm.utils import make_X
+            from ..yatsm._cyprep import get_valid_mask
         except:
             raise Exception('Could not import YATSM')
         else:
