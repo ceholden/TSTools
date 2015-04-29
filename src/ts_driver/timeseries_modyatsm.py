@@ -43,24 +43,31 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
     (MOD09GA/GQ) by masking according to view zenith angle.
     """
 
-    __str__ = 'MODYATSM Live Plotter'
+    description = 'MODYATSM Live Plotter'
 
     stack_pattern = 'M*D*stack.gtif'
     date_index = [5, 12]
     mask_band = 7
     vza_band = 8
+    green_band = 1
+    swir1_band = 4
 
     mask_val = [0]
 
-    __configurable__ = ['stack_pattern',
-                        'date_index',
-                        'cache_folder',
-                        'mask_band', 'vza_band']
-    __configurable__str__ = ['Stack pattern',
-                             'Index of date in name',
-                             'Cache folder',
-                             'Mask band',
-                             'View Zenith Angle band']
+    configurable = ['stack_pattern',
+                    'date_index',
+                    'cache_folder',
+                    'mask_band',
+                    'vza_band',
+                    'green_band',
+                    'swir1_band']
+    configurable_str = ['Stack pattern',
+                        'Index of date in name',
+                        'Cache folder',
+                        'Mask band',
+                        'View Zenith Angle band',
+                        'Green band',
+                        'SWIR1 band']
 
     max_VZA = 25.0
     crossvalidate_lambda = False
@@ -76,8 +83,8 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
     robust_results = False
     debug = False
 
-    __custom_controls_title__ = 'YATSM Options'
-    __custom_controls__ = ['max_VZA',
+    custom_controls_title = 'YATSM Options'
+    custom_controls = ['max_VZA',
                            'crossvalidate_lambda',
                            'consecutive', 'min_obs', 'threshold',
                            'enable_min_rmse', 'min_rmse',
@@ -88,9 +95,10 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
 
     sensor = np.empty(0)
     multitemp_screened = np.empty(0)
+    vza_mask = np.empty(0)
 
-    __metadata__ = ['sensor', 'multitemp_screened']
-    __metadata__str__ = ['Sensor', 'Multitemporal Screen']
+    metadata = ['sensor', 'multitemp_screened', 'vza_mask']
+    metadata_str = ['Sensor', 'Multitemporal Screen', 'View Zenith Angle Mask']
 
     def __init__(self, location, config=None):
 
@@ -101,23 +109,38 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
         self.Y = None
         self._check_yatsm()
 
+    def apply_mask(self, mask_band=None, mask_val=None):
+        """ Apply mask to self._data """
+        logger.info('Apply mask to data')
+        if mask_band is None:
+            mask_band = self.mask_band
+
+        if mask_val is None:
+            mask_val = list(self.mask_val)
+
+        self._data = np.array(self._data)
+
+        # Mask band - 1  since GDAL is index on 1, but NumPy is index on 0
+        mask = np.logical_or.reduce([self._data[mask_band - 1, :] == mv
+                                    for mv in mask_val])
+        valid = np.logical_and.reduce([
+            (self._data[test, :] > 10000) | (self._data[test, :] < 0) for
+            test in self.test_indices])
+        self.vza_mask = self._data[self.vza_band - 1, :] > self.max_VZA * 100
+
+        mask = mask | valid | self.vza_mask
+
+        self._data = np.ma.MaskedArray(self._data,
+                                       mask=mask * np.ones_like(self._data))
+
     def retrieve_result(self):
         """ Returns the record changes for the current pixel
         """
-        # Note: X recalculated during variable setting, if needed, unless None
-        if self.X is None:
-            self.X = make_X(self.ord_dates, self.freq).T
+        self.X = make_X(self.ord_dates, self.freq).T
         # Get Y
-        self.Y = self.get_data(mask=False)
+        self.Y = self._data
 
-        # Apply mask -- QA/QC band, valid value ranges, and VZA
-        clear = np.logical_and.reduce([self.Y[self.mask_band - 1, :] != mv
-                                       for mv in self.mask_val])
-        valid = np.logical_and.reduce([
-            (self.Y[test, :] <= 10000) & (self.Y[test, :] >= 0) for
-            test in self.test_indices])
-        clear = (clear & valid & 
-                 self.Y[self.vza_band - 1, :] < self.max_VZA * 100)
+        clear = ~self.Y.mask[0, :]
 
         # Turn on/off minimum RMSE
         if not self.enable_min_rmse:
@@ -143,7 +166,9 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
                                      test_indices=self.test_indices,
                                      screening=screen,
                                      lassocv=self.crossvalidate_lambda,
-                                     logger=logger)
+                                     logger=logger,
+                                     green_band=self.green_band,
+                                     swir1_band=self.swir1_band)
         else:
             self.yatsm_model = YATSM(self.X[clear, :],
                                      self.Y[:-1, clear],
@@ -154,7 +179,9 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
                                      test_indices=self.test_indices,
                                      screening=screen,
                                      lassocv=self.crossvalidate_lambda,
-                                     logger=logger)
+                                     logger=logger,
+                                     green_band=self.green_band,
+                                     swir1_band=self.swir1_band)
 
         # Run
         self.yatsm_model.run()
@@ -169,14 +196,10 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
         logger.setLevel(level)
 
         # Update multitemporal screening metadata
-        self.multitemp_screened = np.in1d(self.X[:, 1],
-                                          self.yatsm_model.X[:, 1],
-                                          invert=True).astype(np.uint8)
-        print('****MASKED****')
-        print(np.in1d(self.X[:, 1],
-                      self.yatsm_model.X[:, 1]).astype(np.uint8).sum())
-        print(np.in1d(self.X[:, 1],
-                      self.yatsm_model._X[:, 1]).astype(np.uint8).sum())
+        if self.yatsm_model:
+            self.multitemp_screened = np.in1d(self.X[:, 1],
+                                              self.yatsm_model.X[:, 1],
+                                              invert=True).astype(np.uint8)
 
     def get_prediction(self, band, usermx=None):
         """ Return the time series model fit predictions for any single pixel
@@ -260,6 +283,9 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
         # Make an entry 0 so we get this in the unique values
         self.multitemp_screened[0] = 0
 
+        self.vza_mask = np.ones(self.length)
+        self.vza_mask[0] = 0
+
 ### OVERRIDEN "ADDITIONAL" OPTIONAL METHODS SUPPORTED BY CCDCTimeSeries
     def _find_stacks(self):
         """ Find and set names for MODIS image stacks
@@ -309,7 +335,7 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
         self.dates = []
         for image_name in self.image_names:
             self.dates.append(dt.strptime(
-                    image_name[self.date_index[0]:self.date_index[1]], 
+                    image_name[self.date_index[0]:self.date_index[1]],
                     '%Y%j'))
 
         self.dates = np.array(self.dates)
@@ -327,7 +353,8 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
         try:
             global YATSM
             global make_X
-            from ..yatsm.yatsm import YATSM, make_X
+            from ..yatsm.yatsm import YATSM
+            from ..yatsm.utils import make_X
         except:
             raise Exception('Could not import YATSM')
         else:

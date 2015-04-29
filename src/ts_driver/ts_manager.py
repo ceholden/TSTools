@@ -25,7 +25,7 @@ import logging
 import os
 import pkgutil
 
-logger = logging.getLogger()
+logger = logging.getLogger('tstools')
 
 
 class TSManager(object):
@@ -48,9 +48,6 @@ class TSManager(object):
         file_location = os.path.dirname(__file__)
         self.plugin_dir.append('./' if file_location == '' else file_location)
 
-        logging.info('Locations: ')
-        logging.info(self.plugin_dir)
-
         self.find_timeseries()
 
     def find_timeseries(self):
@@ -61,20 +58,20 @@ class TSManager(object):
             logger.warning('Could not import "timeseries". Check your path')
             raise
         else:
-            logging.info('Found "timeseries" module')
+            logger.debug('Found "timeseries" module')
 
         # Use pkgutil to search for timeseries
-        logging.info('Module name: {n}'.format(n=__name__))
+        logger.debug('Module name: {n}'.format(n=__name__))
         for loader, modname, ispkg in pkgutil.iter_modules(self.plugin_dir):
             if modname != __name__.split('.')[-1]:
-                logging.info('Loading {m}'.format(m=modname))
+                logger.debug('Loading {m}'.format(m=modname))
 
                 importlib.import_module('.'.join(__name__.split('.')[:-1]) +
                                         '.' + modname)
 
         self.ts_drivers = timeseries.AbstractTimeSeries.__subclasses__()
         for tsd in self.ts_drivers:
-            logging.info('Found driver: {tsd}'.format(tsd=tsd))
+            logger.info('Found driver: {tsd}'.format(tsd=tsd))
 
         # Find even more descendents
         for subclass in self.ts_drivers:
@@ -88,10 +85,10 @@ class TSManager(object):
         for sub_subclass in sub_subclasses:
             if sub_subclass not in self.ts_drivers:
                 self.ts_drivers.append(sub_subclass)
-                logging.info('Found driver: {tsd}'.format(tsd=sub_subclass))
+                logger.debug('Found driver: {tsd}'.format(tsd=sub_subclass))
             self.recursive_find_subclass(sub_subclass)
 
 
 # Store timeseries manager
 tsm = TSManager()
-logging.info(tsm.ts_drivers)
+logger.info(tsm.ts_drivers)

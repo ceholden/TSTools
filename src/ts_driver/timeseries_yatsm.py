@@ -22,6 +22,7 @@
 """
 from datetime import datetime as dt
 import logging
+import os
 
 import numpy as np
 try:
@@ -31,24 +32,36 @@ except:
 
 import timeseries_ccdc
 
-logger = logging.getLogger()
+logger = logging.getLogger('tstools')
 
 
 class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
     """ Timeseries "driver" for QGIS plugin that connects requests with model
     """
 
-    # __str__ name for TSTools data model plugin loader
-    __str__ = 'YATSM Live Plotter'
+    # description name for TSTools data model plugin loader
+    description = 'YATSM Plotter'
 
-    __configurable__ = ['image_pattern', 'stack_pattern',
-                        'cache_folder', 'mask_band']
-    __configurable__str__ = ['Image folder pattern',
-                             'Stack pattern',
-                             'Cache folder',
-                             'Mask band']
+    results_folder = 'YATSM'
+    results_pattern = 'yatsm_r*'
 
-    crossvalidate_lambda = False
+    results_folder = 'YATSM'
+    results_pattern = 'yatsm_r*'
+
+    configurable = ['image_pattern',
+                    'stack_pattern',
+                    'cache_folder',
+                    'results_folder',
+                    'results_pattern',
+                    'mask_band']
+    configurable_str = ['Image folder pattern',
+                        'Stack pattern',
+                        'Cache folder',
+                        'Results folder (if any)',
+                        'Results file pattern (if any)',
+                        'Mask band']
+
+    calculate_live = True
     consecutive = 5
     min_obs = 16
     threshold = 3.0
@@ -57,28 +70,34 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
     freq = np.array([1])
     reverse = False
     screen_lowess = False
+    screen_crit = 400.0
+    remove_noise = True
+    dynamic_rmse = False
     test_indices = np.array([2, 3, 4, 5])
     robust_results = False
+    commit_test = False
+    commit_alpha = 0.01
     debug = False
 
-    __custom_controls_title__ = 'YATSM Options'
-    __custom_controls__ = ['crossvalidate_lambda',
-                           'consecutive', 'min_obs', 'threshold',
-                           'enable_min_rmse', 'min_rmse',
-                           'freq', 'reverse',
-                           'screen_lowess',
-                           'test_indices', 'robust_results',
-                           'debug']
+    custom_controls_title = 'YATSM Options'
+    custom_controls = ['calculate_live',
+                       'consecutive', 'min_obs', 'threshold',
+                       'enable_min_rmse', 'min_rmse',
+                       'freq', 'reverse',
+                       'screen_lowess', 'screen_crit', 'remove_noise',
+                       'dynamic_rmse',
+                       'test_indices', 'robust_results',
+                       'commit_test', 'commit_alpha',
+                       'debug']
 
     sensor = np.empty(0)
     pathrow = np.empty(0)
     multitemp_screened = np.empty(0)
 
-    __metadata__ = ['sensor', 'pathrow', 'multitemp_screened']
-    __metadata__str__ = ['Sensor', 'Path/Row', 'Multitemporal Screen']
+    metadata = ['sensor', 'pathrow', 'multitemp_screened']
+    metadata_str = ['Sensor', 'Path/Row', 'Multitemporal Screen']
 
     def __init__(self, location, config=None):
-
         super(YATSM_LIVE, self).__init__(location, config)
 
         self.ord_dates = np.array(map(dt.toordinal, self.dates))
@@ -93,14 +112,9 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
             values          list of values to be inserted into OrderedDict
 
         """
-        for v, k in zip(values, self.__custom_controls__):
+        for v, k in zip(values, self.custom_controls):
             current_value = getattr(self, k)
             if isinstance(v, type(current_value)):
-                # Check if we need to update the frequency of X
-                if k == 'freq':
-                    if any([_v not in self.freq for _v in v]) or \
-                            any([_f not in v for _f in self.freq]):
-                        self.X = make_X(self.ord_dates, v).T
                 setattr(self, k, v)
             else:
                 # Make an exception for minimum RMSE since we can pass None
@@ -111,11 +125,25 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
                     print current_value, v
 
     def retrieve_result(self):
+        """ Returns the results either calculated live or from a model run
+        """
+        logger.info('Calculating live?: {b}'.format(b=self.calculate_live))
+        if self.calculate_live:
+            self._retrieve_result_live()
+        else:
+            self._retrieve_result_saved()
+
+        # Update multitemporal screening metadata
+        if self.yatsm_model:
+            self.multitemp_screened = np.in1d(self.X[:, 1],
+                                              self.yatsm_model.X[:, 1],
+                                              invert=True).astype(np.uint8)
+
+    def _retrieve_result_live(self):
         """ Returns the record changes for the current pixel
         """
         # Note: X recalculated during variable setting, if needed, unless None
-        if self.X is None:
-            self.X = make_X(self.ord_dates, self.freq).T
+        self.X = make_X(self.ord_dates, self.freq).T
         # Get Y
         self.Y = self.get_data(mask=False)
 
@@ -146,7 +174,9 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
                                      min_rmse=self.min_rmse,
                                      test_indices=self.test_indices,
                                      screening=screen,
-                                     lassocv=self.crossvalidate_lambda,
+                                     screening_crit=self.screen_crit,
+                                     remove_noise=self.remove_noise,
+                                     dynamic_rmse=self.dynamic_rmse,
                                      logger=logger)
         else:
             self.yatsm_model = YATSM(self.X[clear, :],
@@ -157,11 +187,17 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
                                      min_rmse=self.min_rmse,
                                      test_indices=self.test_indices,
                                      screening=screen,
-                                     lassocv=self.crossvalidate_lambda,
+                                     screening_crit=self.screen_crit,
+                                     remove_noise=self.remove_noise,
+                                     dynamic_rmse=self.dynamic_rmse,
                                      logger=logger)
 
         # Run
         self.yatsm_model.run()
+
+        if self.commit_test:
+            self.yatsm_model.record = self.yatsm_model.commission_test(
+                self.commit_alpha)
 
         # List to store results
         if self.robust_results:
@@ -172,15 +208,45 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
         # Reset logger level
         logger.setLevel(level)
 
-        # Update multitemporal screening metadata
-        self.multitemp_screened = np.in1d(self.X[:, 1],
-                                          self.yatsm_model.X[:, 1],
-                                          invert=True).astype(np.uint8)
-        print('****MASKED****')
-        print(np.in1d(self.X[:, 1],
-                      self.yatsm_model.X[:, 1]).astype(np.uint8).sum())
-        print(np.in1d(self.X[:, 1],
-                      self.yatsm_model._X[:, 1]).astype(np.uint8).sum())
+    def _retrieve_result_saved(self):
+        """ Returns results opened from an existing model run
+        """
+        self.result = []
+        # Set self.yatsm_model to None since we don't serialize the
+        # reference to it
+        self.yatsm_model = None
+
+        record = self.results_pattern.replace('*', str(self._py)) + '.npz'
+        record = os.path.join(self.location, self.results_folder, record)
+
+        logger.info('Attempting to open: {f}'.format(f=record))
+
+        if not os.path.isfile(record):
+            logger.info('Could not find result for row {r}'.format(
+                r=self._py))
+            return
+
+        z = np.load(record)
+        if 'record' not in z.files:
+            logger.error('Cannot find "record" file within saved result')
+            return
+        rec = z['record']
+
+        result = np.where((rec['px'] == self._px) &
+                          (rec['py'] == self._py))[0]
+
+        logger.info(result)
+
+        if result.size == 0:
+            logger.info('Could not find result for column {px}'.format(
+                px=self._px))
+            return
+
+        self.result = rec[result]
+
+        # Set frequency from file
+        if 'freq' in z.files:
+            self.freq = z['freq']
 
     def get_prediction(self, band, usermx=None):
         """ Return the time series model fit predictions for any single pixel
@@ -203,6 +269,7 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
         my = []
 
         if len(self.result) > 0:
+            logger.info('Plotting result')
             for rec in self.result:
                 if band >= rec['coef'].shape[1]:
                     break
@@ -254,6 +321,62 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
 
         return (bx, by)
 
+    def retrieve_from_cache(self):
+        """ Retrieve a timeseries pixel from cache
+
+        Will attempt to read from an entire line of cached data, or from
+        one single pixel of cached data.
+
+        Returns:
+          success (bool): True if read in from cache, False otherwise
+
+        """
+        cache_pixel = self.cache_name_lookup(self._px, self._py)
+        cache_line = os.path.join(
+            self.location, self.cache_folder,
+            'yatsm_r{r}_n{n}_b{b}.npy.npz'.format(r=self._py,
+                                                  n=self.length,
+                                                  b=self.n_band))
+
+        if self.read_cache and os.path.exists(cache_pixel):
+            try:
+                _read_data = np.load(cache_pixel)
+            except:
+                logger.error('Could not read from pixel cache file {f}'.format(
+                    f=cache_pixel))
+                pass
+            else:
+                # Test if newly read data is same size as current
+                if _read_data.shape != self._data.shape:
+                    logger.warning('Cached data may be out of date')
+                    return False
+
+                self._data = _read_data
+
+                logger.info('Read in from single pixel cache')
+                return True
+
+        elif self.read_cache and os.path.exists(cache_line):
+            try:
+                _read_data = np.load(cache_line)['Y']
+            except:
+                logger.error('Could not read from line cache file {f}'.format(
+                    f=cache_line))
+            else:
+                # Test if certain dimensions are compatible
+                # self._data.shape ==> (n_band, length)
+                # _read_data.shape ==> (n_band, length, ncol)
+                if (self._data.shape[0] != _read_data.shape[0] or
+                        self._data.shape[1] != _read_data.shape[1]):
+                    logger.warning('Cached data may be out of date')
+                    return False
+
+                self._data = np.squeeze(_read_data[:, :, self._px])
+                logger.info('Read in from entire line cache')
+                return True
+
+        return False
+
     def _get_metadata(self):
         """ Parse timeseries attributes for metadata """
         # Sensor ID
@@ -274,7 +397,8 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
         try:
             global YATSM
             global make_X
-            from ..yatsm.yatsm import YATSM, make_X
+            from ..yatsm.yatsm import YATSM
+            from ..yatsm.utils import make_X
         except:
             raise Exception('Could not import YATSM')
         else:

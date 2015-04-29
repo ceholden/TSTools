@@ -19,8 +19,8 @@
  *                                                                         *
  ***************************************************************************/
 """
+import logging
 import os
-import pkgutil
 
 # Import the PyQt and QGIS libraries
 from PyQt4.QtCore import *
@@ -41,6 +41,9 @@ from .plots.plot_ts import TSPlot
 from .plots.plot_doy import DOYPlot
 
 import settings as setting
+
+logger = logging.getLogger('tstools')
+
 
 class TSTools(QObject):
 
@@ -74,19 +77,18 @@ class TSTools(QObject):
         # Map tool on/off
         self.tool_enabled = True
 
-        print 'DEBUG {f}: found {i} TS data models'.format(
-            f=__file__, i=len(tsm.ts_drivers))
+        logger.debug('Found {i} TS data models'.format(i=len(tsm.ts_drivers)))
 
     def init_toolbar(self):
         """ Creates and populates the toolbar for plugin """
         # MapTool button
-        self.action = QAction(QIcon(':/plugins/tstools/tstools_click.png'),
+        self.action = QAction(QIcon(':/plugins/tstools/media/tstools_click.png'),
                               'Time Series Tools', self.iface.mainWindow())
         self.action.triggered.connect(self.set_tool)
         self.iface.addToolBarIcon(self.action)
 
         # Configuration menu button
-        self.action_cfg = QAction(QIcon(':/plugins/tstools/tstools_config.png'),
+        self.action_cfg = QAction(QIcon(':/plugins/tstools/media/tstools_config.png'),
                                   'Configure', self.iface.mainWindow())
         self.action_cfg.triggered.connect(self.handle_config)
         self.iface.addToolBarIcon(self.action_cfg)
@@ -110,8 +112,6 @@ class TSTools(QObject):
 
     def handle_config(self):
         """ Handles configuration menu for initializing the time series """
-        print 'DEBUG %s : show/hide config' % __file__
-
         # Init the dialog
         self.config = Config(self, self.location)
         # Connect signals
@@ -149,11 +149,10 @@ class TSTools(QObject):
         except:
             # Send error message
             self.iface.messageBar().pushMessage('Error',
-                                           'Failed to find time series.',
-                                           level=QgsMessageBar.CRITICAL,
-                                           duration=3)
+                                                'Failed to find time series.',
+                                                level=QgsMessageBar.CRITICAL,
+                                                duration=3)
             raise
-
 
     def config_closed(self):
         """ Close and disconnect the configuration dialog """
@@ -163,7 +162,6 @@ class TSTools(QObject):
 
     def init_controls(self):
         """ Initialize and add signals to the left side control widget """
-        print 'DEBUG %s : init_controls' % __file__
         # Create widget
         self.ctrl = ControlPanel(self.iface)
         # Create dock & add control widget
@@ -216,7 +214,7 @@ class TSTools(QObject):
         signal to controller to grab data & plot
         """
         if self.tool_enabled is False:
-            print 'NO PLOT FOR YOU'
+            logger.warning('Will not attempt to plot. Re-enable the tool')
             return
 
         # Check if user has a layer added

@@ -20,12 +20,13 @@
  *                                                                         *
  ***************************************************************************/
 """
+import itertools
+import logging
+
 from PyQt4 import QtCore
 from PyQt4 import QtGui
 from qgis.core import *
 from qgis.gui import QgsMessageBar
-
-import itertools
 
 import matplotlib as mpl
 import numpy as np
@@ -33,6 +34,8 @@ import numpy as np
 # from timeseries_ccdc import CCDCTimeSeries
 from .ts_driver.ts_manager import tsm
 from . import settings as setting
+
+logger = logging.getLogger('tstools')
 
 
 class DataRetriever(QtCore.QObject):
@@ -43,7 +46,7 @@ class DataRetriever(QtCore.QObject):
     def __init__(self):
         QtCore.QObject.__init__(self)
         self.running = False
-        self.can_readcache = False
+        self.read_from_cache = False
         self.can_writecache = False
         self.index = 0
 
@@ -67,23 +70,23 @@ class DataRetriever(QtCore.QObject):
         self.retrieve_update.emit(self.index + 1)
 
         # Use QTimer to call this method again
-        if self.running is True:
+        if self.running:
             QtCore.QTimer.singleShot(0, self._retrieve_ts_pixel)
 
     def _got_ts_pixel(self):
         """ Finish off rest of process when getting pixel data """
         tsm.ts.apply_mask()
 
-        if tsm.ts.has_cache is True and tsm.ts.can_cache is True:
+        if tsm.ts.write_cache and not self.read_from_cache:
             try:
                 self.can_writecache = tsm.ts.write_to_cache()
             except:
-                print 'Debug: could not write to cache file'
+                logger.error('Could not write to cache file')
             else:
-                if self.can_writecache is True:
-                    print 'Debug: wrote to cache file'
+                if self.can_writecache:
+                    logger.debug('Wrote to cache file')
 
-        if tsm.ts.has_results is True:
+        if tsm.ts.has_results:
             tsm.ts.retrieve_result()
 
         self.retrieve_complete.emit()
@@ -91,13 +94,13 @@ class DataRetriever(QtCore.QObject):
     def get_ts_pixel(self):
         """ Retrieves time series, emitting status updates """
         # First check if time series has a readable cache
-        if tsm.ts.has_cache is True and tsm.ts.cache_folder is not None:
-            self.can_readcache = tsm.ts.retrieve_from_cache()
+        if tsm.ts.read_cache and tsm.ts.cache_folder is not None:
+            self.read_from_cache = tsm.ts.retrieve_from_cache()
 
-        if self.can_readcache is True:
+        if self.read_from_cache:
             # We've read from cache - finish process
             self._got_ts_pixel()
-        if self.can_readcache is False:
+        if not self.read_from_cache:
             # We can't read from or there is no cache - retrieve from images
             self.index = 0
             self.running = True
@@ -133,6 +136,69 @@ class Controller(QtCore.QObject):
 #        self.retriever.moveToThread(self.retrieve_thread)
 
 # Setup
+    def _init_symbology(self):
+        """
+        Initializes the layer symbology using defaults or specified hints
+        """
+        # Default band min/max
+        setting.symbol['min'], setting.p_symbol['min'] = \
+            (np.zeros(tsm.ts.n_band, dtype=np.int), ) * 2
+        setting.symbol['max'], setting.p_symbol['max'] = \
+            (np.ones(tsm.ts.n_band, dtype=np.int) * 10000, ) * 2
+
+        # Apply symbology hints if exists
+        if hasattr(tsm.ts, 'symbology_hint_indices'):
+            i = tsm.ts.symbology_hint_indices
+            if isinstance(i, (tuple, list)) and len(i) == 3:
+                logger.debug('Applying RGB index symbology hint')
+                setting.p_symbol['band_red'], \
+                    setting.p_symbol['band_green'], \
+                    setting.p_symbol['band_blue'] = i[0], i[1], i[2]
+                setting.symbol['band_red'], \
+                    setting.symbol['band_green'], \
+                    setting.symbol['band_blue'] = i[0], i[1], i[2]
+            else:
+                logger.warning(
+                    'RGB index symbology hint improperly described')
+
+        # Make sure band used in symbology exists
+        if setting.symbol['band_red'] > tsm.ts.n_band:
+            logger.warning('Fixing red band to largest band in dataset')
+            setting.symbol['band_red'] = tsm.ts.n_band - 1
+            setting.p_symbol['band_red'] = tsm.ts.n_band - 1
+
+        if setting.symbol['band_green'] > tsm.ts.n_band:
+            logger.warning('Fixing green band to largest band in dataset')
+            setting.symbol['band_green'] = tsm.ts.n_band - 1
+            setting.p_symbol['band_green'] = tsm.ts.n_band - 1
+
+        if setting.symbol['band_blue'] > tsm.ts.n_band:
+            logger.warning('Fixing blue band to largest band in dataset')
+            setting.symbol['band_blue'] = tsm.ts.n_band - 1
+            setting.p_symbol['band_blue'] = tsm.ts.n_band - 1
+
+        if hasattr(tsm.ts, 'symbology_hint_minmax'):
+            i = tsm.ts.symbology_hint_minmax
+            if isinstance(i, (tuple, list)) and len(i) == 2:
+                logger.debug('Applying RGB min/max symbology hint')
+                # One min/max for all bands
+                if isinstance(i[1], (int, float)) and \
+                        isinstance(i[0], (int, float)):
+                    setting.symbol['min'], setting.p_symbol['min'] = \
+                        (np.ones(tsm.ts.n_band) * i[0], ) * 2
+                    setting.symbol['max'], setting.p_symbol['max'] = \
+                        (np.ones(tsm.ts.n_band) * i[1], ) * 2
+                # Specified min/max for all bands
+                elif isinstance(i[0], np.ndarray) and \
+                        isinstance(i[1], np.ndarray):
+                    setting.symbol['min'] = i[0]
+                    setting.symbol['max'] = i[1]
+                else:
+                    logger.warning('Could not use symbology min/max hint')
+            else:
+                logger.warning(
+                    'RGB min/max symbology hint improperly described')
+
     def get_time_series(self, TimeSeries,
                         location, custom_options=None):
         """
@@ -145,6 +211,9 @@ class Controller(QtCore.QObject):
             raise
 
         if tsm.ts:
+            # Setup raster display symbology
+            self._init_symbology()
+
             # Control panel
             self.ctrl.init_options()
             self.ctrl.init_custom_options()
@@ -153,6 +222,7 @@ class Controller(QtCore.QObject):
             self.ctrl.update_table()
 
             # Wire signals for GUI
+            self.disconnect()
             self.add_signals()
 
             self.retriever.retrieve_update.connect(
@@ -180,7 +250,7 @@ class Controller(QtCore.QObject):
 
     def update_masks(self):
         """ Signal to TS to update the mask and reapply """
-        print 'Updated masks - refreshing plots'
+        logger.debug('Updated masks - refreshing plots')
         tsm.ts.mask_val = setting.plot['mask_val']
         tsm.ts.apply_mask(mask_val=setting.plot['mask_val'])
         self.update_display()
@@ -190,12 +260,12 @@ class Controller(QtCore.QObject):
         """
         Method called when adding an image via the table or plot.
         """
-        print 'DEBUG %s : add_map_layer' % __file__
+        logger.debug('Adding map layer')
         reg = QgsMapLayerRegistry.instance()
 
         if type(index) == np.ndarray:
             if len(index) > 1:
-                print '    DEBUG: more than one index clicked - taking first'
+                logger.warning('More than one index clicked - taking first')
                 index = index[0]
 
         # Which layer are we adding?
@@ -225,20 +295,20 @@ class Controller(QtCore.QObject):
         checkbox is clicked in the images tab. Also ensure
         setting.canvas['click_layer_id'] gets moved to the top
         """
-        print 'Added a map layer'
+        logger.debug('Added a map layer')
         for layer in layers:
             rows_added = [row for (row, imgfile) in enumerate(tsm.ts.filepaths)
                           if layer.source() == imgfile]
-            print 'Added these rows: %s' % str(rows_added)
+            logger.debug('Added these rows: %s' % str(rows_added))
             for row in rows_added:
                 item = self.ctrl.image_table.item(row, 0)
                 if item:
                     if item.checkState() == QtCore.Qt.Unchecked:
                         item.setCheckState(QtCore.Qt.Checked)
 
-        # Move pixel highlight back to top
-        if setting.canvas['click_layer_id']:
-            print 'Moving click layer back to top'
+#        # Move pixel highlight back to top
+#        if setting.canvas['click_layer_id']:
+#            logger.debug('Moving click layer back to top')
 #            self.move_layer_top(setting.canvas['click_layer_id'])
 
     def map_layers_removed(self, layer_ids):
@@ -250,23 +320,18 @@ class Controller(QtCore.QObject):
         Note that layers is a QStringList of layer IDs. A layer ID contains
         the layer name appended by the datetime added
         """
-        print 'Removed a map layer'
+        logger.debug('Removed a map layer')
         for layer_id in layer_ids:
-            print layer_id
-
             # Remove from setting
             layer = QgsMapLayerRegistry.instance().mapLayers()[layer_id]
             if layer in setting.image_layers:
                 setting.image_layers.remove(layer)
-                print '    <----- removed a map layer from settting'
 
             # Find corresponding row in table
             rows_removed = [row for row, (image_name, fname) in
                             enumerate(itertools.izip(tsm.ts.image_names,
                                                      tsm.ts.filenames))
                             if image_name in layer_id or fname in layer_id]
-
-            print 'Removed these rows %s' % str(rows_removed)
 
             # Uncheck if needed
             for row in rows_removed:
@@ -277,8 +342,7 @@ class Controller(QtCore.QObject):
 
             # Check for click layer
             if setting.canvas['click_layer_id'] == layer_id:
-                print 'Removed click layer'
-                print setting.canvas['click_layer_id']
+                logger.debug('Removed click layer')
                 setting.canvas['click_layer_id'] = None
 
 # Signals
@@ -331,16 +395,17 @@ class Controller(QtCore.QObject):
         elif index == 1:
             self.active_plot = self.doy_plot
         else:
-            print 'You select a non-existent tab!? (#{i})'.format(i=index)
+            logger.error('You select a non-existent tab!? (#{i})'.format(
+                i=index))
 
 # Slots for map tool
     def fetch_data(self, pos):
         """ Receives QgsPoint, transforms into pixel coordinates, and begins
         thread that retrieves data
         """
-        print 'TRYING TO FETCH'
+        logger.info('Fetching data')
         if self.retriever.running is True:
-            print 'Currently fetching data. Please wait'
+            logger.warning('Currently fetching data. Please wait')
         else:
             # Convert position into pixel location
             px = int((pos[0] - tsm.ts.geo_transform[0]) /
@@ -375,13 +440,12 @@ class Controller(QtCore.QObject):
 
                 # If we have custom options for TS, get them
                 if self.ctrl.custom_form is not None and \
-                        hasattr(tsm.ts, '__custom_controls__'):
+                        hasattr(tsm.ts, 'custom_controls'):
 
                     try:
                         options = self.ctrl.custom_form.get()
                         tsm.ts.set_custom_controls(options)
                     except:
-                        print sys.exc_info()[0]
                         self.ctrl.custom_form.reset()
 
                         self.retrieval_cancel()
@@ -406,7 +470,7 @@ class Controller(QtCore.QObject):
     @QtCore.pyqtSlot()
     def retrieval_progress_complete(self):
         """ Updates plot and clears messages after DataRetriever completes """
-        print 'Completed data retrieval!'
+        logger.info('Completed data retrieval!')
         self.iface.messageBar().clearWidgets()
         self.update_display()
         self.enable_tool.emit()
@@ -414,7 +478,7 @@ class Controller(QtCore.QObject):
     @QtCore.pyqtSlot()
     def retrieval_cancel(self):
         """ Slot to cancel retrieval process """
-        print 'DEBUG: CANCELING'
+        logger.warning('Canceling retrieval')
         self.retriever.running = False
 #        self.retriever.terminate()
 #        self.retriever.wait()
@@ -512,7 +576,6 @@ class Controller(QtCore.QObject):
         If user clicks checkbox for image in image table, will add/remove
         image layer from map layers.
         """
-        print '----------: get_tablerow_clicked'
         if item.column() != 0:
             return
         if item.checkState() == QtCore.Qt.Checked:
@@ -520,8 +583,6 @@ class Controller(QtCore.QObject):
         elif item.checkState() == QtCore.Qt.Unchecked:
             # If added is true and we now have unchecked, remove
             for layer in setting.image_layers:
-                print layer
-                print setting.image_layers
                 if tsm.ts.filepaths[item.row()] == layer.source():
                     QgsMapLayerRegistry.instance().removeMapLayer(layer.id())
 
@@ -639,7 +700,7 @@ class Controller(QtCore.QObject):
             else:
                 self.add_map_layer(ind)
         else:
-            print 'Unrecognized plot type. Cannot add image.'
+            logger.error('Unrecognized plot type. Cannot add image.')
 
     def calculate_scale(self):
         """
@@ -652,17 +713,17 @@ class Controller(QtCore.QObject):
         # Check for case where all data is masked
         if hasattr(data, 'mask'):
             if np.ma.compressed(data[0, :]).shape[0] == 0:
-                print 'Cannot scale 100% masked data. Shape of data: '
-                print data[0, :].shape
+                logger.info('Cannot scale 100% masked data. Shape of data: ')
+                logger.info(data[0, :].shape)
                 return
         else:
-            print 'Data has no mask'
+            logger.debug('Data has no mask')
 
         setting.plot['min'] = np.array([
-            max(0, np.percentile(np.ma.compressed(band), 2) - 500)
+            np.percentile(np.ma.compressed(band), 2) - 500
             for band in data[:, ]])
         setting.plot['max'] = np.array([
-            min(10000, np.percentile(np.ma.compressed(band), 98) + 500)
+            np.percentile(np.ma.compressed(band), 98) + 500
             for band in data[:, ]])
 
 #        setting.plot['min'] = np.array([

@@ -22,6 +22,7 @@
 """
 import datetime as dt
 import fnmatch
+import logging
 import os
 import sys
 
@@ -34,6 +35,9 @@ except:
 
 import timeseries
 from timeseries import mat2dict, ImageReader
+import utils
+
+logger = logging.getLogger('tstools')
 
 
 class CCDCTimeSeries(timeseries.AbstractTimeSeries):
@@ -43,11 +47,11 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
     More doc TODO
     """
 
-    # __str__ name for TSTools data model plugin loader
-    __str__ = 'CCDC Time Series'
+    # description name for TSTools data model plugin loader
+    description = 'CCDC Time Series'
 
     # TODO add some container for "metadata" that can be used in table
-    #      (hint: __metadata__)
+    #      (hint: metadata)
     image_names = []
     filenames = []
     filepaths = []
@@ -59,6 +63,8 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
     result = []
 
     has_results = False
+    read_cache = False
+    write_cache = False
 
     x_size = 0
     y_size = 0
@@ -82,23 +88,23 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
     mask_band = 8
     days_in_year = 365.25
 
-    __configurable__ = ['image_pattern', 'stack_pattern',
-                        'results_folder', 'results_pattern',
-                        'cache_folder', 'mask_band',
-                        'days_in_year']
-    __configurable__str__ = ['Image folder pattern', 'Stack Pattern',
-                             'Results folder', 'Results pattern',
-                             'Cache folder pattern', 'Mask band',
-                             'Days in Year']
+    configurable = ['image_pattern', 'stack_pattern',
+                    'results_folder', 'results_pattern',
+                    'cache_folder', 'mask_band',
+                    'days_in_year']
+    configurable_str = ['Image folder pattern', 'Stack Pattern',
+                        'Results folder', 'Results pattern',
+                        'Cache folder pattern', 'Mask band',
+                        'Days in Year']
 
     sensor = np.array([])
     pathrow = np.array([])
 
-    __metadata__ = ['sensor', 'pathrow']
-    __metadata__str__ = ['Sensor', 'Path/Row']
+    metadata = ['sensor', 'pathrow']
+    metadata_str = ['Sensor', 'Path/Row']
 
     def __init__(self, location, config=None):
-        if config is not None:
+        if config:
             self.set_custom_config(config)
 
         super(CCDCTimeSeries, self).__init__(location,
@@ -108,10 +114,16 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
         self._find_stacks()
         self._get_attributes()
         self._get_dates()
+
         if getattr(self, 'results_folder', None) is not None:
             self._check_results()
+
         if getattr(self, 'cache_folder', None) is not None:
-            self._check_cache()
+            self.read_cache, self.write_cache = utils.check_cache(
+                os.path.join(self.location, self.cache_folder))
+        logger.info('Can read from cache?: {b}'.format(b=self.read_cache))
+        logger.info('Can write to cache?: {b}'.format(b=self.write_cache))
+
         self._open_ts()
 
         self._data = np.zeros([self.n_band, self.length], dtype=self.datatype)
@@ -123,22 +135,23 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
         """ Set custom configuration options
 
         Arguments:
-            values          list of values matched to self.__configurable__
+            values          list of values matched to self.configurable
 
         """
-        print "SETTING CUSTOM VALUES"
-        print values
-        print self.__configurable__
+        logger.debug('Setting custom values')
+        logger.debug(values)
+        logger.debug(self.configurable)
 
-        for v, k in zip(values, self.__configurable__):
+        for v, k in zip(values, self.configurable):
             # Lookup current value for configurable item
             current_value = getattr(self, k, None)
 
-            print '    {k} : {cv} <-- {v}'.format(
+            logger.debug('    {k} : {cv} <-- {v} ({t})'.format(
                 k=k,
                 v=v,
-                cv=current_value
-            )
+                cv=current_value,
+                t=type(v)
+            ))
 
             # Make sure new value is of same type
             if isinstance(v, type(current_value)):
@@ -161,9 +174,8 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
 
         """
         read_data = False
-        wrote_data = False
 
-        if self.has_cache is True and use_cache is True:
+        if self.read_cache and use_cache is True:
             read_data = self.retrieve_from_cache()
 
         if read_data is False:
@@ -175,15 +187,12 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
         self.apply_mask()
 
         # Try to cache result if we didn't just read it from cache
-        if self.can_cache is True and do_cache is True and read_data is False:
+        if self.write_cache and do_cache and not read_data:
             try:
-                wrote_data = self.write_to_cache()
+                self.write_to_cache()
             except:
-                print 'Could not write to cache file'
+                logger.error('Could not write to cache file')
                 raise
-            else:
-                if wrote_data is True:
-                    print 'Wrote to cache file'
 
     def retrieve_pixel(self, index):
         """ Retrieve pixel data for a given x/y and index in time series
@@ -387,7 +396,7 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
 ### OVERRIDEN "ADDITIONAL" OPTIONAL METHODS SUPPORTED BY CCDCTimeSeries
     def apply_mask(self, mask_band=None, mask_val=None):
         """ Apply mask to self._data """
-
+        logger.info('Apply mask to data')
         if mask_band is None:
             mask_band = self.mask_band
 
@@ -408,9 +417,9 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
         Return True, False or Exception depending on success
 
         """
-        # Test caching for retrieval
         cache = self.cache_name_lookup(self._px, self._py)
-        if self.has_cache is True and os.path.exists(cache):
+
+        if self.read_cache and os.path.exists(cache):
             try:
                 _read_data = np.load(cache)
             except:
@@ -425,9 +434,6 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
                     return False
 
                 self._data = _read_data
-
-                # We've read data, apply mask and return True
-                self.apply_mask()
 
                 return True
 
@@ -444,17 +450,18 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
         """
         cache = self.cache_name_lookup(self._px, self._py)
 
-        # Try to cache result
-        if self.has_cache is True and self.can_cache is True:
+        if self.write_cache and not os.path.exists(cache):
             try:
                 np.save(cache, np.array(self._data))
             except:
-                print 'Error: could not write pixel {x}/{y} to cache ' \
-                    'file'.format(x=self._px, y=self._py)
-                print sys.exc_info()[0]
+                logger.error('Error: could not write pixel {x}/{y} to cache '
+                             'file'.format(x=self._px, y=self._py))
+                logger.error(sys.exc_info()[0])
                 raise
             else:
+                logger.info('Wrote to cache')
                 return True
+
         return False
 
 ### INTERNAL SETUP METHODS
@@ -469,7 +476,7 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
         self.location = self.location.rstrip(os.path.sep)
         num_sep = self.location.count(os.path.sep)
         for root, dnames, fnames in os.walk(self.location, followlinks=True):
-            if self.results_folder is not None:
+            if self.results_folder is not None and self.results_folder != '':
                 # Remove results folder if exists
                 dnames[:] = [d for d in dnames if
                              self.results_folder not in d]
@@ -583,33 +590,6 @@ class CCDCTimeSeries(timeseries.AbstractTimeSeries):
                     self.has_results = True
                     self.results_folder = root
                     return
-
-    def _check_cache(self):
-        """ Checks location of time series for a cache to read/write
-        time series
-        """
-        cache = os.path.join(self.location, self.cache_folder)
-        if os.path.exists(cache) and os.path.isdir(cache):
-            if os.access(cache, os.R_OK):
-                self.has_cache = True
-            else:
-                self.has_cache = False
-
-            if os.access(cache, os.W_OK):
-                self.can_cache = True
-            else:
-                self.can_cache = False
-        else:
-            try:
-                os.mkdir(cache)
-            except:
-                pass
-            else:
-                self.has_cache = True
-                self.can_cache = True
-
-        print 'Has cache?: {b}'.format(b=self.has_cache)
-        print 'Can cache?: {b}'.format(b=self.can_cache)
 
     def _open_ts(self):
         """ Open timeseries as list of ImageReaders """

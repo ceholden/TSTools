@@ -20,6 +20,11 @@
  *                                                                         *
  ***************************************************************************/
 """
+from collections import OrderedDict
+from functools import partial
+from itertools import izip
+import logging
+
 from PyQt4 import QtCore
 from PyQt4 import QtGui # TODO remoe PyQt4 import *
 from PyQt4.QtCore import *
@@ -28,10 +33,6 @@ from qgis.core import *
 
 import numpy as np
 
-from collections import OrderedDict
-from functools import partial
-from itertools import izip
-
 from ui_controls import Ui_Controls as Ui_Widget
 from SavePlotDialog import SavePlotDialog
 from custom_form import CustomForm
@@ -39,6 +40,8 @@ from controls_symbology import SymbologyControl
 
 from .ts_driver.ts_manager import tsm
 from . import settings as setting
+
+logger = logging.getLogger('tstools')
 
 
 def str2num(s):
@@ -69,40 +72,39 @@ class ControlPanel(QWidget, Ui_Widget):
         # Try to remove pre-existing custom options
         self.remove_custom_options()
         # Check to see if TS class has UI elements described
-        if not hasattr(tsm.ts, '__custom_controls__') or \
+        if not hasattr(tsm.ts, 'custom_controls') or \
                 not callable(getattr(tsm.ts, 'set_custom_controls', None)):
             return
         else:
-            if not isinstance(tsm.ts.__custom_controls__, list):
-                print 'Custom controls for timeseries improperly described'
-                return
-            if len(tsm.ts.__custom_controls__) == 0:
-                print 'Custom controls for timeseries improperly described'
+            if not isinstance(tsm.ts.custom_controls, list) or \
+                    not tsm.ts.custom_controls:
+                logger.error(
+                    'Custom controls for timeseries improperly described')
                 return
 
         # Add form
-        if not hasattr(tsm.ts, '__custom_controls_title__'):
-            tsm.ts.__custom_controls_title__ = None
+        if not hasattr(tsm.ts, 'custom_controls_title'):
+            tsm.ts.custom_controls_title = None
 
-        print 'Adding custom form for TS {ts}'.format(ts=repr(tsm.ts))
+        logger.debug('Adding custom form for TS {ts}'.format(ts=repr(tsm.ts)))
         config = OrderedDict([
             [key, [key, getattr(tsm.ts, key)]] for key in
-            tsm.ts.__custom_controls__
+            tsm.ts.custom_controls
         ])
-        self.custom_form = CustomForm(config, tsm.ts.__custom_controls_title__)
+        self.custom_form = CustomForm(config, tsm.ts.custom_controls_title)
         self.tab_options.layout().addWidget(self.custom_form)
 
     def remove_custom_options(self):
         """ Removes pre-existing custom options widget """
         self.custom_form = getattr(self, 'custom_form', None)
         if self.custom_form:
-            print 'Deleting preexisting custom form'
+            logger.debug('Deleting preexisting custom form')
             self.custom_form.deleteLater()
             self.tab_options.layout().removeWidget(self.custom_form)
             self.custom_form = None
 
     def init_plot_options(self):
-        print 'Plot options init'
+        logger.debug('Plot options init')
         # Click a point, add the layer
         self.cbox_plotlayer.setChecked(setting.plot['plot_layer'])
         # Signal handled by CCDCController
@@ -217,10 +219,8 @@ class ControlPanel(QWidget, Ui_Widget):
         """ Slot for turning on/off ability to apply ylim to all bands """
         if state == Qt.Checked:
             setting.plot['yscale_all'] = True
-            print 'DEBUG: yscale_all on'
         elif state == Qt.Unchecked:
             setting.plot['yscale_all'] = False
-            print 'DEBUG: yscale_all off'
 
     @QtCore.pyqtSlot()
     def set_plot_min(self):
@@ -228,7 +228,6 @@ class ControlPanel(QWidget, Ui_Widget):
         ymin = str2num(self.edit_min.text())
 
         if setting.plot['yscale_all']:
-            print 'DEBUG: applying ymin to all'
             setting.plot['min'][:] = ymin
         else:
             setting.plot['min'][setting.plot['band']] = ymin
@@ -239,10 +238,7 @@ class ControlPanel(QWidget, Ui_Widget):
         """ Slot for setting plot Y-axis maximum """
         ymax = str2num(self.edit_max.text())
 
-        print type(setting.plot['max'])
-
         if setting.plot['yscale_all']:
-            print 'DEBUG: applying ymax to all'
             setting.plot['max'][:] = ymax
         else:
             setting.plot['max'][setting.plot['band']] = ymax
@@ -314,7 +310,6 @@ class ControlPanel(QWidget, Ui_Widget):
                 'Fixed date range [range: {r}]'.format(
                     r=setting.plot['xscale_range']))
         elif state == Qt.Unchecked:
-            print 'DEBUG: undoing fixed scale'
             setting.plot['xscale_fix'] = False
             setting.plot['xscale_range'] = None
             # Restore original min/max ranges
@@ -345,7 +340,7 @@ class ControlPanel(QWidget, Ui_Widget):
             setting.plot['mask_val'] = values
             self.mask_updated.emit()
         except:
-            print 'Error: could not set mask values'
+            logger.error('Could not set mask values')
             self.edit_values.setText(
                 ', '.join(map(str, setting.plot['mask_val'])))
 
@@ -398,16 +393,9 @@ class ControlPanel(QWidget, Ui_Widget):
         self.save_plot.close()
 
     def init_symbology(self):
-        print 'Symbology init...'
         ### UI
         # Control symbology
         self.cbox_symbolcontrol.setChecked(setting.symbol['control'])
-
-        # Band min/max
-        setting.symbol['min'] = np.zeros(tsm.ts.n_band, dtype=np.int)
-        setting.symbol['max'] = np.ones(tsm.ts.n_band, dtype=np.int) * 10000
-        setting.p_symbol['min'] = np.zeros(tsm.ts.n_band, dtype=np.int)
-        setting.p_symbol['max'] = np.ones(tsm.ts.n_band, dtype=np.int) * 10000
 
         # Contrast enhancement
         self.combox_cenhance.setCurrentIndex(setting.symbol['contrast'])
@@ -518,7 +506,6 @@ class ControlPanel(QWidget, Ui_Widget):
             band = setting.p_symbol['band_blue']
 
         # Grab value from text field
-        print field.text()
         try:
             value = str2num(field.text())
             # Set min or max
@@ -543,7 +530,7 @@ class ControlPanel(QWidget, Ui_Widget):
                 self.symbology_applied.emit()
 
     def update_table(self):
-        print 'Table updates...'
+        logger.debug('Table updates...')
         # Set header labels
         self.image_table.setHorizontalHeaderLabels(
             ['Add/Remove', 'Date', 'ID'])

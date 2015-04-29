@@ -21,6 +21,7 @@
  ***************************************************************************/
 """
 from collections import OrderedDict
+import logging
 
 from PyQt4 import QtCore
 from PyQt4 import QtGui
@@ -29,6 +30,9 @@ from ui_config import Ui_Config
 
 from .ts_driver.ts_manager import tsm
 from .custom_form import CustomForm
+
+logger = logging.getLogger('tstools')
+
 
 class Config(QtGui.QDialog, Ui_Config):
 
@@ -43,7 +47,7 @@ class Config(QtGui.QDialog, Ui_Config):
         self.location = location
 
         ### Setup required information
-        self.data_model_str = [_ts.__str__ for _ts in tsm.ts_drivers]
+        self.data_model_str = [_ts.description for _ts in tsm.ts_drivers]
         self.custom_options = None
 
         ### Finish setup
@@ -70,23 +74,23 @@ class Config(QtGui.QDialog, Ui_Config):
 
             has_custom_form = True
 
-            if not hasattr(_ts, '__configurable__') or \
-                not hasattr(_ts, '__configurable__str__') or \
-                not callable(getattr(_ts, 'set_custom_config', None)):
+            if not hasattr(_ts, 'configurable') or \
+                    not hasattr(_ts, 'configurable_str') or \
+                    not callable(getattr(_ts, 'set_custom_config', None)):
                 has_custom_form = False
             else:
-                if not isinstance(_ts.__configurable__, list):
-                    print 'Custom options for timeseries improperly described'
-                    has_custom_form = False
-                if len(_ts.__configurable__) == 0:
-                    print 'Custom controls for timeseries improperly described'
+                if not isinstance(_ts.configurable, list) or \
+                        not _ts.configurable:
+                    logger.error(
+                        'Custom options for timeseries {ts} improperly '
+                        'described'.format(ts=_ts))
                     has_custom_form = False
 
             if has_custom_form is True:
                 # Create OrderedDict for CustomForm
                 default_config = OrderedDict([
                     [key, [name, getattr(_ts, key)]] for key, name in
-                    zip(_ts.__configurable__, _ts.__configurable__str__)
+                    zip(_ts.configurable, _ts.configurable_str)
                 ])
 
                 custom_form = CustomForm(default_config)
@@ -122,10 +126,11 @@ class Config(QtGui.QDialog, Ui_Config):
         """
         Brings up a QFileDialog allowing user to select a folder
         """
-        self.location = QtGui.QFileDialog.getExistingDirectory(self,
-                            'Select stack location',
-                            self.location,
-                            QtGui.QFileDialog.ShowDirsOnly)
+        self.location = QtGui.QFileDialog.getExistingDirectory(
+            self,
+            'Select stack location',
+            self.location,
+            QtGui.QFileDialog.ShowDirsOnly)
         self.edit_location.setText(self.location)
 
     @QtCore.pyqtSlot()
@@ -135,7 +140,7 @@ class Config(QtGui.QDialog, Ui_Config):
 
         self.model_index = self.combox_ts_model.currentIndex()
 
-        if self.custom_forms[self.model_index] != None:
+        if self.custom_forms[self.model_index] is not None:
             self.custom_options = self.custom_forms[self.model_index].get()
         else:
             self.custom_options = None
@@ -144,19 +149,5 @@ class Config(QtGui.QDialog, Ui_Config):
 
     @QtCore.pyqtSlot()
     def cancel_config(self):
-        print 'Cancel pressed!'
+        logger.info('Cancel pressed!')
         self.canceled.emit()
-
-# main function for testing
-if __name__ == "__main__":
-    import os
-    import sys
-    app = QtGui.QApplication(sys.argv)
-
-    from timeseries_ccdc import CCDCTimeSeries
-    from timeseries_ccdc_v9LIVE import CCDCTimeSeries_v9LIVE
-
-    widget = Config(app, os.getcwd(), [CCDCTimeSeries, CCDCTimeSeries_v9LIVE])
-
-    widget.show()
-    sys.exit(app.exec_())

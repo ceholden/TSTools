@@ -20,20 +20,23 @@
  *                                                                         *
  ***************************************************************************/
 """
+import logging
+import os
 
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
-from ui_plotsave import Ui_PlotSave
-
-import os
-
 from matplotlib.colors import ColorConverter
+
+from ui_plotsave import Ui_PlotSave
 
 import settings as setting
 
+logger = logging.getLogger('tstools')
+
+
 class SavePlotDialog(QDialog, Ui_PlotSave):
-    
+
     # Signals
     save_plot_requested = pyqtSignal()
     save_plot_closed = pyqtSignal()
@@ -45,7 +48,7 @@ class SavePlotDialog(QDialog, Ui_PlotSave):
         self.setupUi(self)
 
         # Setup path for output of plot
-        setting.save_plot['fname'] = os.path.join(os.getcwd(), 
+        setting.save_plot['fname'] = os.path.join(os.getcwd(),
                                           setting.save_plot['fname'])
         # Finish UI setup
         self.setup_save_dialog()
@@ -58,7 +61,7 @@ class SavePlotDialog(QDialog, Ui_PlotSave):
         # Add slot for open dialog
         self.edit_plot_fname.editingFinished.connect(self.set_save_location)
         self.but_plot_fname.clicked.connect(self.find_save_location)
-        
+
         # Plot format
         self.combox_plot_format.setCurrentIndex(
             self.combox_plot_format.findText(setting.save_plot['format']))
@@ -111,7 +114,7 @@ class SavePlotDialog(QDialog, Ui_PlotSave):
         if self.validate_color(color):
             setting.save_plot['facecolor'] = color
         else:
-            print 'Error: no such color. Restoring previous choice'
+            logger.error('No such color. Restoring previous choice')
             self.edit_facecolor.setText(setting.save_plot['facecolor'])
 
     def set_edgecolor(self):
@@ -119,11 +122,11 @@ class SavePlotDialog(QDialog, Ui_PlotSave):
         """
         color = str(self.edit_edgecolor.text())
 
-        if self.validate_color(str(color)) == True:
+        if self.validate_color(str(color)):
             setting.save_plot['edgecolor'] = color
         else:
-            print 'Error: no such color. Restoring previous choice'
-            self.edit_edgecolor.setText(setting.save_plot['edgecolor']) 
+            logger.error('No such color. Restoring previous choice')
+            self.edit_edgecolor.setText(setting.save_plot['edgecolor'])
 
     def set_transparent(self, state):
         """ Signal slot for setting transparency to True/False
@@ -147,15 +150,15 @@ class SavePlotDialog(QDialog, Ui_PlotSave):
     def help_plot_request(self):
         """ Signal slot for help button
         """
-        print 'Who needs help?!' #TODO
+        logger.info('No help available yet')
 
     def validate_color(self, color):
         """ Function for validating Matplotlib user input color choice
         """
-        print color
+        logger.debug('Color picked: {c}'.format(c=color))
         c = ColorConverter()
         try:
-            print c.to_rgb(color)
+            logger.debug('Color as RGB: {c}'.format(c=c.to_rgb(color)))
         except:
             return False
         return True

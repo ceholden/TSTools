@@ -18,14 +18,14 @@
 # ***************************************************************************/
 
 # INSTALL LOCATION
-HOST=$(shell hostname)
-ifeq ($(HOST),geo)
-LOC=/project/earth/packages/CCDCTools_beta
-else ifeq ($(HOST),scc1)
-LOC=/project/earth/packages/CCDCTools_beta
-else
+# HOST=$(shell hostname)
+# ifeq ($(HOST),geo)
+# LOC=/project/earth/packages/CCDCTools_beta
+# else ifeq ($(HOST),scc1)
+# LOC=/project/earth/packages/CCDCTools_beta
+# else
 LOC=$(HOME)/.qgis2/python/plugins
-endif
+# endif
 
 # CONFIGURATION
 PLUGIN_UPLOAD = $(CURDIR)/plugin_upload.py
@@ -41,7 +41,7 @@ PLUGINNAME = tstools
 
 PY_FILES = src/*.py src/plots src/ts_driver
 
-EXTRAS = tstools_click.png tstools_config.png metadata.txt
+EXTRAS = media/ metadata.txt
 
 UI_FILES = ui/ui_config.py ui/ui_controls.py ui/ui_plotsave.py ui/ui_symbology.py ui/ui_attach_md.py
 
@@ -80,7 +80,7 @@ deploy: compile doc transcompile
 	cp -vRf $(PY_FILES) $(LOC)/$(PLUGINNAME)
 	cp -vf $(UI_FILES) $(LOC)/$(PLUGINNAME)
 	cp -vf $(RESOURCE_FILES) $(LOC)/$(PLUGINNAME)
-	cp -vf $(EXTRAS) $(LOC)/$(PLUGINNAME)
+	cp -vRf $(EXTRAS) $(LOC)/$(PLUGINNAME)
 	cp -vfr i18n $(LOC)/$(PLUGINNAME)
 	cp -vfr $(HELP) $(LOC)/$(PLUGINNAME)/help
 	echo "Copying Ancillary files: $(ANC)"

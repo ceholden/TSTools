@@ -84,15 +84,15 @@ class CCDCTimeSeries_v9LIVE(timeseries_ccdc.CCDCTimeSeries):
     More doc TODO
     """
 
-    # __str__ name for TSTools data model plugin loader
-    __str__ = 'CCDC v9 Time Series - LIVE'
+    # description name for TSTools data model plugin loader
+    description = 'CCDC v9 Time Series - LIVE'
 
-    __configurable__ = ['image_pattern', 'stack_pattern',
-        'cache_folder', 'mask_band']
-    __configurable__str__ = ['Image folder pattern',
-        'Stack pattern',
-        'Cache folder',
-        'Mask band']
+    configurable = ['image_pattern', 'stack_pattern',
+                    'cache_folder', 'mask_band']
+    configurable_str = ['Image folder pattern',
+                        'Stack pattern',
+                        'Cache folder',
+                        'Mask band']
 
     CCDC_function = 'TrendSeasonalFit_v9_QGIS_max'
     n_times = 3
@@ -101,8 +101,8 @@ class CCDCTimeSeries_v9LIVE(timeseries_ccdc.CCDCTimeSeries):
     num_c = 8
     B_detect = np.array([[3, 4, 5, 6]])
 
-    __custom_controls_title__ = 'CCDC v9 Options'
-    __custom_controls__ = ['CCDC_function', 'n_times', 'conse',
+    custom_controls_title = 'CCDC v9 Options'
+    custom_controls = ['CCDC_function', 'n_times', 'conse',
         'T_cg', 'num_c', 'B_detect']
 
     def __init__(self, location, config=None):
@@ -120,7 +120,7 @@ class CCDCTimeSeries_v9LIVE(timeseries_ccdc.CCDCTimeSeries):
             values          list of values to be inserted into OrderedDict
 
         """
-        for v, k in zip(values, self.__custom_controls__):
+        for v, k in zip(values, self.custom_controls):
             current_value = getattr(self, k)
             if isinstance(v, type(current_value)):
                 if k == 'CCDC_function':
@@ -170,7 +170,7 @@ class CCDCTimeSeries_v9LIVE(timeseries_ccdc.CCDCTimeSeries):
         self.mlab._set('sdate', self.ml_dates)
         self.mlab._set('line_t', self.get_data(mask = False).T)
 
-        for k in self.__custom_controls__:
+        for k in self.custom_controls:
             v = getattr(self, k)
             self.mlab._set(k, v)
  #       for k, v in self.param.iteritems():

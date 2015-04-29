@@ -20,16 +20,22 @@
  *                                                                         *
  ***************************************************************************/
 """
+import logging
 import os
 
 from PyQt4 import QtCore
 from PyQt4 import QtGui
+
+import qgis.utils
+from qgis.gui import QgsMessageBar
 
 import numpy as np
 
 from ui_attach_md import Ui_AttachMd as Ui_Widget
 
 from .ts_driver.ts_manager import tsm
+
+logger = logging.getLogger('tstools')
 
 
 class AttachMetadata(QtGui.QDialog, Ui_Widget):
@@ -136,7 +142,10 @@ class AttachMetadata(QtGui.QDialog, Ui_Widget):
                                skip_header=1 if header else 0,
                                autostrip=True)
         except:
-            print 'Error: Could not parse metadata file'
+            logger.error('Could not parse metadata file')
+            qgis.utils.iface.messageBar().pushMessage(
+                'Could not parse metadata file',
+                QgsMessageBar.WARNING, 5)
             raise
             return False
 
@@ -145,15 +154,21 @@ class AttachMetadata(QtGui.QDialog, Ui_Widget):
                 with open(metadata, 'r') as f:
                     colnames = f.readline().split(delim)
             except:
-                print 'Error: could not parse metadata header'
+                logger.error('Could not parse metadata header')
+                qgis.utils.iface.messageBar().pushMessage(
+                    'Could not parse metadata file header',
+                    QgsMessageBar.WARNING, 5)
                 raise
                 return False
         else:
             colnames = ['Column ' + str(i + 1) for i in range(md.shape[1])]
 
         if not len(colnames) == md.shape[1]:
-            print 'Error: metadata file has more column headers ({c}) than \
-                    fields ({f})'.format(c=len(colnames), f=md.shape[1])
+            msg = ('Metadata file has more column headers ({c})'
+                   ' than fields ({f})'.format(c=len(colnames), f=md.shape[1]))
+            logger.error(msg)
+            qgis.utils.iface.messageBar().pushMessage(
+                msg, QgsMessageBar.WARNING, 5)
             return False
 
         self.metadata_file = metadata
@@ -174,12 +189,18 @@ class AttachMetadata(QtGui.QDialog, Ui_Widget):
 
         # Try to match
         if len(ts_match_var) != len(md_match_var):
-            print 'Error: wrong number of elements to match ({t} vs. {m})\
-                '.format(t=len(ts_match_var), m=len(md_match_var))
+            msg = 'Wrong number of elements to match ({t} vs. {m})'.format(
+                t=len(ts_match_var), m=len(md_match_var))
+            logger.error(msg)
+            qgis.utils.iface.messageBar().pushMessage(
+                msg, QgsMessageBar.WARNING, 5)
             return
 
         if not np.all(np.sort(ts_match_var) == np.sort(md_match_var)):
-            print 'Error: not all elements match'
+            msg = 'Not all elements match'
+            logger.error(msg)
+            qgis.utils.iface.messageBar().pushMessage(
+                msg, QgsMessageBar.WARNING, 5)
             return
 
         # Perform match
@@ -187,8 +208,11 @@ class AttachMetadata(QtGui.QDialog, Ui_Widget):
         for i in xrange(len(ts_match_var)):
             ind = np.where(md_match_var == ts_match_var[i])[0]
             if len(ind) > 1:
-                print 'Error: multiple index matches for {m}'.format(
+                msg = 'Multiple index matches for {m}'.format(
                     m=ts_match_var[i])
+                logger.error(msg)
+                qgis.utils.iface.messageBar().pushMessage(
+                    msg, QgsMessageBar.WARNING, 5)
                 return
             match_ind.append(ind[0])
         match_ind = np.array(match_ind)
@@ -201,12 +225,15 @@ class AttachMetadata(QtGui.QDialog, Ui_Widget):
             # Ignore match column
             if i == match_col:
                 continue
-            if md not in tsm.ts.__metadata__ and not hasattr(tsm.ts, md):
-                tsm.ts.__metadata__.append(md)
-                tsm.ts.__metadata__str__.append(md)
+            if md not in tsm.ts.metadata and not hasattr(tsm.ts, md):
+                tsm.ts.metadata.append(md)
+                tsm.ts.metadata_str.append(md)
                 setattr(tsm.ts, md, self.md_sorted[:, i])
             else:
-                print 'TS already has metadata item {m}'.format(m=md)
+                msg = 'TS already has metadata item {m}'.format(m=md)
+                logger.info(msg)
+                qgis.utils.iface.messageBar().pushMessage(
+                    msg, QgsMessageBar.WARNING, 5)
 
         # Emit
         self.metadata_attached.emit()
