@@ -23,12 +23,11 @@
 from datetime import datetime as dt
 import logging
 import os
+import re
 
 import numpy as np
-try:
-    from osgeo import gdal
-except:
-    import gdal
+from osgeo import gdal
+import patsy
 
 import timeseries_ccdc
 
@@ -73,7 +72,8 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
     threshold = 3.0
     enable_min_rmse = True
     min_rmse = 100.0
-    freq = np.array([1])
+#    freq = np.array([1])
+    design = '1 + x + harm(x, 1)'
     reverse = False
     screen_lowess = False
     screen_crit = 400.0
@@ -89,7 +89,7 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
     custom_controls = ['calculate_live',
                        'consecutive', 'min_obs', 'threshold',
                        'enable_min_rmse', 'min_rmse',
-                       'freq', 'reverse',
+                       'design', 'reverse',
                        'screen_lowess', 'screen_crit', 'remove_noise',
                        'dynamic_rmse',
                        'test_indices', 'robust_results',
@@ -156,7 +156,12 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
         """ Returns the record changes for the current pixel
         """
         # Note: X recalculated during variable setting, if needed, unless None
-        self.X = make_X(self.ord_dates, self.freq).T
+        # self.X = make_X(self.ord_dates, self.freq).T
+        self.X = patsy.dmatrix(self.design,
+                               {'x': self.ord_dates,
+                                'sensor': self.sensor,
+                                'pr': self.pathrow})
+
         # Get Y
         self.Y = self.get_data(mask=False)
 
@@ -182,32 +187,28 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
         # LOWESS screening, or RLM?
         screen = 'LOWESS' if self.screen_lowess else 'RLM'
 
+        kwargs = dict(
+            consecutive=self.consecutive,
+            threshold=self.threshold,
+            min_obs=self.min_obs,
+            min_rmse=self.min_rmse,
+            test_indices=self.test_indices,
+            screening=screen,
+            screening_crit=self.screen_crit,
+            remove_noise=self.remove_noise,
+            dynamic_rmse=self.dynamic_rmse,
+            design_info=self.X.design_info,
+            logger=logger
+        )
+
         if self.reverse:
             self.yatsm_model = YATSM(np.flipud(self.X[clear, :]),
                                      np.fliplr(self.Y[:-1, clear]),
-                                     consecutive=self.consecutive,
-                                     threshold=self.threshold,
-                                     min_obs=self.min_obs,
-                                     min_rmse=self.min_rmse,
-                                     test_indices=self.test_indices,
-                                     screening=screen,
-                                     screening_crit=self.screen_crit,
-                                     remove_noise=self.remove_noise,
-                                     dynamic_rmse=self.dynamic_rmse,
-                                     logger=logger)
+                                     **kwargs)
         else:
             self.yatsm_model = YATSM(self.X[clear, :],
                                      self.Y[:-1, clear],
-                                     consecutive=self.consecutive,
-                                     threshold=self.threshold,
-                                     min_obs=self.min_obs,
-                                     min_rmse=self.min_rmse,
-                                     test_indices=self.test_indices,
-                                     screening=screen,
-                                     screening_crit=self.screen_crit,
-                                     remove_noise=self.remove_noise,
-                                     dynamic_rmse=self.dynamic_rmse,
-                                     logger=logger)
+                                     **kwargs)
 
         # Run
         self.yatsm_model.run()
@@ -285,6 +286,13 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
         mx = []
         my = []
 
+        design = re.sub(r'[\+\-][\ ]+C\(.*\)', '', self.design)
+        coef_columns = []
+        for k, v in self.X.design_info.column_name_indexes.iteritems():
+            if not re.match('C\(.*\)', k):
+                coef_columns.append(v)
+        coef_columns = np.asarray(coef_columns)
+
         if len(self.result) > 0:
             logger.info('Plotting result')
             for rec in self.result:
@@ -308,9 +316,9 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
                     _mx = np.arange(rec['start'],
                                     rec['end'],
                                     i_step)
-                coef = rec['coef'][:, band]
+                coef = rec['coef'][coef_columns, band]
 
-                _mX = make_X(_mx, self.freq)
+                _mX = patsy.dmatrix(design, {'x': _mx}).T
 
                 ### Calculate model predictions
                 _my = np.dot(coef, _mX)
@@ -327,14 +335,21 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
         """ Return an array of (x, y) data points for time series breaks """
         bx = []
         by = []
-        if len(self.result) > 1:
-            for rec in self.result:
-                if rec['break'] != 0:
-                    bx.append(dt.fromordinal(int(rec['break'])))
-                    index = [i for i, date in
-                             enumerate(self.dates) if date == bx[-1]][0]
-                    if index < self._data.shape[1]:
-                        by.append(self._data[band, index])
+        # if len(self.result) > 1:
+        #     for rec in self.result:
+        #         if rec['break'] != 0:
+        #             bx.append(dt.fromordinal(int(rec['break'])))
+        #             index = [i for i, date in
+        #                      enumerate(self.dates) if date == bx[-1]][0]
+        #             if index < self._data.shape[1]:
+        #                 by.append(self._data[band, index])
+        for rec in self.result:
+            if rec['break'] != 0:
+                bx.append(dt.fromordinal(int(rec['break'])))
+                index = [i for i, date in
+                         enumerate(self.dates) if date == bx[-1]][0]
+                if index < self._data.shape[1]:
+                    by.append(self._data[band, index])
 
         return (bx, by)
 
@@ -415,9 +430,11 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
             global YATSM
             global make_X
             global get_valid_mask
+            global harm
             from ..yatsm.yatsm import YATSM
             from ..yatsm.utils import make_X
             from ..yatsm._cyprep import get_valid_mask
+            from ..yatsm.regression.transforms import harm
         except:
             raise Exception('Could not import YATSM')
         else:
