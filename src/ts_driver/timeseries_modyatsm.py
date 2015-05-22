@@ -26,10 +26,7 @@ import logging
 import os
 
 import numpy as np
-try:
-    from osgeo import gdal
-except:
-    import gdal
+import patsy
 
 import timeseries_yatsm
 
@@ -76,22 +73,25 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
     threshold = 3.0
     enable_min_rmse = True
     min_rmse = 100.0
-    freq = np.array([1])
+    design = '1 + x + harm(x, 1)'
     reverse = False
     screen_lowess = False
     test_indices = np.array([0, 1])
     robust_results = False
+    commit_test = False
+    commit_alpha = 0.01
     debug = False
 
     custom_controls_title = 'YATSM Options'
     custom_controls = ['max_VZA',
-                           'crossvalidate_lambda',
-                           'consecutive', 'min_obs', 'threshold',
-                           'enable_min_rmse', 'min_rmse',
-                           'freq', 'reverse',
-                           'screen_lowess',
-                           'test_indices', 'robust_results',
-                           'debug']
+                       'crossvalidate_lambda',
+                       'consecutive', 'min_obs', 'threshold',
+                       'enable_min_rmse', 'min_rmse',
+                       'design', 'reverse',
+                       'screen_lowess',
+                       'test_indices', 'robust_results',
+                       'commit_test', 'commit_alpha',
+                       'debug']
 
     sensor = np.empty(0)
     multitemp_screened = np.empty(0)
@@ -136,10 +136,14 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
     def retrieve_result(self):
         """ Returns the record changes for the current pixel
         """
-        self.X = make_X(self.ord_dates, self.freq).T
+        self.X = patsy.dmatrix(self.design,
+                               {'x': self.ord_dates,
+                                'sensor': self.sensor,
+                                'pr': self.pathrow})
+        self.design_info = self.X.design_info
+
         # Get Y
         self.Y = self._data
-
         clear = ~self.Y.mask[0, :]
 
         # Turn on/off minimum RMSE
@@ -156,35 +160,32 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
         # LOWESS screening, or RLM?
         screen = 'LOWESS' if self.screen_lowess else 'RLM'
 
+        kwargs = dict(
+            consecutive=self.consecutive,
+            threshold=self.threshold,
+            min_obs=self.min_obs,
+            min_rmse=self.min_rmse,
+            test_indices=self.test_indices,
+            screening=screen,
+            screening_crit=self.screen_crit,
+            remove_noise=self.remove_noise,
+            dynamic_rmse=self.dynamic_rmse,
+            design_info=self.X.design_info,
+            logger=logger
+        )
+
         if self.reverse:
             self.yatsm_model = YATSM(np.flipud(self.X[clear, :]),
                                      np.fliplr(self.Y[:-1, clear]),
-                                     consecutive=self.consecutive,
-                                     threshold=self.threshold,
-                                     min_obs=self.min_obs,
-                                     min_rmse=self.min_rmse,
-                                     test_indices=self.test_indices,
-                                     screening=screen,
-                                     lassocv=self.crossvalidate_lambda,
-                                     logger=logger,
-                                     green_band=self.green_band,
-                                     swir1_band=self.swir1_band)
+                                     **kwargs)
         else:
             self.yatsm_model = YATSM(self.X[clear, :],
                                      self.Y[:-1, clear],
-                                     consecutive=self.consecutive,
-                                     threshold=self.threshold,
-                                     min_obs=self.min_obs,
-                                     min_rmse=self.min_rmse,
-                                     test_indices=self.test_indices,
-                                     screening=screen,
-                                     lassocv=self.crossvalidate_lambda,
-                                     logger=logger,
-                                     green_band=self.green_band,
-                                     swir1_band=self.swir1_band)
+                                     **kwargs)
 
-        # Run
-        self.yatsm_model.run()
+        if self.commit_test:
+            self.yatsm_model.record = self.yatsm_model.commission_test(
+                self.commit_alpha)
 
         # List to store results
         if self.robust_results:
