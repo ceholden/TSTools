@@ -21,6 +21,7 @@
  ***************************************************************************/
 """
 from datetime import datetime as dt
+import fnmatch
 import logging
 import os
 import re
@@ -29,6 +30,7 @@ import numpy as np
 from osgeo import gdal
 import patsy
 
+from . import parse_landsat_MTL
 import timeseries_ccdc
 
 logger = logging.getLogger('tstools')
@@ -48,6 +50,7 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
     results_pattern = 'yatsm_r*'
     min_values = [0]
     max_values = [10000]
+    metadata_file_pattern = 'L*MTL.txt'
 
     configurable = ['image_pattern',
                     'stack_pattern',
@@ -55,8 +58,8 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
                     'results_folder',
                     'results_pattern',
                     'mask_band',
-                    'min_values', 'max_values']
-
+                    'min_values', 'max_values',
+                    'metadata_file_pattern']
 
     configurable_str = ['Image folder pattern',
                         'Stack pattern',
@@ -64,7 +67,8 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
                         'Results folder (if any)',
                         'Results file pattern (if any)',
                         'Mask band',
-                        'Min data values', 'Max data values']
+                        'Min data values', 'Max data values',
+                        'Metadata file pattern']
 
     calculate_live = True
     consecutive = 5
@@ -96,15 +100,28 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
                        'commit_test', 'commit_alpha',
                        'debug']
 
+    cloud_cover = np.empty(0)
     sensor = np.empty(0)
     pathrow = np.empty(0)
     multitemp_screened = np.empty(0)
 
-    metadata = ['sensor', 'pathrow', 'multitemp_screened']
-    metadata_str = ['Sensor', 'Path/Row', 'Multitemporal Screen']
+    metadata_bool = [True, False, False, False]
+    metadata = ['cloud_cover', 'sensor', 'pathrow', 'multitemp_screened']
+    metadata_str = ['Cloud Cover', 'Sensor', 'Path/Row', 'Multitemporal Screen']
 
     def __init__(self, location, config=None):
+        # Monkey patch CCDCTimeSeries._find_stacks to also find image metadata
+        old_find_stacks = timeseries_ccdc.CCDCTimeSeries._find_stacks
+        def patch_find_stacks(self):
+            old_find_stacks(self)
+            if hasattr(self, '_find_metadata'):
+                self._find_metadata()
+        timeseries_ccdc.CCDCTimeSeries._find_stacks = patch_find_stacks
+
         super(YATSM_LIVE, self).__init__(location, config)
+
+        # Find metadata
+        self._find_metadata()
 
         self.ord_dates = np.array(map(dt.toordinal, self.dates))
         self.X = None
@@ -411,13 +428,44 @@ class YATSM_LIVE(timeseries_ccdc.CCDCTimeSeries):
 
         return False
 
+    def _find_metadata(self):
+        """ Find image metadata for Landsat data """
+        self.image_metadata = []
+
+        if self.metadata_file_pattern:
+            for fp in self.filepaths:
+                fp_dir = os.path.dirname(fp)
+                for fname in fnmatch.filter(os.listdir(fp_dir),
+                        self.metadata_file_pattern):
+                    self.image_metadata.append(os.path.join(fp_dir, fname))
+
+        if not self.image_metadata:
+            logger.warning('No image metadata found with pattern {p}'.format(
+                p=self.metadata_file_pattern))
+
+        if len(self.image_names) != len(self.image_metadata) \
+                and self.image_metadata:
+            raise Exception(
+                'Inconsistent number of metadata files found '
+                '({0} images vs {1} metadata files)'.format(
+                    len(self.image_names), len(self.image_metadata)))
+
+
     def _get_metadata(self):
         """ Parse timeseries attributes for metadata """
+        # ACCA ID
+        self.cloud_cover = np.zeros((len(self.image_names)))
+        if self.image_metadata:
+            for i, mtl_file in enumerate(self.image_metadata):
+                self.cloud_cover[i] = parse_landsat_MTL(
+                    mtl_file, 'CLOUD_COVER')
+
         # Sensor ID
         self.sensor = np.array([n[0:3] for n in self.image_names])
         # Path/Row
         self.pathrow = np.array(['p{p}r{r}'.format(p=n[3:6], r=n[6:9])
                                 for n in self.image_names])
+
         # Multitemporal noise screening - init to 0 (not screened)
         #   Will update this during model fitting
         self.multitemp_screened = np.ones(self.length)
