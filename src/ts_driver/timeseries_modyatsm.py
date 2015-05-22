@@ -101,13 +101,11 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
     metadata_str = ['Sensor', 'Multitemporal Screen', 'View Zenith Angle Mask']
 
     def __init__(self, location, config=None):
-
         super(MODYATSM_LIVE, self).__init__(location, config)
 
         self.ord_dates = np.array(map(dt.toordinal, self.dates))
         self.X = None
         self.Y = None
-        self._check_yatsm()
 
     def apply_mask(self, mask_band=None, mask_val=None):
         """ Apply mask to self._data """
@@ -348,14 +346,19 @@ class MODYATSM_LIVE(timeseries_yatsm.YATSM_LIVE):
         )
         self.dates = np.array(self.dates)
 
+### OVERRIDEN "ADDITIONAL" OPTIONAL METHODS SUPPORTED BY CCDCTimeSeries
 ### INTERNAL SETUP METHODS
     def _check_yatsm(self):
         """ Check if YATSM is available """
         try:
             global YATSM
             global make_X
+            global get_valid_mask
+            global harm
             from ..yatsm.yatsm import YATSM
             from ..yatsm.utils import make_X
+            from ..yatsm._cyprep import get_valid_mask
+            from ..yatsm.regression.transforms import harm
         except:
             raise Exception('Could not import YATSM')
         else:
