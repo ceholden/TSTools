@@ -531,32 +531,55 @@ class ControlPanel(QWidget, Ui_Widget):
 
     def update_table(self):
         logger.debug('Table updates...')
-        # Set header labels
-        self.image_table.setHorizontalHeaderLabels(
-            ['Add/Remove', 'Date', 'ID'])
+
+        headers = ['ID', 'Date']
+        extra_metadata = []
+
+        if hasattr(tsm.ts, 'metadata') and hasattr(tsm.ts, 'metadata_str') and \
+                hasattr(tsm.ts, 'metadata_bool'):
+            headers.extend([md_str for md_bool, md_str in
+                            zip(tsm.ts.metadata_bool, tsm.ts.metadata_str) if
+                            md_bool is True])
+            extra_metadata = [getattr(tsm.ts, md) for md_bool, md in
+                              zip(tsm.ts.metadata_bool, tsm.ts.metadata) if
+                              md_bool is True]
+
+        self.image_table.setColumnCount(len(headers))
+        self.image_table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+
+        self.image_table.setHorizontalHeaderLabels(headers)
+        self.image_table.horizontalHeader().setResizeMode(QHeaderView.Stretch)
 
         # Propagate table
         self.image_table.setRowCount(tsm.ts.length)
-        for row, (date, img) in enumerate(izip(tsm.ts.dates,
-                                               tsm.ts.image_names)):
+        # for row, (date, img) in enumerate(izip(tsm.ts.dates,
+        #                                        tsm.ts.image_names)):
+        for row in range(tsm.ts.length):
             cbox = QTableWidgetItem()
             cbox.setFlags(Qt.ItemIsUserCheckable |
                           Qt.ItemIsEnabled)
             cbox.setCheckState(Qt.Unchecked)
-            cbox.setTextAlignment(Qt.AlignHCenter)
+            cbox.setText(tsm.ts.image_names[row])
+            cbox.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
             self.image_table.setItem(row, 0, cbox)
 
-            _date = QTableWidgetItem(date.strftime('%Y-%j'))
+            # _date = QTableWidgetItem(date.strftime('%Y-%j'))
+            _date = QTableWidgetItem(tsm.ts.dates[row].strftime('%Y-%j'))
             _date.setFlags(Qt.ItemIsEnabled)
-            _date.setTextAlignment(Qt.AlignHCenter)
-            _date.setTextAlignment(Qt.AlignVCenter)
+            _date.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
             self.image_table.setItem(row, 1, _date)
 
-            _img = QTableWidgetItem(img)
-            _img.setFlags(Qt.ItemIsEnabled)
-            _img.setTextAlignment(Qt.AlignHCenter)
-            _img.setTextAlignment(Qt.AlignVCenter)
-            self.image_table.setItem(row, 2, _img)
+            # _img = QTableWidgetItem(img)
+            # _img = QTableWidgetItem(tsm.ts.image_names[row])
+            # _img.setFlags(Qt.ItemIsEnabled)
+            # _img.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+            # self.image_table.setItem(row, 2, _img)
+
+            for i, md in enumerate(extra_metadata):
+                _item = QTableWidgetItem(str(md[row]))
+                _item.setFlags(Qt.ItemIsEnabled)
+                _item.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+                self.image_table.setItem(row, 2 + i, _item)
 
         cbox = self.image_table.cellWidget(0, 0)
 
