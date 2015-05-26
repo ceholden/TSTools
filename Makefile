@@ -39,7 +39,7 @@ TRANSLATIONS =
 # global
 PLUGINNAME = tstools
 
-PY_FILES = src/*.py src/plots src/ts_driver
+PY_FILES = src/*.py src/plots src/ts_driver src/utils
 
 EXTRAS = media/ metadata.txt
 
@@ -83,8 +83,10 @@ deploy: compile doc transcompile
 	cp -vRf $(EXTRAS) $(LOC)/$(PLUGINNAME)
 	cp -vfr i18n $(LOC)/$(PLUGINNAME)
 	cp -vfr $(HELP) $(LOC)/$(PLUGINNAME)/help
-	echo "Copying Ancillary files: $(ANC)"
-	cp -vfr $(ANC) $(LOC)/$(PLUGINNAME)
+    ifdef ANC
+		echo "Copying Ancillary files: $(ANC)"
+		cp -vfr $(ANC) $(LOC)/$(PLUGINNAME)
+    endif
 
 # The dclean target removes compiled python files from plugin directory
 # also delets any .svn entry
