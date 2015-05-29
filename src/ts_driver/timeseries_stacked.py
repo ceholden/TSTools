@@ -96,8 +96,6 @@ class StackedTimeSeries(AbstractTimeSeries):
                                                px, py, i)
             yield float(i) / self._n_images
 
-        return 1
-
     def fetch_results(self):
         pass
 
