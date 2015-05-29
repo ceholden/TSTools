@@ -28,6 +28,7 @@ from PyQt4 import QtGui
 
 import qgis.gui
 
+# Initialize Qt resources from file resources.py -- ignore unused warning
 import resources_rc
 
 from .ts_driver.ts_manager import tsm
