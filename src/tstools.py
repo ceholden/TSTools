@@ -32,8 +32,7 @@ import qgis.gui
 import resources_rc
 
 from .ts_driver.ts_manager import tsm
-from . import actors
-from . import config
+from . import controller
 from . import controls
 from . import plots
 from . import plotter
@@ -44,6 +43,9 @@ logger = logging.getLogger('tstools')
 
 
 class TSTools(QtCore.QObject):
+
+    controls = None
+    plots = []
 
     def __init__(self, iface):
         super(TSTools, self).__init__()
@@ -72,6 +74,9 @@ class TSTools(QtCore.QObject):
         self.init_controls()
         self.init_plots()
 
+        # Init controller
+        self.controller = controller.Controller(self.controls, self.plots)
+
 # SLOTS
     @QtCore.pyqtSlot()
     def set_tool(self):
@@ -84,32 +89,32 @@ class TSTools(QtCore.QObject):
 # GUI
     def init_controls(self):
         """ Initialize controls for plugin """
-        actors.controls = controls.ControlPanel(self.iface)
+        self.controls = controls.ControlPanel(self.iface)
 
-        actors.control_dock = QtGui.QDockWidget('TSTools Controls',
-                                                self.iface.mainWindow())
-        actors.control_dock.setObjectName('TSTools Controls')
-        actors.control_dock.setWidget(actors.controls)
+        self.control_dock = QtGui.QDockWidget('TSTools Controls',
+                                              self.iface.mainWindow())
+        self.control_dock.setObjectName('TSTools Controls')
+        self.control_dock.setWidget(self.controls)
 
         self.iface.addDockWidget(QtCore.Qt.LeftDockWidgetArea,
-                                 actors.control_dock)
+                                 self.control_dock)
 
     def init_plots(self):
         """ Initialize plots used in plugin """
-        actors.plot_dock = QtGui.QDockWidget('TSTools Plots',
-                                             self.iface.mainWindow())
-        actors.plot_dock.setObjectName('TSTools Plots')
+        self.plot_dock = QtGui.QDockWidget('TSTools Plots',
+                                           self.iface.mainWindow())
+        self.plot_dock.setObjectName('TSTools Plots')
 
         for plot in plots.plots:
-            actors.plots.append(plot(self.iface))
+            self.plots.append(plot(self.iface))
 
-        actors.plot_tabs = QtGui.QTabWidget(actors.plot_dock)
-        for plot in actors.plots:
-            actors.plot_tabs.addTab(plot, plot.__str__())
+        self.plot_tabs = QtGui.QTabWidget(self.plot_dock)
+        for plot in self.plots:
+            self.plot_tabs.addTab(plot, plot.__str__())
 
-        actors.plot_dock.setWidget(actors.plot_tabs)
+        self.plot_dock.setWidget(self.plot_tabs)
         self.iface.addDockWidget(QtCore.Qt.BottomDockWidgetArea,
-                                 actors.plot_dock)
+                                 self.plot_dock)
 
     def initGui(self):
         """ Load toolbar for plugin """
@@ -127,7 +132,7 @@ class TSTools(QtCore.QObject):
             'Configure',
             self.iface.mainWindow())
         self.action_cfg.triggered.connect(
-            functools.partial(config.open_config, self))
+            functools.partial(self.controller.open_config, self))
         self.iface.addToolBarIcon(self.action_cfg)
 
         # Map tool

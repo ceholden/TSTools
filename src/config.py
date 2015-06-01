@@ -27,11 +27,9 @@ from PyQt4 import QtCore, QtGui
 
 from ui_config import Ui_Config
 
-from . import actors
 from . import settings
 from .ts_driver.ts_manager import tsm
 from .utils.custom_form import CustomForm
-
 
 logger = logging.getLogger('tstools')
 
@@ -150,32 +148,3 @@ class Config(QtGui.QDialog, Ui_Config):
     def cancel_config(self):
         logger.info('Cancel pressed!')
         self.canceled.emit()
-
-
-@QtCore.pyqtSlot()
-def open_config(parent=None):
-    """ Opens Config UI
-    """
-    actors.config = Config()
-    actors.config.accepted.connect(config_accepted)
-    actors.config.canceled.connect(config_closed)
-    actors.config.exec_()
-
-
-@QtCore.pyqtSlot()
-def config_accepted():
-    # Temporary values
-    location = str(actors.config.location)
-    ts_index = int(actors.config.model_index)
-    custom_opts = actors.config.custom_options
-
-    logger.info('ACCEPTED CONFIG')
-
-
-@QtCore.pyqtSlot()
-def config_closed():
-    actors.config.accepted.disconnect()
-    actors.config.canceled.disconnect()
-    actors.config.close()
-
-    actors.config = None
