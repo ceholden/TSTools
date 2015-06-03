@@ -5,4 +5,5 @@
 3. Probably don't need `actors` file. 
 4. Implement caching into `timeseries_stacked`
 5. Probably need to expose `_GDALStackReader` class in `reader`. Would be useful when reading multiple timeseries (e.g., MODIS and Landsat, or Landsat and ALOS)
+6. Search for and resolve `TODO:HARDCODE` tags
 100. TODO more TODO
