@@ -20,6 +20,8 @@ class AbstractTimeSeries(object):
       band_names (iterable): list of names describing each band
       mask_values (iterable, or None): sequence of mask values, if any
       pixel_pos (str): location of pixel for display
+      has_results (bool): True/False if model supports timeseries model
+        fitting and visualization
 
     Extra Attributes:
       config (iterable): list of variables used for timeseries configuration
@@ -108,6 +110,10 @@ class AbstractTimeSeries(object):
 
     @abc.abstractproperty
     def pixel_pos(self):
+        pass
+
+    @abc.abstractproperty
+    def has_results(self):
         pass
 
     @abc.abstractmethod

@@ -6,7 +6,6 @@ except:
     pass
 
 from datetime import datetime as dt
-import fnmatch
 import logging
 import os
 
@@ -37,6 +36,7 @@ class StackedTimeSeries(AbstractTimeSeries):
     band_names = None
     mask_values = np.array([2, 3, 4, 255])
     _pixel_pos = ''
+    has_results = False
 
     # Driver configuration
     _stack_pattern = 'L*stack'
@@ -67,6 +67,10 @@ class StackedTimeSeries(AbstractTimeSeries):
     def pixel_pos(self):
         return self._pixel_pos
 
+    def _update_pixel_pos(self):
+        self._pixel_pos = 'Row {py}/Column {px}'.format(py=self._py,
+                                                        px=self._px)
+
     def fetch_data(self, mx, my, crs):
         """ Read data for a given x, y coordinate in a given CRS
 
@@ -85,15 +89,18 @@ class StackedTimeSeries(AbstractTimeSeries):
 
         """
         # Convert coordinate
-        px, py = geo_utils.point2pixel(mx, my, crs)
+        self._px, self._py = geo_utils.point2pixel(mx, my, crs)
 
-        if px < 0 or py < 0 or px > self._x_size or py > self._y_size:
+        self._update_pixel_pos()
+
+        if (self._px < 0 or self._py < 0 or
+                self._px > self._x_size or self._py > self._y_size):
             raise IndexError('Coordinate specified is outside of dataset')
 
         # TODO: refactor into _fetch_data_images and _fetch_data_cache
         for i in range(self._n_images):
             self._data[:, i] = read_pixel_GDAL(self.images['filename'],
-                                               px, py, i)
+                                               self._px, self._py, i)
             yield float(i) / self._n_images
 
     def fetch_results(self):

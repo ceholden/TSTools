@@ -53,7 +53,7 @@ class TSManager(object):
     def find_timeseries(self):
         """ Try to find timeseries classes """
         try:
-            from tstools.ts_driver import timeseries
+            from . import timeseries
         except ImportError:
             logger.critical('Could not import "timeseries". Check your path')
             raise
