@@ -16,24 +16,26 @@ image_layers = []
 plot = {
     # Should we plot when we click canvas?
     'plot_layer': True,
-    # Which band to plot
-    'band': 0,
+    # Axis selector for controls
+    'axis_select': 0,
+    # Which band to plot on which axes
+    'y_axis_1_band': np.zeros(1, dtype=np.bool),
+    'y_axis_2_band': np.zeros(1, dtype=np.bool),
     # Plot scaling options
-    'auto_scale': True,
-    'yscale_all': False,
-    'xscale_fix': False,
-    'xscale_range': None,
+    'y_scale_auto': True,
+    'x_scale_fix': False,
+    'x_scale_range': None,
     'scale_factor': 0.25,
     # Plot min, max
-    'min': np.zeros(1, dtype=np.int),
-    'max': np.ones(1, dtype=np.int) * 10000,
-    'xmin': None,
-    'xmax': None,
-    # Show Fmask, CCDC fit, time series breaks
+    'y_min': [0, 0],
+    'y_max': [10000, 10000],
+    'x_min': None,
+    'x_max': None,
+    # Show mask, model fit, time series breaks
     'mask': True,
     'fit': True,
     'break': True,
-    # Fmask values
+    # Mask values
     'mask_val': None,
     # Tolerance for clicking data points
     'picker_tol': 2
@@ -58,7 +60,7 @@ save_plot = {
 }
 
 # Dictionary to store raster symbology settings
-p_symbol = {
+symbol = {
     # Pre-apply options
     # Control symbology?
     'control': True,
@@ -74,18 +76,6 @@ p_symbol = {
     #   StretchToMinimumMaximum                 1
     #   StretchAndClipToMinimumMaximum          2
     #   ClipToMinimumMaximum                    3
-    'contrast': 1,
-}
-symbol = {
-    # Control symbology?
-    'control': True,
-
-    # Post-apply options
-    'band_red': 4,
-    'band_green': 3,
-    'band_blue': 2,
-    'min': np.zeros(1, dtype=np.int),
-    'max': np.ones(1, dtype=np.int) * 10000,
     'contrast': 1,
 }
 
