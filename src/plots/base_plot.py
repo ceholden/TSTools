@@ -1,6 +1,6 @@
 import os
 
-from matplotlib.figure import Figure
+import matplotlib as mpl
 from matplotlib.backends.backend_qt4agg \
     import FigureCanvasQTAgg as FigureCanvas
 
@@ -12,9 +12,12 @@ class BasePlot(FigureCanvas):
 
     def setup_plots(self):
         # matplotlib
-        self.fig = Figure()
+        mpl.style.use('ggplot')
+        self.fig = mpl.figure.Figure()
         self.axes = self.fig.add_subplot(111)
+
         FigureCanvas.__init__(self, self.fig)
+
         self.setAutoFillBackground(False)
         self.axes.set_ylim([0, 10000])
         self.fig.tight_layout()

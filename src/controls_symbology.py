@@ -26,14 +26,15 @@ import logging
 from PyQt4 import QtCore
 from PyQt4 import QtGui
 
-import numpy as np
 import matplotlib as mpl
+import numpy as np
 
 from ui_symbology import Ui_Symbology as Ui_Widget
 
 from controls_attach_md import AttachMetadata
+
 from .ts_driver.ts_manager import tsm
-from . import settings as setting
+from . import settings
 
 logger = logging.getLogger('tstools')
 
@@ -53,7 +54,6 @@ class SymbologyControl(QtGui.QDialog, Ui_Widget):
                 if len(str(k)) == 1 and k != ' ']
         marker_texts = ['{k} - {v}'.format(k=k, v=mpl.lines.Line2D.markers[k])
                         for k in keys]
-
         self.markers = {k: text for k, text in zip(keys, marker_texts)}
 
     def setup_gui(self):
@@ -242,12 +242,12 @@ class SymbologyControl(QtGui.QDialog, Ui_Widget):
 
         if row == 0:
             # If row == 0, either no symbology or no metadata
-            setting.plot_symbol['enabled'] = False
-            setting.plot_symbol['indices'] = None
-            setting.plot_symbol['markers'] = None
-            setting.plot_symbol['colors'] = None
+            settings.plot_symbol['enabled'] = False
+            settings.plot_symbol['indices'] = None
+            settings.plot_symbol['markers'] = None
+            settings.plot_symbol['colors'] = None
         else:
-            setting.plot_symbol['enabled'] = True
+            settings.plot_symbol['enabled'] = True
             self.parse_metadata_symbology()
 
         # Emit changes
@@ -316,9 +316,9 @@ class SymbologyControl(QtGui.QDialog, Ui_Widget):
     def parse_metadata_symbology(self):
         """ Parses TS's metadata to update the symbology attributes """
         logger.debug(
-            'Updating symbology?: %s' % str(setting.plot_symbol['enabled']))
+            'Updating symbology?: %s' % str(settings.plot_symbol['enabled']))
 
-        if setting.plot_symbol['enabled']:
+        if settings.plot_symbol['enabled']:
             # Determine current metadata
             row = self.list_metadata.currentRow()
 
@@ -336,9 +336,9 @@ class SymbologyControl(QtGui.QDialog, Ui_Widget):
                 markers.append(self.unique_symbologies[row][k]['marker'])
                 colors.append(self.unique_symbologies[row][k]['color'])
                 print (self.md[row - 1] == k).sum()
-            setting.plot_symbol['indices'] = list(indices)
-            setting.plot_symbol['markers'] = list(markers)
-            setting.plot_symbol['colors'] = list(colors)
+            settings.plot_symbol['indices'] = list(indices)
+            settings.plot_symbol['markers'] = list(markers)
+            settings.plot_symbol['colors'] = list(colors)
 
 #    def reset_tables(self):
 #        """ Removes all metadata items from table """

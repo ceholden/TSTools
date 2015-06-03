@@ -80,22 +80,34 @@ class Controller(object):
         """ Initialize control and plot views with data from timeseries driver
         """
         # Prepare TS driver data for controls
+        self._init_plot_options()
         self._init_symbology()
 
         # Setup controls
-        self.controls.init_options()
-        self.controls.init_custom_options()
-        self.controls.init_plot_options()
-        self.controls.init_symbology()
-        self.controls.update_table()
+        self.controls.init_ts()
+
+    def _init_plot_options(self):
+        """ Initialize plot control data
+        """
+        n_bands = len(tsm.ts.band_names)
+
+        # No bands plotted on axes initially
+        settings.plot['y_axis_1_band'] = np.zeros(n_bands, dtype=np.bool)
+        settings.plot['y_axis_2_band'] = np.zeros(n_bands, dtype=np.bool)
+
+        # Default min/max on plot
+        settings.plot['y_min'] = [0, 0]  # TODO:HARDCODE
+        settings.plot['y_max'] = [10000, 10000]  # TODO:HARDCODE
+        settings.plot['x_min'] = min(tsm.ts.images['date']).year
+        settings.plot['x_max'] = max(tsm.ts.images['date']).year
 
     def _init_symbology(self):
         """ Initialize image symbology
         """
         n_bands = len(tsm.ts.band_names)
         # Default min/max
-        settings.symbol['min'] = np.zeros(n_bands, dtype=np.int32)
-        settings.symbol['max'] = np.ones(n_bands, dtype=np.int) * 10000
+        settings.symbol['y_min'] = np.zeros(n_bands, dtype=np.int32)
+        settings.symbol['y_max'] = np.ones(n_bands, dtype=np.int32) * 10000
 
         # Custom symbology, if exists
         if hasattr(tsm.ts, 'symbology_hint_indices'):

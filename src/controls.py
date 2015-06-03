@@ -20,18 +20,17 @@
  *                                                                         *
  ***************************************************************************/
 """
-from collections import OrderedDict
 from functools import partial
 import logging
 
 from PyQt4 import QtCore, QtGui
 
 from ui_controls import Ui_Controls as Ui_Widget
-from .save_plot_dialog import SavePlotDialog
-from .controls_symbology import SymbologyControl
-from .utils.custom_form import CustomForm
+
+from . import settings
 from .ts_driver.ts_manager import tsm
-from . import settings as setting
+from .controls_symbology import SymbologyControl
+from .save_plot_dialog import SavePlotDialog
 
 logger = logging.getLogger('tstools')
 
@@ -45,10 +44,8 @@ def str2num(s):
 
 class ControlPanel(QtGui.QWidget, Ui_Widget):
 
-    symbology_applied = QtCore.pyqtSignal()
     plot_options_changed = QtCore.pyqtSignal()
-    plot_save_request = QtCore.pyqtSignal()
-    mask_updated = QtCore.pyqtSignal()
+    plot_save_requested = QtCore.pyqtSignal()
 
     def __init__(self, iface):
         # Qt setup
@@ -56,115 +53,207 @@ class ControlPanel(QtGui.QWidget, Ui_Widget):
         QtGui.QWidget.__init__(self)
         self.setupUi(self)
 
-    def init_options(self):
-        # Show/don't show clicks
-        self.cbox_showclick.setChecked(setting.canvas['show_click'])
+        # self.init_ts()
 
-    def init_custom_options(self):
-        # Try to remove pre-existing custom options
-        self.remove_custom_options()
-        # Check to see if TS class has UI elements described
-        if not hasattr(tsm.ts, 'custom_controls') or \
-                not callable(getattr(tsm.ts, 'set_custom_controls', None)):
+    def init_ts(self):
+        self._init_plot_options()
+
+# PLOT TAB
+    @QtCore.pyqtSlot(int)
+    def _band_combox_pressed(self, index):
+        # Do not run for "Select Plot Band" (first QComboBox item)
+        if index == 0:
             return
-        else:
-            if not isinstance(tsm.ts.custom_controls, list) or \
-                    not tsm.ts.custom_controls:
-                logger.error(
-                    'Custom controls for timeseries improperly described')
-                return
 
-        # Add form
-        if not hasattr(tsm.ts, 'custom_controls_title'):
-            tsm.ts.custom_controls_title = None
+        item = self.combox_band.model().itemFromIndex(index)
+        index = index.row() - 1
+        name = tsm.ts.band_names[index]
 
-        logger.debug('Adding custom form for TS {ts}'.format(ts=repr(tsm.ts)))
-        config = OrderedDict([
-            [key, [key, getattr(tsm.ts, key)]] for key in
-            tsm.ts.custom_controls
-        ])
-        self.custom_form = CustomForm(config, tsm.ts.custom_controls_title)
-        self.tab_options.layout().addWidget(self.custom_form)
+        # Not on either axis -- move to axis 1
+        if not settings.plot['y_axis_1_band'][index] and \
+                not settings.plot['y_axis_2_band'][index]:
+            settings.plot['y_axis_1_band'][index] = True
+            item.setText(u'☒: ' + name)
+        # On axis 1 -- move to axis 2
+        elif settings.plot['y_axis_1_band'][index] and \
+                not settings.plot['y_axis_2_band'][index]:
+            settings.plot['y_axis_1_band'][index] = False
+            settings.plot['y_axis_2_band'][index] = True
+            item.setText(u'☑: ' + name)
+        # On axis 2 -- turn off
+        elif not settings.plot['y_axis_1_band'][index] and \
+                settings.plot['y_axis_2_band'][index]:
+            settings.plot['y_axis_1_band'][index] = False
+            settings.plot['y_axis_2_band'][index] = False
+            item.setText(u'☐: ' + name)
 
-    def remove_custom_options(self):
-        """ Removes pre-existing custom options widget """
-        self.custom_form = getattr(self, 'custom_form', None)
-        if self.custom_form:
-            logger.debug('Deleting preexisting custom form')
-            self.custom_form.deleteLater()
-            self.tab_options.layout().removeWidget(self.custom_form)
-            self.custom_form = None
+        self.plot_options_changed.emit()
 
-    def init_plot_options(self):
-        logger.debug('Plot options init')
-        # Click a point, add the layer
-        self.cbox_plotlayer.setChecked(setting.plot['plot_layer'])
-        # Signal handled by CCDCController
-        # Raster band select
+    @QtCore.pyqtSlot(int)
+    def _xrange_moved(self, minmax, value):
+        """ Update X-axis min/max labels to slider values
+        """
+        if minmax == 'min':
+            self.lab_xmin.setText(str(value))
+        elif minmax == 'max':
+            self.lab_xmax.setText(str(value))
+
+    @QtCore.pyqtSlot(int)
+    def _xrange_changed(self, minmax, value):
+        """ Handle changes to X-axis range
+        """
+        if minmax == 'min':
+            settings.plot['x_min'] = value
+            self.lab_xmin.setText(str(value))
+            if settings.plot['x_scale_fix']:
+                # Adjust X-axis max if using fixed range
+                settings.plot['x_max'] = value + settings.plot['x_scale_range']
+                self.scroll_xmax.blockSignals(True)
+                self.scroll_xmax.setValue(settings.plot['x_max'])
+                self.lab_xmax.setText(str(settings.plot['x_max']))
+                self.scroll_xmax.blockSignals(False)
+            else:
+                self.scroll_xmax.setMinimum(
+                    value + self.scroll_xmax.singleStep())
+        elif minmax == 'max':
+            settings.plot['x_max'] = value
+            self.lab_xmax.setText(str(value))
+            if settings.plot['x_scale_fix']:
+                # Adjust X-axis max if using fixed range
+                settings.plot['x_min'] = value - settings.plot['x_scale_range']
+                self.scroll_xmin.blockSignals(True)
+                self.scroll_xmin.setValue(settings.plot['x_min'])
+                self.lab_xmin.setText(str(settings.plot['x_min']))
+                self.scroll_xmin.blockSignals(False)
+            else:
+                self.scroll_xmin.setMaximum(
+                    value - self.scroll_xmin.singleStep())
+
+        self.plot_options_changed.emit()
+
+    @QtCore.pyqtSlot(int)
+    def _xrange_fixed(self, state):
+        """ Turn on/off fixing date range for X-axis
+        """
+        if state == QtCore.Qt.Checked:
+            settings.plot['x_scale_fix'] = True
+            settings.plot['x_scale_range'] = (self.scroll_xmax.value() -
+                                              self.scroll_xmin.value())
+            # Set new min/max ranges
+            self.scroll_xmin.setMaximum(self.scroll_xmax.maximum() -
+                                        settings.plot['x_scale_range'])
+            self.scroll_xmax.setMinimum(self.scroll_xmin.minimum() +
+                                        settings.plot['x_scale_range'])
+            # Display range
+            self.cbox_xscale_fix.setText(
+                'Fixed date range [range: {r}]'
+                .format(r=settings.plot['x_scale_range']))
+        elif state == QtCore.Qt.Unchecked:
+            settings.plot['x_scale_fix'] = False
+            settings.plot['x_scale_range'] = None
+            # Restore original min/max ranges
+            self.scroll_xmin.setMaximum(self.scroll_xmax.value() -
+                                        self.scroll_xmax.singleStep())
+            self.scroll_xmax.setMinimum(self.scroll_xmin.value() +
+                                        self.scroll_xmin.singleStep())
+            self.cbox_xscale_fix.setText('Fixed date range')
+
+    @QtCore.pyqtSlot()
+    def _plot_option_changed(self):
+        """ Catch all slot for plot control panel changes
+        """
+        logger.debug('Updating plot options')
+        # Y-axis
+        settings.plot['axis_select'] = 0 if self.rad_axis_1.isChecked() else 1
+        settings.plot['y_scale_auto'] = \
+            True if self.cbox_yscale_auto.isChecked() else False
+        settings.plot['y_min'][settings.plot['axis_select']] = \
+            str2num(self.edit_ymin.text())
+        settings.plot['y_max'][settings.plot['axis_select']] = \
+            str2num(self.edit_ymax.text())
+
+        # X-axis
+
+
+    def _init_plot_options(self):
+        logger.debug('Initializing plot options')
+        # Click point, add layer
+        self.cbox_plotlayer.setChecked(settings.plot['plot_layer'])
+
+        # Band select
         self.combox_band.clear()
-        if self.combox_band.count() == 0:
-            self.combox_band.addItems(tsm.ts.band_names)
-        self.combox_band.setCurrentIndex(setting.plot['band'])
-        self.combox_band.currentIndexChanged.connect(self.set_band_select)
 
-        # Ylim min and max
-        self.cbox_scale.setChecked(setting.plot['auto_scale'])
-        self.cbox_scale.stateChanged.connect(self.set_auto_scale)
-        self.cbox_yscale_all.setChecked(setting.plot['yscale_all'])
-        self.cbox_yscale_all.stateChanged.connect(self.set_yscale_all)
+        model = QtGui.QStandardItemModel(1 + len(tsm.ts.band_names), 1)
+        item = QtGui.QStandardItem('----- Select Plot Band -----')
+        item.setTextAlignment(QtCore.Qt.AlignHCenter)
+        item.setSelectable(False)
+        model.setItem(0, 0, item)
 
-        # Manual scale & auto-scale display
-        self.edit_min.setText(str(setting.plot['min'][setting.plot['band']]))
-        self.edit_max.setText(str(setting.plot['max'][setting.plot['band']]))
-        self.edit_min.editingFinished.connect(self.set_plot_min)
-        self.edit_max.editingFinished.connect(self.set_plot_max)
+        for i, name in enumerate(tsm.ts.band_names):
+            item = QtGui.QStandardItem(u'☐: ' + name)
+            item.setSelectable(False)
+            model.setItem(i + 1, 0, item)
+        self.combox_band.setModel(model)
+        self.combox_band.view().pressed.connect(self._band_combox_pressed)
 
-        # Xlim min and max
-        setting.plot['xmin'] = tsm.ts.dates.min().year
-        setting.plot['xmax'] = tsm.ts.dates.max().year
-
-        self.lab_xmin.setText(str(setting.plot['xmin']))
-        self.lab_xmax.setText(str(setting.plot['xmax']))
-
-        self.scroll_xmin.setRange(setting.plot['xmin'],
-                                  setting.plot['xmax'] - 1)
-        self.scroll_xmax.setRange(setting.plot['xmin'] + 1,
-                                  setting.plot['xmax'])
-        self.scroll_xmin.setValue(setting.plot['xmin'])
-        self.scroll_xmax.setValue(setting.plot['xmax'])
-        self.scroll_xmin.setSingleStep(1)
-        self.scroll_xmax.setSingleStep(1)
-        self.scroll_xmin.setPageStep(1)
-        self.scroll_xmax.setPageStep(1)
-
-        self.scroll_xmin.valueChanged.connect(self.set_plot_xmin)
-        self.scroll_xmin.sliderMoved.connect(self.xmin_moved)
-        self.scroll_xmax.valueChanged.connect(self.set_plot_xmax)
-        self.scroll_xmax.sliderMoved.connect(self.xmax_moved)
-
-        self.cbox_xscale_fix.setChecked(setting.plot['xscale_fix'])
-        self.cbox_xscale_fix.stateChanged.connect(self.set_xscale_fix)
-
-        ### Fmask, fit & breaks on/off
-        self.cbox_fmask.setChecked(setting.plot['mask'])
-        self.cbox_fmask.stateChanged.connect(self.set_plot_fmask)
-
-        setting.plot['mask_val'] = tsm.ts.mask_val
-        if setting.plot['mask_val'] is not None:
-            self.edit_values.setText(
-                ', '.join(map(str, setting.plot['mask_val'])))
+        # Y-axis selector
+        if settings.plot['axis_select'] == 0:
+            self.rad_axis_1.setChecked(True)
+            self.rad_axis_2.setChecked(False)
         else:
-            self.edit_values.setText('None')
-        self.edit_values.editingFinished.connect(self.set_mask_vals)
+            self.rad_axis_1.setChecked(False)
+            self.rad_axis_2.setChecked(True)
+        self.rad_axis_1.toggled.connect(self._plot_option_changed)
+        self.rad_axis_2.toggled.connect(self._plot_option_changed)
 
-        # Only configure model fit and breaks if results exist
+        # Y-axis min/max
+        self.edit_ymin.setText(str(
+            settings.plot['y_min'][settings.plot['axis_select']]))
+        self.edit_ymax.setText(str(
+            settings.plot['y_max'][settings.plot['axis_select']]))
+        self.edit_ymin.editingFinished.connect(self._plot_option_changed)
+        self.edit_ymax.editingFinished.connect(self._plot_option_changed)
+
+        # X-axis
+        self.cbox_xscale_fix.setChecked(settings.plot['x_scale_fix'])
+        self.cbox_xscale_fix.stateChanged.connect(self._xrange_fixed)
+
+        self.lab_xmin.setText(str(settings.plot['x_min']))
+        self.lab_xmax.setText(str(settings.plot['x_max']))
+
+        self.scroll_xmin.setRange(settings.plot['x_min'],
+                                  settings.plot['x_max'] - 1)
+        self.scroll_xmax.setRange(settings.plot['x_min'] + 1,
+                                  settings.plot['x_max'])
+        self.scroll_xmin.setValue(settings.plot['x_min'])
+        self.scroll_xmax.setValue(settings.plot['x_max'])
+        self.scroll_xmin.valueChanged.connect(
+            partial(self._xrange_changed, 'min'))
+        self.scroll_xmax.valueChanged.connect(
+            partial(self._xrange_changed, 'max'))
+        self.scroll_xmin.sliderMoved.connect(
+            partial(self._xrange_moved, 'min'))
+        self.scroll_xmax.sliderMoved.connect(
+            partial(self._xrange_moved, 'max'))
+
+        # Plot features
+        self.cbox_fmask.setChecked(settings.plot['mask'])
+        self.cbox_fmask.stateChanged.connect(self._plot_option_changed)
+
+        if settings.plot['mask_val'] is not None:
+            self.edit_maskvalues.setText(
+                ', '.join(map(str, settings.plot['mask_val'])))
+        else:
+            self.edit_maskvalues.setText('')
+        self.edit_maskvalues.editingFinished.connect(self._plot_option_changed)
+
         if tsm.ts.has_results is True:
             self.cbox_modelfit.setEnabled(True)
-            self.cbox_modelfit.setChecked(setting.plot['fit'])
+            self.cbox_modelfit.setChecked(settings.plot['fit'])
             self.cbox_modelfit.stateChanged.connect(self.set_model_fit)
 
             self.cbox_breakpoint.setEnabled(True)
-            self.cbox_breakpoint.setChecked(setting.plot['break'])
+            self.cbox_breakpoint.setChecked(settings.plot['break'])
             self.cbox_breakpoint.stateChanged.connect(self.set_break_point)
         else:
             self.cbox_modelfit.setEnabled(False)
@@ -173,413 +262,34 @@ class ControlPanel(QtGui.QWidget, Ui_Widget):
         # Symbology
         self.symbology_controls = SymbologyControl(self)
         self.symbology_controls.setup_gui()
-        self.but_symbology.clicked.connect(self.select_symbology)
+        self.but_symbology.clicked.connect(
+            lambda: self.symbology_controls.show())
         self.symbology_controls.plot_symbology_applied.connect(
             lambda: self.plot_options_changed.emit())
 
-        ### Save button options
-        self.but_plot_save.clicked.connect(self.init_save_plot_dialog)
+        # Plot save
+        def _close_save_plot(self):
+            self.save_plot_dialog.save_plot_requested.disconnect()
+            self.save_plot_dialog.save_plot_closed.disconnect()
+            self.save_plot_dialog.close()
 
-    def update_plot_options(self):
-        """ Updates some of the plot options - mostly the text fields for
-        min/max based on if user changes pixel or band
-        """
-        # Enable/disable user edit of min/max
-        self.edit_min.setEnabled(not setting.plot['auto_scale'])
-        self.edit_max.setEnabled(not setting.plot['auto_scale'])
-        # Update min/max
-        self.edit_min.setText(str(setting.plot['min'][setting.plot['band']]))
-        self.edit_max.setText(str(setting.plot['max'][setting.plot['band']]))
-
-    @QtCore.pyqtSlot(int)
-    def set_band_select(self, index):
-        """ Slot for band plot selection combo-box """
-        setting.plot['band'] = index
-        self.plot_options_changed.emit()
-
-    @QtCore.pyqtSlot(int)
-    def set_auto_scale(self, state):
-        """ Slot for turning on/off automatic scaling of data """
-        if state == QtCore.Qt.Checked:
-            setting.plot['auto_scale'] = True
-        elif state == QtCore.Qt.Unchecked:
-            setting.plot['auto_scale'] = False
-        self.plot_options_changed.emit()
-
-    @QtCore.pyqtSlot(int)
-    def set_yscale_all(self, state):
-        """ Slot for turning on/off ability to apply ylim to all bands """
-        if state == QtCore.Qt.Checked:
-            setting.plot['yscale_all'] = True
-        elif state == QtCore.Qt.Unchecked:
-            setting.plot['yscale_all'] = False
-
-    @QtCore.pyqtSlot()
-    def set_plot_min(self):
-        """ Slot for setting plot Y-axis minimum """
-        ymin = str2num(self.edit_min.text())
-
-        if setting.plot['yscale_all']:
-            setting.plot['min'][:] = ymin
-        else:
-            setting.plot['min'][setting.plot['band']] = ymin
-        self.plot_options_changed.emit()
-
-    @QtCore.pyqtSlot()
-    def set_plot_max(self):
-        """ Slot for setting plot Y-axis maximum """
-        ymax = str2num(self.edit_max.text())
-
-        if setting.plot['yscale_all']:
-            setting.plot['max'][:] = ymax
-        else:
-            setting.plot['max'][setting.plot['band']] = ymax
-
-        self.plot_options_changed.emit()
-
-    @QtCore.pyqtSlot(int)
-    def xmin_moved(self, xmin):
-        """ Slot for ONLY updating current X-axis slider value label """
-        self.lab_xmin.setText(str(xmin))
-
-    @QtCore.pyqtSlot(int)
-    def set_plot_xmin(self, xmin):
-        """ Slot for setting plot X-axis minimum """
-        # Set value and label
-        setting.plot['xmin'] = xmin
-        self.lab_xmin.setText(str(xmin))
-
-        # Reconfigure range
-        if setting.plot['xscale_fix']:
-            setting.plot['xmax'] = xmin + setting.plot['xscale_range']
-            self.scroll_xmax.blockSignals(True)
-            self.scroll_xmax.setValue(setting.plot['xmax'])
-            self.scroll_xmax.blockSignals(False)
-            self.lab_xmax.setText(str(setting.plot['xmax']))
-        else:
-            self.scroll_xmax.setMinimum(xmin + self.scroll_xmax.singleStep())
-
-        # Emit update to plot
-        self.plot_options_changed.emit()
-
-    @QtCore.pyqtSlot(int)
-    def xmax_moved(self, xmax):
-        """ Slot for ONLY updating current X-axis slider value label """
-        self.lab_xmax.setText(str(xmax))
-
-    @QtCore.pyqtSlot(int)
-    def set_plot_xmax(self, xmax):
-        """ Slot for setting plot X-axis maximum """
-        # Set value and label
-        setting.plot['xmax'] = xmax
-        self.lab_xmax.setText(str(xmax))
-
-        if setting.plot['xscale_fix']:
-            setting.plot['xmin'] = xmax - setting.plot['xscale_range']
-            self.scroll_xmin.blockSignals(True)
-            self.scroll_xmin.setValue(setting.plot['xmin'])
-            self.scroll_xmin.blockSignals(False)
-            self.lab_xmin.setText(str(setting.plot['xmin']))
-        else:
-            self.scroll_xmin.setMaximum(xmax - self.scroll_xmin.singleStep())
-
-        self.plot_options_changed.emit()
-
-    @QtCore.pyqtSlot(int)
-    def set_xscale_fix(self, state):
-        """ Slot for turning on/off fixing date range for x axis """
-        if state == QtCore.Qt.Checked:
-            setting.plot['xscale_fix'] = True
-            setting.plot['xscale_range'] = (self.scroll_xmax.value() -
-                                            self.scroll_xmin.value())
-            # Set new min/max ranges
-            self.scroll_xmin.setMaximum(self.scroll_xmax.maximum() -
-                                        setting.plot['xscale_range'])
-            self.scroll_xmax.setMinimum(self.scroll_xmin.minimum() +
-                                        setting.plot['xscale_range'])
-            # Display range
-            self.cbox_xscale_fix.setText(
-                'Fixed date range [range: {r}]'.format(
-                    r=setting.plot['xscale_range']))
-        elif state == QtCore.Qt.Unchecked:
-            setting.plot['xscale_fix'] = False
-            setting.plot['xscale_range'] = None
-            # Restore original min/max ranges
-            self.scroll_xmin.setMaximum(self.scroll_xmax.value() -
-                                        self.scroll_xmax.singleStep())
-            self.scroll_xmax.setMinimum(self.scroll_xmin.value() +
-                                        self.scroll_xmin.singleStep())
-            self.cbox_xscale_fix.setText('Fixed date range')
-
-    @QtCore.pyqtSlot(int)
-    def set_plot_fmask(self, state):
-        """ Slot for enabling/disabling masking of data by Fmask """
-        if state == QtCore.Qt.Checked:
-            setting.plot['mask'] = True
-        elif state == QtCore.Qt.Unchecked:
-            setting.plot['mask'] = False
-        self.plot_options_changed.emit()
-
-    @QtCore.pyqtSlot()
-    def set_mask_vals(self):
-        """ Sets mask values from line edit """
-        if self.edit_values.text() == 'None':
-            return
-
-        try:
-            values = map(int,
-                         self.edit_values.text().replace(' ', '').split(','))
-            setting.plot['mask_val'] = values
-            self.mask_updated.emit()
-        except:
-            logger.error('Could not set mask values')
-            self.edit_values.setText(
-                ', '.join(map(str, setting.plot['mask_val'])))
-
-    @QtCore.pyqtSlot(int)
-    def set_model_fit(self, state):
-        """ Slot for enabling/disabling model fit on plot """
-        if state == QtCore.Qt.Checked:
-            setting.plot['fit'] = True
-        elif state == QtCore.Qt.Unchecked:
-            setting.plot['fit'] = False
-        self.plot_options_changed.emit()
-
-    @QtCore.pyqtSlot(int)
-    def set_break_point(self, state):
-        """ Slot for showing/hiding model break points on plot """
-        if state == QtCore.Qt.Checked:
-            setting.plot['break'] = True
-        elif state == QtCore.Qt.Unchecked:
-            setting.plot['break'] = False
-        self.plot_options_changed.emit()
-
-    @QtCore.pyqtSlot()
-    def select_symbology(self):
-        """ Open up symbology dialog
-        """
-        self.symbology_controls.show()
-
-    @QtCore.pyqtSlot()
-    def init_save_plot_dialog(self):
-        """ Slot for saving Matplotlib plot. Brings up plot save dialog and
-        listens for signal to save figure.
-        """
-        self.save_plot = SavePlotDialog(self)
-        self.save_plot.save_plot_requested.connect(self.save_plot_dialog_save)
-        self.save_plot.save_plot_closed.connect(self.save_plot_dialog_close)
-        self.save_plot.exec_()
-
-    @QtCore.pyqtSlot()
-    def save_plot_dialog_save(self):
-        """ Slot for disconnecting signals to save plot dialog upon either
-        canceling or saving the plot
-        """
-        self.plot_save_request.emit()
-
-    @QtCore.pyqtSlot()
-    def save_plot_dialog_close(self):
-        """ Slot for closing down plot dialog after saving/canceling """
-        self.save_plot.save_plot_requested.disconnect()
-        self.save_plot.save_plot_closed.disconnect()
-        self.save_plot.close()
-
-    def init_symbology(self):
-        ### UI
-        # Control symbology
-        self.cbox_symbolcontrol.setChecked(setting.symbol['control'])
-
-        # Contrast enhancement
-        self.combox_cenhance.setCurrentIndex(setting.symbol['contrast'])
-
-        # Band selections
-        if self.combox_red.count() == 0:
-            self.combox_red.addItems(tsm.ts.band_names)
-        if setting.symbol['band_red'] < len(tsm.ts.band_names):
-            self.combox_red.setCurrentIndex(setting.symbol['band_red'])
-
-        if self.combox_green.count() == 0:
-            self.combox_green.addItems(tsm.ts.band_names)
-        if setting.symbol['band_green'] < len(tsm.ts.band_names):
-            self.combox_green.setCurrentIndex(setting.symbol['band_green'])
-
-        if self.combox_blue.count() == 0:
-            self.combox_blue.addItems(tsm.ts.band_names)
-        if setting.symbol['band_blue'] < len(tsm.ts.band_names):
-            self.combox_blue.setCurrentIndex(setting.symbol['band_blue'])
-
-        # Min / max
-        self.edit_redmin.setText(str(
-            setting.symbol['min'][setting.symbol['band_red']]))
-        self.edit_redmax.setText(str(
-            setting.symbol['max'][setting.symbol['band_red']]))
-        self.edit_greenmin.setText(str(
-            setting.symbol['min'][setting.symbol['band_green']]))
-        self.edit_greenmax.setText(str(
-            setting.symbol['max'][setting.symbol['band_green']]))
-        self.edit_bluemin.setText(str(
-            setting.symbol['min'][setting.symbol['band_blue']]))
-        self.edit_bluemax.setText(str(
-            setting.symbol['max'][setting.symbol['band_blue']]))
-
-        ### Signals
-        # Allow control of symbology
-        self.cbox_symbolcontrol.stateChanged.connect(self.set_symbol_control)
-        # Select image bands for symbology RGB colors
-        self.combox_red.currentIndexChanged.connect(partial(
-            self.set_symbol_band, 'red'))
-        self.combox_green.currentIndexChanged.connect(partial(
-            self.set_symbol_band, 'green'))
-        self.combox_blue.currentIndexChanged.connect(partial(
-            self.set_symbol_band, 'blue'))
-        # Manual set of min/max
-        self.edit_redmin.editingFinished.connect(partial(
-            self.set_symbol_minmax, self.edit_redmin, 'red', 'min'))
-        self.edit_redmax.editingFinished.connect(partial(
-            self.set_symbol_minmax, self.edit_redmax, 'red', 'max'))
-        self.edit_greenmin.editingFinished.connect(partial(
-            self.set_symbol_minmax, self.edit_greenmin, 'green', 'min'))
-        self.edit_greenmax.editingFinished.connect(partial(
-            self.set_symbol_minmax, self.edit_greenmax, 'green', 'max'))
-        self.edit_bluemin.editingFinished.connect(partial(
-            self.set_symbol_minmax, self.edit_bluemin, 'blue', 'min'))
-        self.edit_bluemax.editingFinished.connect(partial(
-            self.set_symbol_minmax, self.edit_bluemax, 'blue', 'max'))
-        # Contrast enhancement
-        self.combox_cenhance.currentIndexChanged.connect(
-            self.set_symbol_enhance)
-        # Apply settings
-        self.but_symbol_apply.clicked.connect(self.apply_symbology)
-
-    def set_symbol_control(self, state):
-        """ Turns on or off control of symbology
-        """
-        if state == QtCore.Qt.Checked:
-            setting.symbol['control'] = True
-            self.but_symbol_apply.setEnabled(True)
-        elif state == QtCore.Qt.Unchecked:
-            setting.symbol['control'] = False
-            self.but_symbol_apply.setEnabled(False)
-
-    def set_symbol_band(self, color, index):
-        """ Assigns image band to symbology color and updates the QLineEdit
-        min/max display to the min/max for the image band chosen for symbology
-        color.
-        """
-        if color == 'red':
-            setting.p_symbol['band_red'] = index
-        elif color == 'green':
-            setting.p_symbol['band_green'] = index
-        elif color == 'blue':
-            setting.p_symbol['band_blue'] = index
-
-        self.edit_redmin.setText(
-            str(setting.p_symbol['min'][setting.p_symbol['band_red']]))
-        self.edit_redmax.setText(
-            str(setting.p_symbol['max'][setting.p_symbol['band_red']]))
-        self.edit_greenmin.setText(
-            str(setting.p_symbol['min'][setting.p_symbol['band_green']]))
-        self.edit_greenmax.setText(
-            str(setting.p_symbol['max'][setting.p_symbol['band_green']]))
-        self.edit_bluemin.setText(
-            str(setting.p_symbol['min'][setting.p_symbol['band_blue']]))
-        self.edit_bluemax.setText(
-            str(setting.p_symbol['max'][setting.p_symbol['band_blue']]))
-
-    def set_symbol_minmax(self, field, color, minmax):
-        """ Assigns minimum or maximum value for a given color
-        """
-        # Determine which image band we're using for symbology color
-        if color == 'red':
-            band = setting.p_symbol['band_red']
-        elif color == 'green':
-            band = setting.p_symbol['band_green']
-        elif color == 'blue':
-            band = setting.p_symbol['band_blue']
-
-        # Grab value from text field
-        try:
-            value = str2num(field.text())
-            # Set min or max
-            setting.p_symbol[minmax][band] = value
-        except:
-            field.setText(str(setting.p_symbol.get(minmax)[band]))
-
-    def set_symbol_enhance(self, index):
-        """ Assigns color enhancement from combo box of methods
-        """
-        setting.p_symbol['contrast'] = index
-
-    def apply_symbology(self):
-        """ Fetches current symbology tab values and applies to rasters in time
-        series.
-        """
-        if setting.symbol['control']:
-            # Copy over pre-apply attributes to the 'live' symbology dictionary
-            setting.symbol = setting.p_symbol.copy()
-            if setting.symbol['control']:
-                # Emit that we applied settings
-                self.symbology_applied.emit()
-
-    def update_table(self):
-        logger.debug('Table updates...')
-
-        headers = ['ID', 'Date']
-        extra_metadata = []
-
-        if hasattr(tsm.ts, 'metadata') and hasattr(tsm.ts, 'metadata_str') and\
-                hasattr(tsm.ts, 'metadata_bool'):
-            headers.extend([md_str for md_bool, md_str in
-                            zip(tsm.ts.metadata_bool, tsm.ts.metadata_str) if
-                            md_bool is True])
-            extra_metadata = [getattr(tsm.ts, md) for md_bool, md in
-                              zip(tsm.ts.metadata_bool, tsm.ts.metadata) if
-                              md_bool is True]
-
-        self.image_table.setColumnCount(len(headers))
-        self.image_table.setHorizontalScrollBarPolicy(
-            QtCore.Qt.ScrollBarAlwaysOn)
-
-        self.image_table.setHorizontalHeaderLabels(headers)
-        self.image_table.horizontalHeader().setResizeMode(
-            QtGui.QHeaderView.Stretch)
-
-        # Propagate table
-        self.image_table.setRowCount(tsm.ts.length)
-        # for row, (date, img) in enumerate(izip(tsm.ts.dates,
-        #                                        tsm.ts.image_names)):
-        for row in range(tsm.ts.length):
-            cbox = QtGui.QTableWidgetItem()
-            cbox.setFlags(QtCore.Qt.ItemIsUserCheckable |
-                          QtCore.Qt.ItemIsEnabled)
-            cbox.setCheckState(QtCore.Qt.Unchecked)
-            cbox.setText(tsm.ts.image_names[row])
-            cbox.setTextAlignment(QtCore.Qt.AlignHCenter |
-                                  QtCore.Qt.AlignVCenter)
-            self.image_table.setItem(row, 0, cbox)
-
-            # _date = QTableWidgetItem(date.strftime('%Y-%j'))
-            _date = QtGui.QTableWidgetItem(tsm.ts.dates[row].strftime('%Y-%j'))
-            _date.setFlags(QtCore.Qt.ItemIsEnabled)
-            _date.setTextAlignment(QtCore.Qt.AlignHCenter |
-                                   QtCore.Qt.AlignVCenter)
-            self.image_table.setItem(row, 1, _date)
-
-            # _img = QTableWidgetItem(img)
-            # _img = QTableWidgetItem(tsm.ts.image_names[row])
-            # _img.setFlags(Qt.ItemIsEnabled)
-            # _img.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
-            # self.image_table.setItem(row, 2, _img)
-
-            for i, md in enumerate(extra_metadata):
-                _item = QtGui.QTableWidgetItem(str(md[row]))
-                _item.setFlags(QtCore.Qt.ItemIsEnabled)
-                _item.setTextAlignment(QtCore.Qt.AlignHCenter |
-                                       QtCore.Qt.AlignVCenter)
-                self.image_table.setItem(row, 2 + i, _item)
-
-        cbox = self.image_table.cellWidget(0, 0)
+        self.save_plot_dialog = SavePlotDialog(self)
+        self.save_plot_dialog.save_plot_requested.connect(
+            lambda: self.plot_save_requested.emit())
+        self.save_plot_dialog.save_plot_closed.connect(
+            partial(_close_save_plot, self))
+        self.but_plot_save.clicked.connect(
+            lambda: self.save_plot_dialog.exec_())
 
     def disconnect(self):
-        # TODO
-        pass
+        """ Disconnect all signals
+        """
+        self.but_symbology.disconnect()
+        self.symbology_controls.disconnect()
+        self.symbology_controls.deleteLater()
+        self.symbology_controls = None
+
+        self.but_plot_save.disconnect()
+        self.save_plot_dialog.disconnect()
+        self.save_plot_dialog.deleteLater()
+        self.save_plot_dialog = None

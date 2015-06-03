@@ -23,6 +23,7 @@
 import logging
 import os
 
+from PyQt4 import QtCore, QtGui
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
@@ -30,7 +31,7 @@ from matplotlib.colors import ColorConverter
 
 from ui_plotsave import Ui_PlotSave
 
-import settings as setting
+import settings
 
 logger = logging.getLogger('tstools')
 
@@ -48,8 +49,8 @@ class SavePlotDialog(QDialog, Ui_PlotSave):
         self.setupUi(self)
 
         # Setup path for output of plot
-        setting.save_plot['fname'] = os.path.join(os.getcwd(),
-                                          setting.save_plot['fname'])
+        settings.save_plot['fname'] = os.path.join(
+            os.getcwd(), settings.save_plot['fname'])
         # Finish UI setup
         self.setup_save_dialog()
 
@@ -57,24 +58,24 @@ class SavePlotDialog(QDialog, Ui_PlotSave):
         """ Finishes UI setup by configuring UI elements and adding signals
         """
         # Setup line edit for save location
-        self.edit_plot_fname.setText(setting.save_plot['fname'])
+        self.edit_plot_fname.setText(settings.save_plot['fname'])
         # Add slot for open dialog
         self.edit_plot_fname.editingFinished.connect(self.set_save_location)
         self.but_plot_fname.clicked.connect(self.find_save_location)
 
         # Plot format
         self.combox_plot_format.setCurrentIndex(
-            self.combox_plot_format.findText(setting.save_plot['format']))
+            self.combox_plot_format.findText(settings.save_plot['format']))
         self.combox_plot_format.currentIndexChanged.connect(self.set_format)
 
         # Facecolor/edgecolor
-        self.edit_facecolor.setText(setting.save_plot['facecolor'])
-        self.edit_edgecolor.setText(setting.save_plot['edgecolor'])
+        self.edit_facecolor.setText(settings.save_plot['facecolor'])
+        self.edit_edgecolor.setText(settings.save_plot['edgecolor'])
         self.edit_facecolor.editingFinished.connect(self.set_facecolor)
         self.edit_edgecolor.editingFinished.connect(self.set_edgecolor)
 
         # Transparent
-        self.cbox_transparent.setChecked(setting.save_plot['transparent'])
+        self.cbox_transparent.setChecked(settings.save_plot['transparent'])
         self.cbox_transparent.stateChanged.connect(self.set_transparent)
 
         # Cancel/OK
@@ -90,51 +91,51 @@ class SavePlotDialog(QDialog, Ui_PlotSave):
         """ Signal slot for finding plot save filename
         """
         # Open dialog for save file
-        setting.save_plot['fname'] = str(QFileDialog.getSaveFileName(self,
+        settings.save_plot['fname'] = str(QFileDialog.getSaveFileName(self,
                             'Select save location',
-                            setting.save_plot['fname']))
-        self.edit_plot_fname.setText(setting.save_plot['fname'])
+                            settings.save_plot['fname']))
+        self.edit_plot_fname.setText(settings.save_plot['fname'])
 
     def set_save_location(self):
         """ Signal slot for editingFinished to grab new save location
         """
-        setting.save_plot['fname'] = str(self.edit_plot_fname.text())
+        settings.save_plot['fname'] = str(self.edit_plot_fname.text())
 
     def set_format(self, index):
         """ Signal slot for plot format combobox
         """
-        setting.save_plot['format'] = str(self.combox_plot_format.
+        settings.save_plot['format'] = str(self.combox_plot_format.
                                           itemText(index))
 
     def set_facecolor(self):
-        """ Signal slot for setting of facecolor
+        """ Signal slot for settings of facecolor
         """
         color = str(self.edit_facecolor.text())
 
         if self.validate_color(color):
-            setting.save_plot['facecolor'] = color
+            settings.save_plot['facecolor'] = color
         else:
             logger.error('No such color. Restoring previous choice')
-            self.edit_facecolor.setText(setting.save_plot['facecolor'])
+            self.edit_facecolor.setText(settings.save_plot['facecolor'])
 
     def set_edgecolor(self):
-        """ Signal slot for setting of edgecolor
+        """ Signal slot for settings of edgecolor
         """
         color = str(self.edit_edgecolor.text())
 
         if self.validate_color(str(color)):
-            setting.save_plot['edgecolor'] = color
+            settings.save_plot['edgecolor'] = color
         else:
             logger.error('No such color. Restoring previous choice')
-            self.edit_edgecolor.setText(setting.save_plot['edgecolor'])
+            self.edit_edgecolor.setText(settings.save_plot['edgecolor'])
 
     def set_transparent(self, state):
-        """ Signal slot for setting transparency to True/False
+        """ Signal slot for settings transparency to True/False
         """
         if state == Qt.Checked:
-            setting.save_plot['transparent'] = True
+            settings.save_plot['transparent'] = True
         elif state == Qt.Unchecked:
-            setting.save_plot['transparent'] = False
+            settings.save_plot['transparent'] = False
 
     def save_plot_request(self):
         """ Signal slot for a saving the plot
