@@ -5,7 +5,7 @@ from qgis.gui import QgsMessageBar
 import qgis.utils
 
 # Logging setup
-_FORMAT = '%(filename)s.%(funcName)s - %(levelname)s: %(message)s'
+_FORMAT = '%(filename)s.%(funcName)s.%(levelname)s: %(message)s'
 _formatter = logging.Formatter(_FORMAT)
 _handler = logging.StreamHandler()
 _handler.setFormatter(_formatter)
