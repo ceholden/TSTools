@@ -1,4 +1,5 @@
 import logging
+import os
 
 from qgis.gui import QgsMessageBar
 import qgis.utils
@@ -12,6 +13,9 @@ _handler.setFormatter(_formatter)
 logger = logging.getLogger('tstools')
 logger.addHandler(_handler)
 logger.setLevel(logging.INFO)
+
+if os.environ.get('TSTOOLS_DEBUG'):
+    logger.setLevel(logging.DEBUG)
 
 
 def qgis_log(msg, level=logging.INFO, duration=3):
