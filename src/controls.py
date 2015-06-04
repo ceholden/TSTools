@@ -46,6 +46,7 @@ class ControlPanel(QtGui.QWidget, Ui_Widget):
 
     plot_options_changed = QtCore.pyqtSignal()
     plot_save_requested = QtCore.pyqtSignal()
+    image_table_row_clicked = QtCore.pyqtSignal(int)
 
     def __init__(self, iface):
         # Qt setup
@@ -57,6 +58,9 @@ class ControlPanel(QtGui.QWidget, Ui_Widget):
 
     def init_ts(self):
         self._init_plot_options()
+        self._init_table()
+        self._init_symbology()
+        self._init_custom_options()
 
 # PLOT TAB
     @QtCore.pyqtSlot(int)
@@ -174,7 +178,6 @@ class ControlPanel(QtGui.QWidget, Ui_Widget):
 
         # X-axis
 
-
     def _init_plot_options(self):
         logger.debug('Initializing plot options')
         # Click point, add layer
@@ -281,9 +284,93 @@ class ControlPanel(QtGui.QWidget, Ui_Widget):
         self.but_plot_save.clicked.connect(
             lambda: self.save_plot_dialog.exec_())
 
+# IMAGE TABLE
+    def _init_table(self):
+        logger.debug('Initializing images table')
+        # Setup headers
+        headers = ['ID', 'Date']
+        extra_metadata = []
+
+        if (hasattr(tsm.ts, 'metadata') and hasattr(tsm.ts, 'metadata_table')
+                and hasattr(tsm.ts, 'metadata_names')):
+            for md, md_str, md_bool in zip(tsm.ts.metadata,
+                                           tsm.ts.metadata_table,
+                                           tsm.ts.metadata_names):
+                if md_bool is True:
+                    headers.append(md_str)
+                    extra_metadata.append(getattr(tsm.ts, md))
+
+        self.image_table.setColumnCount(len(headers))
+        self.image_table.setHorizontalScrollBarPolicy(
+            QtCore.Qt.ScrollBarAlwaysOn)
+        self.image_table.setHorizontalHeaderLabels(headers)
+        self.image_table.horizontalHeader().setResizeMode(
+            QtGui.QHeaderView.Stretch)
+        self.image_table.resizeColumnsToContents()
+
+        # Populate table
+        self.image_table.setRowCount(len(tsm.ts.images['id']))
+        for row in range(len(tsm.ts.images['id'])):
+            _cbox = QtGui.QTableWidgetItem()
+            _cbox.setFlags(QtCore.Qt.ItemIsUserCheckable |
+                           QtCore.Qt.ItemIsEnabled)
+            _cbox.setCheckState(QtCore.Qt.Unchecked)
+            _cbox.setText(tsm.ts.images['id'][row])
+            _cbox.setTextAlignment(QtCore.Qt.AlignHCenter |
+                                   QtCore.Qt.AlignVCenter)
+
+            _date = QtGui.QTableWidgetItem(
+                tsm.ts.images['date'][row].strftime('%Y-%j'))
+            _date.setFlags(QtCore.Qt.ItemIsEnabled)
+            _date.setTextAlignment(QtCore.Qt.AlignHCenter |
+                                   QtCore.Qt.AlignVCenter)
+
+            self.image_table.setItem(row, 0, _cbox)
+            self.image_table.setItem(row, 1, _date)
+
+            # Driver supplied metadata
+            for i, md in enumerate(extra_metadata):
+                _item = QtGui.QTableWidgetItem(str(md[row]))
+                _item.setFlags(QtCore.Qt.ItemIsEnabled)
+                _item.setTextAlignment(QtCore.Qt.AlignHCenter |
+                                       QtCore.Qt.AlignVCenter)
+                self.image_table.setItem(row, 2 + i, _item)
+
+        # Wire signal to `self.image_table_row_clicked`
+        @QtCore.pyqtSlot()
+        def _image_table_clicked(self, item):
+            if item.column() == 0:
+                logger.info('Clicked row: {r}'.format(r=item.row()))
+                self.image_table_row_clicked.emit(item.row())
+        self.image_table.itemClicked.connect(
+            partial(_image_table_clicked, self))
+
+# SYMBOLOGY
+    def _init_symbology(self):
+        logger.debug('Initializing symbology')
+        pass
+
+# CUSTOM OPTIONS
+    def _init_custom_options(self):
+        if hasattr(tsm.ts, 'controls') and hasattr(tsm.ts, 'controls_names'):
+            logger.debug('Initializing custom options')
+
+# DISCONNECT SIGNALS
     def disconnect(self):
         """ Disconnect all signals
         """
+        # Plot options
+        self.combox_band.disconnect()
+        self.rad_axis_1.disconnect()
+        self.rad_axis_2.disconnect()
+        self.edit_ymin.disconnect()
+        self.edit_ymax.disconnect()
+        self.scroll_xmin.disconnect()
+        self.scroll_xmax.disconnect()
+        self.cbox_fmask.disconnect()
+        self.cbox_modelfit.disconnect()
+        self.cbox_breakpoint.disconnect()
+
         self.but_symbology.disconnect()
         self.symbology_controls.disconnect()
         self.symbology_controls.deleteLater()
@@ -293,3 +380,17 @@ class ControlPanel(QtGui.QWidget, Ui_Widget):
         self.save_plot_dialog.disconnect()
         self.save_plot_dialog.deleteLater()
         self.save_plot_dialog = None
+
+        # Table
+        self.image_table.disconnect()
+
+        # TODO
+        # Symbology
+        # TODO
+        # Custom options -- remove them
+        self.custom_form = getattr(self, 'custom_form', None)
+        if self.custom_form:
+            logger.debug('Deleting pre-existing custom options')
+            self.custom_form.deleteLater()
+            self.tab_options.layout().removeWidget(self.custom_form)
+            self.custom_form = None
