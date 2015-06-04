@@ -6,6 +6,8 @@ import numpy as np
 
 from PyQt4 import QtCore
 
+import qgis
+
 from . import config
 from . import settings
 from .logger import qgis_log
@@ -43,6 +45,106 @@ class Controller(object):
             self.config_closed()
             self._ts_init()
 
+    def _ts_init(self):
+        """ Initialize control and plot views with data from timeseries driver
+        """
+        # Connect QgsMapLayerRegistry signals
+        qgis.core.QgsMapLayerRegistry.instance().layersAdded.connect(
+            self._map_layers_added)
+        qgis.core.QgsMapLayerRegistry.instance().layersWillBeRemoved.connect(
+            self._map_layers_removed)
+
+        # Prepare TS driver data for controls
+        self._init_plot_options()
+        self._init_symbology()
+
+        # Setup controls
+        self.controls.init_ts()
+        self.controls.image_table_row_clicked.connect(self._add_remove_image)
+
+# LAYER MANIPULATION
+    @QtCore.pyqtSlot()
+    def _map_layers_added(self, layers):
+        """ Performs necessary functions if added layers in timeseries
+
+        Check if all newly added layers are part of timeseries. If so, then:
+            - Set timeseries image checkbox in images table to checked state
+
+        Args:
+          layers (QList<QgsMapLayer *>): list of QgsMapLayers
+
+        """
+        for layer in layers:
+            rows_added = [row for row, path in enumerate(tsm.ts.images['path'])
+                          if layer.source() == path]
+            for row in rows_added:
+                logger.debug('Added image: {i}'.format(
+                    i=tsm.ts.images['id'][row]))
+                item = self.controls.image_table.item(row, 0)
+                if item:
+                    if item.checkState() == QtCore.Qt.Unchecked:
+                        item.setCheckState(QtCore.Qt.Checked)
+
+    @QtCore.pyqtSlot()
+    def _map_layers_removed(self, layer_ids):
+        """ Perform necessary functions if removed layers in timeseries
+
+        Args:
+          layer_ids (QStringList theLayerIds): list of layer IDs
+
+        """
+        for layer_id in layer_ids:
+            # Get QgsMapLayer instance for ID
+            layer = qgis.core.QgsMapLayerRegistry.instance().mapLayers()[layer_id]
+
+            # Remove from settings
+            if layer in settings.image_layers:
+                settings.image_layers.remove(layer)
+
+            # Remove from table
+            rows_removed = [
+                row for row, (_id, path) in
+                enumerate(zip(tsm.ts.images['id'], tsm.ts.images['path']))
+                if _id in layer_id or path in layer_id
+            ]
+
+            for row in rows_removed:
+                item = self.controls.image_table.item(row, 0)
+                if item and item.checkState() == QtCore.Qt.Checked:
+                    item.setCheckState(QtCore.Qt.Unchecked)
+
+            # Check for click layer
+            if settings.canvas['click_layer_id'] == layer_id:
+                logger.debug('Removed Query layer')
+                settings.canvas['click_layer_id'] = None
+
+    @QtCore.pyqtSlot(int)
+    def _add_remove_image(self, i_image):
+        """ Add or remove image at index `i_image`
+        """
+        layers = qgis.core.QgsMapLayerRegistry.instance().mapLayers().values()
+        filename = tsm.ts.images['path'][i_image]
+
+        # Add image
+        if filename not in [layer.source() for layer in layers]:
+            rlayer = qgis.core.QgsRasterLayer(tsm.ts.images['path'][i_image],
+                                              tsm.ts.images['id'][i_image])
+            if rlayer.isValid():
+                qgis.core.QgsMapLayerRegistry.instance().addMapLayer(rlayer)
+                settings.image_layers.append(rlayer)
+                self._apply_symbology(rlayer)
+        # Remove image
+        else:
+            layer_id = [l.id() for l in layers if l.source() == filename][0]
+            qgis.core.QgsMapLayerRegistry.instance().removeMapLayer(layer_id)
+
+    def _apply_symbology(self, rlayer):
+        """ Apply symbology to a raster layer
+        """
+        logger.debug('Applying symbology to raster layer: {r} ({m})'.format(
+            r=rlayer.id(), m=hex(id(rlayer))))
+
+
 # CONFIG
     @QtCore.pyqtSlot()
     def open_config(self, parent=None):
@@ -76,16 +178,6 @@ class Controller(object):
         self.config = None
 
 # CONTROLS
-    def _ts_init(self):
-        """ Initialize control and plot views with data from timeseries driver
-        """
-        # Prepare TS driver data for controls
-        self._init_plot_options()
-        self._init_symbology()
-
-        # Setup controls
-        self.controls.init_ts()
-
     def _init_plot_options(self):
         """ Initialize plot control data
         """
@@ -148,3 +240,16 @@ class Controller(object):
                 logger.warning('Symbology min/max hint improperly described')
 
 # PLOTS
+
+
+# DISCONNECT
+    def disconnect(self):
+        qgis.core.QgsMapLayerRegistry.instance()\
+            .layersAdded.disconnect()
+        qgis.core.QgsMapLayerRegistry.instance()\
+            .layersWillBeRemoved.disconnect()
+
+        # Controls
+        self.controls.plot_options_changed.disconnect()
+        self.controls.plot_save_requested.disconnect()
+        self.controls.image_table_row_clicked.disconnect()
