@@ -25,9 +25,12 @@ import logging
 
 from PyQt4 import QtCore, QtGui
 
+import numpy as np
+
 from ui_controls import Ui_Controls as Ui_Widget
 
 from . import settings
+from .logger import qgis_log
 from .ts_driver.ts_manager import tsm
 from .controls_symbology import SymbologyControl
 from .save_plot_dialog import SavePlotDialog
@@ -53,8 +56,6 @@ class ControlPanel(QtGui.QWidget, Ui_Widget):
         self.iface = iface
         QtGui.QWidget.__init__(self)
         self.setupUi(self)
-
-        # self.init_ts()
 
     def init_ts(self):
         self._init_plot_options()
@@ -133,6 +134,7 @@ class ControlPanel(QtGui.QWidget, Ui_Widget):
                 self.scroll_xmin.setMaximum(
                     value - self.scroll_xmin.singleStep())
 
+        # Emit signal to trigger plot updates/etc
         self.plot_options_changed.emit()
 
     @QtCore.pyqtSlot(int)
@@ -176,7 +178,23 @@ class ControlPanel(QtGui.QWidget, Ui_Widget):
         settings.plot['y_max'][settings.plot['axis_select']] = \
             str2num(self.edit_ymax.text())
 
-        # X-axis
+        # Plot features
+        settings.plot['mask'] = True if self.cbox_fmask.isChecked() else False
+        settings.plot['fit'] = (True if self.cbox_modelfit.isChecked()
+                                else False)
+        settings.plot['break'] = (True if self.cbox_breakpoint.isChecked()
+                                  else False)
+        try:
+            mask_vals = np.array([int(v) for v in self.edit_maskvalues.text()
+                                  .replace(' ', ',').split(',') if v])
+            settings.plot['mask_val'] = mask_vals
+        except:
+            qgis_log('Cannot parse mask values provided.')
+            self.edit_maskvalues.setText(
+                ', '.join([str(v) for v in settings.plot['mask_val']]))
+
+        # Emit signal to trigger plot updates/etc
+        self.plot_options_changed.emit()
 
     def _init_plot_options(self):
         logger.debug('Initializing plot options')
@@ -259,7 +277,9 @@ class ControlPanel(QtGui.QWidget, Ui_Widget):
             self.cbox_breakpoint.setChecked(settings.plot['break'])
             self.cbox_breakpoint.stateChanged.connect(self.set_break_point)
         else:
+            self.cbox_modelfit.setChecked(False)
             self.cbox_modelfit.setEnabled(False)
+            self.cbox_breakpoint.setChecked(False)
             self.cbox_breakpoint.setEnabled(False)
 
         # Symbology
@@ -358,7 +378,6 @@ class ControlPanel(QtGui.QWidget, Ui_Widget):
         self.combox_red.addItems(tsm.ts.band_names)
         self.combox_red.clear()
         self.combox_red.addItems(tsm.ts.band_names)
-
 
         # Contrast enhancement
         self.combox_cenhance.setCurrentIndex(settings.symbol['contrast'])
