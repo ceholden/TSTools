@@ -14,26 +14,21 @@ from osgeo import gdal, gdal_array, osr
 
 from . import utils
 from .reader import read_pixel_GDAL
-from .timeseries import AbstractTimeSeries
+from .timeseries import AbstractTimeSeriesDriver, Series
 from ..utils import geo_utils
 
 
-class StackedTimeSeries(AbstractTimeSeries):
+class StackedTimeSeries(AbstractTimeSeriesDriver):
     """ Simple 'stacked' timeseries driver
 
     'Layer Stacked' timeseries contain all the same bands and are of uniform
-    geographic extent and size. This timeseries driver does not have results.
+    geographic extent and size. This timeseries driver has only one Series that
+    does not have extra metadata and
 
     """
     description = 'Layer Stacked Timeseries'
     location = None
-    images = np.empty(0,
-                      dtype=[('filename', object),
-                             ('path', object),
-                             ('id', object),
-                             ('date', object),
-                             ('ordinal', 'u4')])
-    band_names = None
+    ts = [Series()]
     mask_values = np.array([2, 3, 4, 255])
     _pixel_pos = ''
     has_results = False
@@ -132,18 +127,19 @@ class StackedTimeSeries(AbstractTimeSeries):
                                   ignore_dirs=ignore_dirs)
 
         # Extract attributes
-        self.images = np.empty(len(images), dtype=self.images.dtype)
+        _images = np.empty(len(images), dtype=self.ts[0].images.dtype)
 
         for i, img in enumerate(images):
-            self.images[i]['filename'] = os.path.basename(img)
-            self.images[i]['path'] = img
-            self.images[i]['id'] = os.path.basename(os.path.dirname(img))
-            self.images[i]['date'] = dt.strptime(
-                self.images[i]['id'][self._date_index[0]:self._date_index[1]],
+            _images[i]['filename'] = os.path.basename(img)
+            _images[i]['path'] = img
+            _images[i]['id'] = os.path.basename(os.path.dirname(img))
+            _images[i]['date'] = dt.strptime(
+                _images[i]['id'][self._date_index[0]:self._date_index[1]],
                 self._date_format)
-            self.images[i]['ordinal'] = dt.toordinal(self.images[i]['date'])
+            _images[i]['ordinal'] = dt.toordinal(_images[i]['date'])
 
         self._n_images = len(images)
+        self.ts[0].images = _images.copy()
 
     def _init_attributes(self):
         # Determine geotransform and projection
@@ -163,12 +159,13 @@ class StackedTimeSeries(AbstractTimeSeries):
         self._dtype = gdal_array.GDALTypeCodeToNumericTypeCode(
             ds.GetRasterBand(1).DataType)
 
-        self.band_names = []
+        _band_names = []
         for i_b in range(ds.RasterCount):
             name = ds.GetRasterBand(i_b + 1).GetDescription()
             if not name:
                 name = 'Band {b}'.format(b=i_b + 1)
-            self.band_names.append(name)
+            _band_names.append(name)
+        self.ts[0].band_names = list(_band_names)
 
         self._geotransform = ds.GetGeoTransform()
         self._spatialref = osr.SpatialReference(ds.GetProjection())
