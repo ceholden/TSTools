@@ -348,7 +348,20 @@ class ControlPanel(QtGui.QWidget, Ui_Widget):
 # SYMBOLOGY
     def _init_symbology(self):
         logger.debug('Initializing symbology')
-        pass
+        # Control symbology
+        self.cbox_symbolcontrol.setChecked(settings.symbol['control'])
+
+        # Band selections
+        self.combox_red.clear()
+        self.combox_red.addItems(tsm.ts.band_names)
+        self.combox_red.clear()
+        self.combox_red.addItems(tsm.ts.band_names)
+        self.combox_red.clear()
+        self.combox_red.addItems(tsm.ts.band_names)
+
+
+        # Contrast enhancement
+        self.combox_cenhance.setCurrentIndex(settings.symbol['contrast'])
 
 # CUSTOM OPTIONS
     def _init_custom_options(self):
@@ -384,9 +397,9 @@ class ControlPanel(QtGui.QWidget, Ui_Widget):
         # Table
         self.image_table.disconnect()
 
-        # TODO
         # Symbology
         # TODO
+
         # Custom options -- remove them
         self.custom_form = getattr(self, 'custom_form', None)
         if self.custom_form:

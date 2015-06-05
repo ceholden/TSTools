@@ -95,7 +95,8 @@ class Controller(object):
         """
         for layer_id in layer_ids:
             # Get QgsMapLayer instance for ID
-            layer = qgis.core.QgsMapLayerRegistry.instance().mapLayers()[layer_id]
+            layer = qgis.core.QgsMapLayerRegistry.instance().mapLayers()[
+                layer_id]
 
             # Remove from settings
             if layer in settings.image_layers:

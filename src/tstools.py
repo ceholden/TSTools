@@ -105,16 +105,16 @@ class TSTools(QtCore.QObject):
                                            self.iface.mainWindow())
         self.plot_dock.setObjectName('TSTools Plots')
 
-        for plot in plots.plots:
-            self.plots.append(plot(self.iface))
+        # for plot in plots.plots:
+        #     self.plots.append(plot(self.iface))
 
-        self.plot_tabs = QtGui.QTabWidget(self.plot_dock)
-        for plot in self.plots:
-            self.plot_tabs.addTab(plot, plot.__str__())
+        # self.plot_tabs = QtGui.QTabWidget(self.plot_dock)
+        # for plot in self.plots:
+        #     self.plot_tabs.addTab(plot, plot.__str__())
 
-        self.plot_dock.setWidget(self.plot_tabs)
-        self.iface.addDockWidget(QtCore.Qt.BottomDockWidgetArea,
-                                 self.plot_dock)
+        # self.plot_dock.setWidget(self.plot_tabs)
+        # self.iface.addDockWidget(QtCore.Qt.BottomDockWidgetArea,
+        #                          self.plot_dock)
 
     def initGui(self):
         """ Load toolbar for plugin """
