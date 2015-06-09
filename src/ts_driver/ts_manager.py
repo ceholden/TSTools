@@ -69,7 +69,7 @@ class TSManager(object):
                 importlib.import_module('.'.join(__name__.split('.')[:-1]) +
                                         '.' + modname)
 
-        self.ts_drivers = timeseries.AbstractTimeSeries.__subclasses__()
+        self.ts_drivers = timeseries.AbstractTimeSeriesDriver.__subclasses__()
         for tsd in self.ts_drivers:
             logger.info('Found driver: {tsd}'.format(tsd=tsd))
 

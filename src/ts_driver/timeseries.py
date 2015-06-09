@@ -15,7 +15,7 @@ class AbstractTimeSeriesDriver(object):
     Required attributes:
       description (str): description of timeseries type
       location (str): root location of timeseries on disk
-      ts (list): a list of `Series` class for each timeseries in driver
+      series (list): a list of `Series` class for each timeseries in driver
       mask_values (iterable, or None): sequence of mask values, if any
       pixel_pos (str): location of pixel for display
       has_results (bool): True/False if model supports timeseries model
@@ -71,7 +71,7 @@ class AbstractTimeSeriesDriver(object):
         pass
 
     @abc.abstractproperty
-    def ts(self):
+    def series(self):
         pass
 
     @abc.abstractproperty
@@ -159,6 +159,7 @@ class Series(object):
         dictionary when instantiating the class.
 
     Attributes:
+      description (str): description of timeseries series
       images (np.ndarray): NumPy structured array containing attributes for all
         timeseries images. Structured array columns must include
         "filename" (str), "path" (str), "id" (str), "date" (dt.Date), and
@@ -178,6 +179,7 @@ class Series(object):
         image table metadata
 
     """
+    description = 'Stacked TimeSeries'
     images = np.empty(0,
                       dtype=[('filename', object),
                              ('path', object),

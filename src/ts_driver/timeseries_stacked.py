@@ -28,7 +28,7 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
     """
     description = 'Layer Stacked Timeseries'
     location = None
-    ts = [Series()]
+    series = [Series({'description': 'Stacked Timeseries'})]
     mask_values = np.array([2, 3, 4, 255])
     _pixel_pos = ''
     has_results = False
@@ -127,7 +127,7 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
                                   ignore_dirs=ignore_dirs)
 
         # Extract attributes
-        _images = np.empty(len(images), dtype=self.ts[0].images.dtype)
+        _images = np.empty(len(images), dtype=self.series[0].images.dtype)
 
         for i, img in enumerate(images):
             _images[i]['filename'] = os.path.basename(img)
@@ -139,7 +139,7 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
             _images[i]['ordinal'] = dt.toordinal(_images[i]['date'])
 
         self._n_images = len(images)
-        self.ts[0].images = _images.copy()
+        self.series[0].images = _images.copy()
 
     def _init_attributes(self):
         # Determine geotransform and projection
@@ -165,7 +165,7 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
             if not name:
                 name = 'Band {b}'.format(b=i_b + 1)
             _band_names.append(name)
-        self.ts[0].band_names = list(_band_names)
+        self.series[0].band_names = list(_band_names)
 
         self._geotransform = ds.GetGeoTransform()
         self._spatialref = osr.SpatialReference(ds.GetProjection())
