@@ -24,28 +24,26 @@ import logging
 import os
 
 from PyQt4 import QtCore, QtGui
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
 
 from matplotlib.colors import ColorConverter
 
-from ui_plotsave import Ui_PlotSave
+from ..ui_plotsave import Ui_PlotSave
 
-import settings
+from .. import settings
 
 logger = logging.getLogger('tstools')
 
 
-class SavePlotDialog(QDialog, Ui_PlotSave):
+class SavePlotDialog(QtGui.QDialog, Ui_PlotSave):
 
     # Signals
-    save_plot_requested = pyqtSignal()
-    save_plot_closed = pyqtSignal()
+    save_plot_requested = QtCore.pyqtSignal()
+    save_plot_closed = QtCore.pyqtSignal()
 
     def __init__(self, iface):
         # Standard UI setup
         self.iface = iface
-        QWidget.__init__(self)
+        QtGui.QWidget.__init__(self)
         self.setupUi(self)
 
         # Setup path for output of plot
@@ -79,21 +77,21 @@ class SavePlotDialog(QDialog, Ui_PlotSave):
         self.cbox_transparent.stateChanged.connect(self.set_transparent)
 
         # Cancel/OK
-        self.save = self.bbox_choice.button(QDialogButtonBox.Save)
-        self.cancel = self.bbox_choice.button(QDialogButtonBox.Cancel)
-        self.help = self.bbox_choice.button(QDialogButtonBox.Help)
+        self.save = self.bbox_choice.button(QtGui.QDialogButtonBox.Save)
+        self.cancel = self.bbox_choice.button(QtGui.QDialogButtonBox.Cancel)
+        self.help = self.bbox_choice.button(QtGui.QDialogButtonBox.Help)
         self.save.pressed.connect(self.save_plot_request)
         self.cancel.pressed.connect(self.cancel_plot_request)
         self.help.pressed.connect(self.help_plot_request)
-
 
     def find_save_location(self):
         """ Signal slot for finding plot save filename
         """
         # Open dialog for save file
-        settings.save_plot['fname'] = str(QFileDialog.getSaveFileName(self,
-                            'Select save location',
-                            settings.save_plot['fname']))
+        settings.save_plot['fname'] = str(QtGui.QFileDialog.getSaveFileName(
+            self,
+            'Select save location',
+            settings.save_plot['fname']))
         self.edit_plot_fname.setText(settings.save_plot['fname'])
 
     def set_save_location(self):
@@ -104,8 +102,8 @@ class SavePlotDialog(QDialog, Ui_PlotSave):
     def set_format(self, index):
         """ Signal slot for plot format combobox
         """
-        settings.save_plot['format'] = str(self.combox_plot_format.
-                                          itemText(index))
+        settings.save_plot['format'] = str(
+            self.combox_plot_format.itemText(index))
 
     def set_facecolor(self):
         """ Signal slot for settings of facecolor
@@ -132,9 +130,9 @@ class SavePlotDialog(QDialog, Ui_PlotSave):
     def set_transparent(self, state):
         """ Signal slot for settings transparency to True/False
         """
-        if state == Qt.Checked:
+        if state == QtCore.Qt.Checked:
             settings.save_plot['transparent'] = True
-        elif state == Qt.Unchecked:
+        elif state == QtCore.Qt.Unchecked:
             settings.save_plot['transparent'] = False
 
     def save_plot_request(self):

@@ -27,13 +27,15 @@ from PyQt4 import QtCore, QtGui
 
 import numpy as np
 
-from ui_controls import Ui_Controls as Ui_Widget
+from ..ui_controls import Ui_Controls
 
-from . import settings
-from .logger import qgis_log
-from .ts_driver.ts_manager import tsm
-from .controls_symbology import SymbologyControl
-from .save_plot_dialog import SavePlotDialog
+from .raster_symbology import RasterSymbologyControl
+from .plot_symbology import SymbologyControl
+from .plot_save import SavePlotDialog
+
+from .. import settings
+from ..logger import qgis_log
+from ..ts_driver.ts_manager import tsm
 
 logger = logging.getLogger('tstools')
 
@@ -45,11 +47,12 @@ def str2num(s):
         return float(s)
 
 
-class ControlPanel(QtGui.QWidget, Ui_Widget):
+class ControlPanel(QtGui.QWidget, Ui_Controls):
 
     plot_options_changed = QtCore.pyqtSignal()
     plot_save_requested = QtCore.pyqtSignal()
     image_table_row_clicked = QtCore.pyqtSignal(int)
+    symbology_applied = QtCore.pyqtSignal()
 
     def __init__(self, iface):
         # Qt setup
@@ -67,12 +70,12 @@ class ControlPanel(QtGui.QWidget, Ui_Widget):
     @QtCore.pyqtSlot(int)
     def _band_combox_pressed(self, index):
         # Do not run for "Select Plot Band" (first QComboBox item)
-        if index == 0:
+        if index.row() == 0:
             return
 
         item = self.combox_band.model().itemFromIndex(index)
         index = index.row() - 1
-        name = tsm.ts.band_names[index]
+        name = settings.plot_bands[index]
 
         # Not on either axis -- move to axis 1
         if not settings.plot['y_axis_1_band'][index] and \
@@ -204,13 +207,13 @@ class ControlPanel(QtGui.QWidget, Ui_Widget):
         # Band select
         self.combox_band.clear()
 
-        model = QtGui.QStandardItemModel(1 + len(tsm.ts.band_names), 1)
+        model = QtGui.QStandardItemModel(1 + len(settings.plot_bands), 1)
         item = QtGui.QStandardItem('----- Select Plot Band -----')
         item.setTextAlignment(QtCore.Qt.AlignHCenter)
         item.setSelectable(False)
         model.setItem(0, 0, item)
 
-        for i, name in enumerate(tsm.ts.band_names):
+        for i, name in enumerate(settings.plot_bands):
             item = QtGui.QStandardItem(u'☐: ' + name)
             item.setSelectable(False)
             model.setItem(i + 1, 0, item)
@@ -306,81 +309,124 @@ class ControlPanel(QtGui.QWidget, Ui_Widget):
 
 # IMAGE TABLE
     def _init_table(self):
-        logger.debug('Initializing images table')
-        # Setup headers
-        headers = ['ID', 'Date']
-        extra_metadata = []
+        logger.debug('Initializing images tables')
+        self.image_tables = []
 
-        if (hasattr(tsm.ts, 'metadata') and hasattr(tsm.ts, 'metadata_table')
-                and hasattr(tsm.ts, 'metadata_names')):
-            for md, md_str, md_bool in zip(tsm.ts.metadata,
-                                           tsm.ts.metadata_table,
-                                           tsm.ts.metadata_names):
-                if md_bool is True:
-                    headers.append(md_str)
-                    extra_metadata.append(getattr(tsm.ts, md))
+        # Series controller
+        self.combox_table_series.clear()
+        self.combox_table_series.addItems([series.description for
+                                           series in tsm.ts.series])
 
-        self.image_table.setColumnCount(len(headers))
-        self.image_table.setHorizontalScrollBarPolicy(
-            QtCore.Qt.ScrollBarAlwaysOn)
-        self.image_table.setHorizontalHeaderLabels(headers)
-        self.image_table.horizontalHeader().setResizeMode(
-            QtGui.QHeaderView.Stretch)
-        self.image_table.resizeColumnsToContents()
+        # Add tables
+        for i, series in enumerate(tsm.ts.series):
+            # Setup table
+            table = QtGui.QTableWidget()
+            table.verticalHeader().setVisible(False)
 
-        # Populate table
-        self.image_table.setRowCount(len(tsm.ts.images['id']))
-        for row in range(len(tsm.ts.images['id'])):
-            _cbox = QtGui.QTableWidgetItem()
-            _cbox.setFlags(QtCore.Qt.ItemIsUserCheckable |
-                           QtCore.Qt.ItemIsEnabled)
-            _cbox.setCheckState(QtCore.Qt.Unchecked)
-            _cbox.setText(tsm.ts.images['id'][row])
-            _cbox.setTextAlignment(QtCore.Qt.AlignHCenter |
-                                   QtCore.Qt.AlignVCenter)
+            # Setup headers
+            headers = ['ID', 'Date']
+            extra_metadata = []
 
-            _date = QtGui.QTableWidgetItem(
-                tsm.ts.images['date'][row].strftime('%Y-%j'))
-            _date.setFlags(QtCore.Qt.ItemIsEnabled)
-            _date.setTextAlignment(QtCore.Qt.AlignHCenter |
-                                   QtCore.Qt.AlignVCenter)
+            if (hasattr(series, 'metadata') and
+                    hasattr(series, 'metadata_table')
+                    and hasattr(tsm.ts, 'metadata_names')):
+                for md, md_str, md_bool in zip(series.metadata,
+                                               series.metadata_table,
+                                               series.metadata_names):
+                    if md_bool is True:
+                        headers.append(md_str)
+                        extra_metadata.append(getattr(series, md))
 
-            self.image_table.setItem(row, 0, _cbox)
-            self.image_table.setItem(row, 1, _date)
+            table.setColumnCount(len(headers))
+            table.setHorizontalScrollBarPolicy(
+                QtCore.Qt.ScrollBarAlwaysOn)
+            table.setHorizontalHeaderLabels(headers)
+            table.horizontalHeader().setResizeMode(
+                QtGui.QHeaderView.Stretch)
+            table.resizeColumnsToContents()
 
-            # Driver supplied metadata
-            for i, md in enumerate(extra_metadata):
-                _item = QtGui.QTableWidgetItem(str(md[row]))
-                _item.setFlags(QtCore.Qt.ItemIsEnabled)
-                _item.setTextAlignment(QtCore.Qt.AlignHCenter |
+            # Populate table
+            table.setRowCount(len(series.images['id']))
+            for row in range(len(series.images['id'])):
+                _cbox = QtGui.QTableWidgetItem()
+                _cbox.setFlags(QtCore.Qt.ItemIsUserCheckable |
+                               QtCore.Qt.ItemIsEnabled)
+                _cbox.setCheckState(QtCore.Qt.Unchecked)
+                _cbox.setText(series.images['id'][row])
+                _cbox.setTextAlignment(QtCore.Qt.AlignHCenter |
                                        QtCore.Qt.AlignVCenter)
-                self.image_table.setItem(row, 2 + i, _item)
 
-        # Wire signal to `self.image_table_row_clicked`
-        @QtCore.pyqtSlot()
-        def _image_table_clicked(self, item):
-            if item.column() == 0:
-                logger.info('Clicked row: {r}'.format(r=item.row()))
-                self.image_table_row_clicked.emit(item.row())
-        self.image_table.itemClicked.connect(
-            partial(_image_table_clicked, self))
+                _date = QtGui.QTableWidgetItem(
+                    series.images['date'][row].strftime('%Y-%j'))
+                _date.setFlags(QtCore.Qt.ItemIsEnabled)
+                _date.setTextAlignment(QtCore.Qt.AlignHCenter |
+                                       QtCore.Qt.AlignVCenter)
+
+                table.setItem(row, 0, _cbox)
+                table.setItem(row, 1, _date)
+
+                # Driver supplied metadata
+                for i, md in enumerate(extra_metadata):
+                    _item = QtGui.QTableWidgetItem(str(md[row]))
+                    _item.setFlags(QtCore.Qt.ItemIsEnabled)
+                    _item.setTextAlignment(QtCore.Qt.AlignHCenter |
+                                           QtCore.Qt.AlignVCenter)
+                    table.setItem(row, 2 + i, _item)
+
+            # Wire signal to `self.image_table_row_clicked`
+            @QtCore.pyqtSlot()
+            def _image_table_clicked(self, item):
+                if item.column() == 0:
+                    logger.info('Clicked row: {r}'.format(r=item.row()))
+                    self.image_table_row_clicked.emit(item.row())
+            table.itemClicked.connect(
+                partial(_image_table_clicked, self))
+
+            # Add and store reference to table
+            self.stacked_table.insertWidget(i, table)
+            self.image_tables.append(table)
+
+        self.stacked_table.setCurrentIndex(0)
+        print(self.stacked_table.count())
 
 # SYMBOLOGY
     def _init_symbology(self):
         logger.debug('Initializing symbology')
+        self.symbologies = []
         # Control symbology
-        self.cbox_symbolcontrol.setChecked(settings.symbol['control'])
+        self.cbox_symbolcontrol.setChecked(settings.symbol_control)
+        self.cbox_symbolcontrol.stateChanged.connect(self._set_symbol_control)
 
-        # Band selections
-        self.combox_red.clear()
-        self.combox_red.addItems(tsm.ts.band_names)
-        self.combox_red.clear()
-        self.combox_red.addItems(tsm.ts.band_names)
-        self.combox_red.clear()
-        self.combox_red.addItems(tsm.ts.band_names)
+        # Series controller
+        self.combox_symbology_series.clear()
+        self.combox_symbology_series.addItems([series.description for
+                                               series in tsm.ts.series])
 
-        # Contrast enhancement
-        self.combox_cenhance.setCurrentIndex(settings.symbol['contrast'])
+        # Add symbology widgets for each Series
+        for i, series in enumerate(tsm.ts.series):
+            # Setup UI
+            symbol = RasterSymbologyControl(self.iface)
+            symbol.init_ts(i, series)
+
+            # Add and store reference to widget
+            self.stacked_symbology.insertWidget(i, symbol)
+            self.symbologies.append(symbol)
+
+        self.stacked_symbology.setCurrentIndex(0)
+
+        # Setup and wire "Apply" button
+        self.but_symbol_apply.setEnabled(settings.symbol_control)
+        self.but_symbol_apply.clicked.connect(
+            lambda: self.symbology_applied.emit())
+
+    @QtCore.pyqtSlot()
+    def _set_symbol_control(self, state):
+        if state == QtCore.Qt.Checked:
+            settings.symbol_control = True
+            self.but_symbol_apply.setEnabled(True)
+        elif state == QtCore.Qt.Unchecked:
+            settings.symbol_control = False
+            self.but_symbol_apply.setEnabled(False)
 
 # CUSTOM OPTIONS
     def _init_custom_options(self):
@@ -414,10 +460,14 @@ class ControlPanel(QtGui.QWidget, Ui_Widget):
         self.save_plot_dialog = None
 
         # Table
-        self.image_table.disconnect()
+        for table in self.image_tables:
+            table.disconnect()
 
         # Symbology
-        # TODO
+        self.cbox_symbolcontrol.disconnect()
+        for symbology in self.symbologies:
+            symbology.disconnect()
+        self.but_symbol_apply.disconnect()
 
         # Custom options -- remove them
         self.custom_form = getattr(self, 'custom_form', None)

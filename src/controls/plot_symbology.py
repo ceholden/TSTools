@@ -23,23 +23,22 @@
 from functools import partial
 import logging
 
-from PyQt4 import QtCore
-from PyQt4 import QtGui
+from PyQt4 import QtCore, QtGui
 
 import matplotlib as mpl
 import numpy as np
 
-from ui_symbology import Ui_Symbology as Ui_Widget
+from ..ui_symbology import Ui_Symbology
 
-from controls_attach_md import AttachMetadata
+from .attach_md import AttachMetadata
 
-from .ts_driver.ts_manager import tsm
-from . import settings
+from ..ts_driver.ts_manager import tsm
+from .. import settings
 
 logger = logging.getLogger('tstools')
 
 
-class SymbologyControl(QtGui.QDialog, Ui_Widget):
+class SymbologyControl(QtGui.QDialog, Ui_Symbology):
     """ Plot symbology controls """
 
     plot_symbology_applied = QtCore.pyqtSignal()

@@ -23,20 +23,19 @@
 import logging
 import os
 
-from PyQt4 import QtCore
-from PyQt4 import QtGui
+from PyQt4 import QtCore, QtGui
 
 import numpy as np
 
-from ui_attach_md import Ui_AttachMd as Ui_Widget
+from ..ui_attach_md import Ui_AttachMd
 
-from .logger import qgis_log
-from .ts_driver.ts_manager import tsm
+from ..logger import qgis_log
+from ..ts_driver.ts_manager import tsm
 
 logger = logging.getLogger('tstools')
 
 
-class AttachMetadata(QtGui.QDialog, Ui_Widget):
+class AttachMetadata(QtGui.QDialog, Ui_AttachMd):
     """ Plot symbology metadata attacher """
 
     metadata_attached = QtCore.pyqtSignal()
