@@ -41,7 +41,7 @@
       <enum>QTabWidget::Rounded</enum>
      </property>
      <property name="currentIndex">
-      <number>2</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="tab_options">
       <attribute name="title">
@@ -80,7 +80,7 @@
         </widget>
        </item>
        <item row="4" column="0" colspan="3">
-        <widget class="QStackedWidget" name="stackedWidget">
+        <widget class="QStackedWidget" name="stacked_symbology">
          <widget class="QWidget" name="page"/>
          <widget class="QWidget" name="page_2"/>
         </widget>
@@ -158,7 +158,7 @@
         </widget>
        </item>
        <item row="2" column="0" colspan="3">
-        <widget class="QStackedWidget" name="stackedWidget_2">
+        <widget class="QStackedWidget" name="stacked_table">
          <widget class="QWidget" name="page_3"/>
          <widget class="QWidget" name="page_4"/>
         </widget>

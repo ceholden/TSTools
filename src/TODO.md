@@ -9,5 +9,6 @@
 7. [ ] `settings` will need multiple `symbol (dict)` containers per `Series` contained within QStackedWidget. `settings` will also need a tracker for which `Series` is displayed within the QStackedWidget (e.g., `series_table` and `series_symbol` $$\in{[0, 1]}$$)
 10. [ ] Implement caching into `timeseries_stacked`
 11. [ ] Probably need to expose `_GDALStackReader` class in `reader`. Would be useful when reading multiple timeseries (e.g., MODIS and Landsat, or Landsat and ALOS)
+98. [ ] Remove exception raised in `controller` (see #TODO tag)
 99. [ ] Search for and resolve `TODO:HARDCODE` tags
 100. [ ] TODO more TODO

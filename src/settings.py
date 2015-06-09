@@ -12,6 +12,14 @@ map_tool = True
 # List of raster images added - used to track for symbology
 image_layers = []
 
+# Series index for symbology and images table
+series_index_symbology = 0
+series_index_table = 0
+
+# Series to plot options "band" QComboBox
+plot_bands = []
+plot_series = []
+
 # Dictionary to store plot settings
 plot = {
     # Should we plot when we click canvas?
@@ -59,11 +67,12 @@ save_plot = {
 
 }
 
+# Enable/disable symbology control for all Series
+symbol_control = True
 # Dictionary to store raster symbology settings
-symbol = {
-    # Pre-apply options
-    # Control symbology?
-    'control': True,
+symbol = []
+# Defaults for `symbol`
+default_symbol = {
     # RGB color options
     'band_red': 4,
     'band_green': 3,

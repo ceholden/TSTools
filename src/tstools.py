@@ -33,7 +33,7 @@ import resources_rc
 
 from .ts_driver.ts_manager import tsm
 from . import controller
-from . import controls
+from .controls import controls
 from . import plots
 from . import plotter
 from . import settings

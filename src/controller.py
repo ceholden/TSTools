@@ -1,5 +1,7 @@
 """ Controller for TSTools that handles slots/signals communication
 """
+import copy
+from functools import partial
 import logging
 
 import numpy as np
@@ -40,6 +42,7 @@ class Controller(object):
         except Exception as e:
             msg = 'Failed to open timeseries: {msg}'.format(msg=e.message)
             qgis_log(msg, level=logging.ERROR, duration=5)
+            raise  # TODO: REMOVE EXCEPTION
         else:
             qgis_log('Loaded timeseries: {d}'.format(d=tsm.ts.description))
             self.config_closed()
@@ -60,7 +63,8 @@ class Controller(object):
 
         # Setup controls
         self.controls.init_ts()
-        self.controls.image_table_row_clicked.connect(self._add_remove_image)
+        self.controls.image_table_row_clicked.connect(
+            partial(self._add_remove_image, settings.series_index_table))
 
 # LAYER MANIPULATION
     @QtCore.pyqtSlot()
@@ -75,15 +79,17 @@ class Controller(object):
 
         """
         for layer in layers:
-            rows_added = [row for row, path in enumerate(tsm.ts.images['path'])
-                          if layer.source() == path]
-            for row in rows_added:
-                logger.debug('Added image: {i}'.format(
-                    i=tsm.ts.images['id'][row]))
-                item = self.controls.image_table.item(row, 0)
-                if item:
-                    if item.checkState() == QtCore.Qt.Unchecked:
-                        item.setCheckState(QtCore.Qt.Checked)
+            for i, series in enumerate(tsm.ts.series):
+                rows_added = [row for row, path in
+                              enumerate(series.images['path'])
+                              if layer.source() == path]
+                for row in rows_added:
+                    logger.debug('Added image: {img}'.format(
+                        img=series.images['id'][row]))
+                    item = self.controls.image_tables[i].item(row, 0)
+                    if item:
+                        if item.checkState() == QtCore.Qt.Unchecked:
+                            item.setCheckState(QtCore.Qt.Checked)
 
     @QtCore.pyqtSlot()
     def _map_layers_removed(self, layer_ids):
@@ -103,16 +109,17 @@ class Controller(object):
                 settings.image_layers.remove(layer)
 
             # Remove from table
-            rows_removed = [
-                row for row, (_id, path) in
-                enumerate(zip(tsm.ts.images['id'], tsm.ts.images['path']))
-                if _id in layer_id or path in layer_id
-            ]
+            for i, series in enumerate(tsm.ts.series):
+                rows_removed = [
+                    row for row, (_id, path) in
+                    enumerate(zip(series.images['id'], series.images['path']))
+                    if _id in layer_id or path in layer_id
+                ]
 
-            for row in rows_removed:
-                item = self.controls.image_table.item(row, 0)
-                if item and item.checkState() == QtCore.Qt.Checked:
-                    item.setCheckState(QtCore.Qt.Unchecked)
+                for row in rows_removed:
+                    item = self.controls.image_tables[i].item(row, 0)
+                    if item and item.checkState() == QtCore.Qt.Checked:
+                        item.setCheckState(QtCore.Qt.Unchecked)
 
             # Check for click layer
             if settings.canvas['click_layer_id'] == layer_id:
@@ -120,16 +127,18 @@ class Controller(object):
                 settings.canvas['click_layer_id'] = None
 
     @QtCore.pyqtSlot(int)
-    def _add_remove_image(self, i_image):
+    def _add_remove_image(self, i_table, i_image):
         """ Add or remove image at index `i_image`
         """
         layers = qgis.core.QgsMapLayerRegistry.instance().mapLayers().values()
-        filename = tsm.ts.images['path'][i_image]
+        filename = tsm.ts.series[i_table].images['path'][i_image]
 
         # Add image
         if filename not in [layer.source() for layer in layers]:
-            rlayer = qgis.core.QgsRasterLayer(tsm.ts.images['path'][i_image],
-                                              tsm.ts.images['id'][i_image])
+            rlayer = qgis.core.QgsRasterLayer(
+                tsm.ts.series[i_table].images['path'][i_image],
+                tsm.ts.series[i_table].images['id'][i_image])
+
             if rlayer.isValid():
                 qgis.core.QgsMapLayerRegistry.instance().addMapLayer(rlayer)
                 settings.image_layers.append(rlayer)
@@ -182,7 +191,13 @@ class Controller(object):
     def _init_plot_options(self):
         """ Initialize plot control data
         """
-        n_bands = len(tsm.ts.band_names)
+        settings.plot_bands = []
+        settings.plot_series = []
+        for i, series in enumerate(tsm.ts.series):
+            settings.plot_bands.extend(series.band_names)
+            settings.plot_series.extend([i] * len(series.band_names))
+
+        n_bands = len(settings.plot_bands)
 
         # No bands plotted on axes initially
         settings.plot['y_axis_1_band'] = np.zeros(n_bands, dtype=np.bool)
@@ -191,57 +206,72 @@ class Controller(object):
         # Default min/max on plot
         settings.plot['y_min'] = [0, 0]  # TODO:HARDCODE
         settings.plot['y_max'] = [10000, 10000]  # TODO:HARDCODE
-        settings.plot['x_min'] = min(tsm.ts.images['date']).year
-        settings.plot['x_max'] = max(tsm.ts.images['date']).year
+        settings.plot['x_min'] = min([series.images['date'].min()
+                                      for series in tsm.ts.series]).year
+        settings.plot['x_max'] = max([series.images['date'].min()
+                                      for series in tsm.ts.series]).year
 
     def _init_symbology(self):
         """ Initialize image symbology
         """
-        n_bands = len(tsm.ts.band_names)
-        # Default min/max
-        settings.symbol['y_min'] = np.zeros(n_bands, dtype=np.int32)
-        settings.symbol['y_max'] = np.ones(n_bands, dtype=np.int32) * 10000
+        settings.symbol = []
+        for i, series in enumerate(tsm.ts.series):
+            # Setup symbology settings for series
+            symbol = copy.deepcopy(settings.default_symbol)
 
-        # Custom symbology, if exists
-        if hasattr(tsm.ts, 'symbology_hint_indices'):
-            i = tsm.ts.symbology_hint_indices
-            if isinstance(i, (tuple, list)) and len(i) == 3:
-                logger.debug('Applying RGB symbology hint')
-                settings.symbol.update({
-                    'band_red': i[0],
-                    'band_green': i[1],
-                    'band_blue': i[2]
-                })
-            else:
-                logger.warning('Symbology RGB band hint improperly described')
+            n_bands = len(series.band_names)
+            # Default min/max
+            symbol['min'] = np.zeros(n_bands, dtype=np.int32)
+            symbol['max'] = np.ones(n_bands, dtype=np.int32) * 10000
 
-        if hasattr(tsm.ts, 'symbology_hint_minmax'):
-            i = tsm.ts.symbology_hint_minmax
-            if isinstance(i, (tuple, list)) and len(i) == 2:
-                # One min/max or a set of them
-                if isinstance(i[1], (int, float)) and \
-                        isinstance(i[0], (int, float)):
-                    logger.debug(
-                        'Applying min/max symbology hint for all bands')
-                    settings.symbol.update({
-                        'min': np.ones(n_bands, dtype=np.int32) * i[0],
-                        'max': np.ones(n_bands, dtype=np.int32) * i[1],
-                    })
-                # Min/max for each band
-                elif isinstance(i[0], np.ndarray) and \
-                        isinstance(i[1], np.ndarray):
-                    logger.debug('Applying specified min/max symbology hint')
-                    settings.symbol.update({
-                        'min': i[0],
-                        'max': i[1]
+            # Custom symbology, if exists
+            if hasattr(series, 'symbology_hint_indices'):
+                i = series.symbology_hint_indices
+                if isinstance(i, (tuple, list)) and len(i) == 3:
+                    logger.debug('Applying RGB symbology hint')
+                    symbol.update({
+                        'band_red': i[0],
+                        'band_green': i[1],
+                        'band_blue': i[2]
                     })
                 else:
-                    logger.warning('Could not parse symbology min/max hint')
-            else:
-                logger.warning('Symbology min/max hint improperly described')
+                    logger.warning(
+                        'Symbology RGB band hint improperly described')
+
+            if hasattr(series, 'symbology_hint_minmax'):
+                i = series.symbology_hint_minmax
+                if isinstance(i, (tuple, list)) and len(i) == 2:
+                    # One min/max or a set of them
+                    if isinstance(i[1], (int, float)) and \
+                            isinstance(i[0], (int, float)):
+                        logger.debug(
+                            'Applying min/max symbology hint for all bands')
+                        symbol.update({
+                            'min': np.ones(n_bands, dtype=np.int32) * i[0],
+                            'max': np.ones(n_bands, dtype=np.int32) * i[1],
+                        })
+                    # Min/max for each band
+                    elif isinstance(i[0], np.ndarray) and \
+                            isinstance(i[1], np.ndarray):
+                        logger.debug(
+                            'Applying specified min/max symbology hint')
+                        settings.symbol.update({
+                            'min': i[0],
+                            'max': i[1]
+                        })
+                    else:
+                        logger.warning(
+                            'Could not parse symbology min/max hint')
+                else:
+                    logger.warning(
+                        'Symbology min/max hint improperly described')
+
+            # Add to settings
+            settings.symbol.append(symbol)
 
 # PLOTS
-
+    def _init_plots(self):
+        pass
 
 # DISCONNECT
     def disconnect(self):
