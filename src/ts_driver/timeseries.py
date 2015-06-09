@@ -56,10 +56,10 @@ class AbstractTimeSeriesDriver(object):
             utils.set_custom_config(self, config)
 
     def __repr__(self):
-        return "A {d} ({c}) timeseries of {n} images at {m}".format(
+        return "A {d} ({c}) timeseries of {n} Series at {m}".format(
             d=self.description,
             c=self.__class__.__name__,
-            n=len(self.images),
+            n=len(self.series),
             m=hex(id(self)))
 
     @abc.abstractproperty
@@ -108,10 +108,11 @@ class AbstractTimeSeriesDriver(object):
         pass
 
     @abc.abstractmethod
-    def get_data(self, band, mask=True):
+    def get_data(self, series, band, mask=True):
         """ Return data for a given band
 
         Args:
+          series (int): index of Series containing data
           band (int): index of band to return
           mask (bool, optional): return data masked or left unmasked, if
             supported by driver implementation
@@ -123,10 +124,11 @@ class AbstractTimeSeriesDriver(object):
         pass
 
     @abc.abstractmethod
-    def get_prediction(self, band):
+    def get_prediction(self, series, band):
         """ Return prediction for a given band
 
         Args:
+          series (int): index of Series used for prediction
           band (int): index of band to return
 
         Returns:
@@ -137,10 +139,11 @@ class AbstractTimeSeriesDriver(object):
         pass
 
     @abc.abstractmethod
-    def get_breaks(self, band):
+    def get_breaks(self, series, band):
         """ Return break points for a given band
 
         Args:
+          series (int): index of Series for prediction
           band (int): index of band to return
 
         Returns:

@@ -28,7 +28,7 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
     """
     description = 'Layer Stacked Timeseries'
     location = None
-    series = [Series({'description': 'Stacked Timeseries'})]
+    series = []
     mask_values = np.array([2, 3, 4, 255])
     _pixel_pos = ''
     has_results = False
@@ -51,12 +51,17 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
     def __init__(self, location, config=None):
         super(StackedTimeSeries, self).__init__(location, config=config)
 
-        self._init_images()
-        self._init_attributes()
+        self.series = [Series({'description': 'Stacked Timeseries'})]
 
-        self._data = np.zeros((self._n_band, self._n_images),
-                              dtype=self._dtype)
-        self._mask = np.ones(self._n_images, dtype=np.bool)
+        self._n_images = 0
+        for series in self.series:
+            self._init_images(series)
+            self._init_attributes(series)
+
+            series._data = np.zeros((self._n_band, self._n_images),
+                                    dtype=self._dtype)
+            series._mask = np.ones(self._n_images, dtype=np.bool)
+            self._n_images += series._n_images
 
     @property
     def pixel_pos(self):
@@ -93,27 +98,29 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
             raise IndexError('Coordinate specified is outside of dataset')
 
         # TODO: refactor into _fetch_data_images and _fetch_data_cache
-        for i in range(self._n_images):
-            self._data[:, i] = read_pixel_GDAL(self.images['filename'],
-                                               self._px, self._py, i)
-            yield float(i) / self._n_images
+        i = 0
+        for series in self.series:
+            for i_img in range(self._n_images):
+                series._data[:, i_img] = read_pixel_GDAL(
+                    self.images['filename'], self._px, self._py, i_img)
+                yield float(i) / self._n_images
 
     def fetch_results(self):
         pass
 
-    def get_data(self, band, mask=True):
+    def get_data(self, series, band, mask=True):
         if mask:
-            return self._data[band, self._mask]
+            return self.series[series]._data[band, self._mask]
         else:
-            return self._data[band, :]
+            return self.series[series]._data[band, :]
 
-    def get_prediction(self, band):
+    def get_prediction(self, series, band):
         pass
 
-    def get_breaks(self, band):
+    def get_breaks(self, series, band):
         pass
 
-    def _init_images(self):
+    def _init_images(self, series):
         """ Sets up `self.images` by finding and describing imagery """
         # Ignore results folder and cache, if we have it
         ignore_dirs = []
@@ -127,7 +134,8 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
                                   ignore_dirs=ignore_dirs)
 
         # Extract attributes
-        _images = np.empty(len(images), dtype=self.series[0].images.dtype)
+        _images = np.empty(len(images), dtype=series.images.dtype)
+        series._n_images = len(images)
 
         for i, img in enumerate(images):
             _images[i]['filename'] = os.path.basename(img)
@@ -138,15 +146,14 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
                 self._date_format)
             _images[i]['ordinal'] = dt.toordinal(_images[i]['date'])
 
-        self._n_images = len(images)
-        self.series[0].images = _images.copy()
+        series.images = _images.copy()
 
-    def _init_attributes(self):
+    def _init_attributes(self, series):
         # Determine geotransform and projection
         self._geotransform = None
         self._spatialref = None
 
-        for fname in self.images['path']:
+        for fname in series.images['path']:
             try:
                 ds = gdal.Open(fname, gdal.GA_ReadOnly)
             except:
@@ -165,7 +172,7 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
             if not name:
                 name = 'Band {b}'.format(b=i_b + 1)
             _band_names.append(name)
-        self.series[0].band_names = list(_band_names)
+        series.band_names = list(_band_names)
 
         self._geotransform = ds.GetGeoTransform()
         self._spatialref = osr.SpatialReference(ds.GetProjection())
