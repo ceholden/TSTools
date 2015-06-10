@@ -116,6 +116,11 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
         # Copy from scratch variable if it completes
         np.copyto(series.data, series._scratch_data)
 
+        # Update mask
+        for series in self.series:
+            series.mask = np.in1d(series.data[self._mask_band - 1, :],
+                                  self.mask_values, invert=True)
+
     def fetch_results(self):
         pass
 
