@@ -1,6 +1,9 @@
 import numpy as np
 from osgeo import gdal, gdal_array
 
+gdal.AllRegister()
+gdal.UseExceptions()
+
 
 class _GDALStackReader(object):
     """ Simple class to read stacks using GDAL, keeping file objects open
