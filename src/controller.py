@@ -6,7 +6,7 @@ import logging
 
 import numpy as np
 
-from PyQt4 import QtCore
+from PyQt4 import QtCore, QtGui
 
 import qgis
 
@@ -18,8 +18,43 @@ from .ts_driver.ts_manager import tsm
 
 logger = logging.getLogger('tstools')
 
+# PyQt -- moveToThread and functools.partial -- why doesn't it work?
+# See:
+# http://stackoverflow.com/questions/23317195/pyqt-movetothread-does-not-work-when-using-partial-for-slot
 
-class Controller(object):
+
+class Worker(QtCore.QObject):
+
+    update = QtCore.pyqtSignal(float)
+    finished = QtCore.pyqtSignal()
+    errored = QtCore.pyqtSignal(str)
+
+    def __init__(self, parent):
+        super(Worker, self).__init__()
+        parent.fetch_data.connect(self.fetch)
+
+    @QtCore.pyqtSlot(object, object, str)
+    def fetch(self, ts, pos, crs_wkt):
+        logger.info('Fetching from QThread (id: {i})'.format(
+            i=hex(self.thread().currentThreadId())))
+
+        # TODO: need to catch the exceptions
+
+        # Fetch data
+        try:
+            for percent in ts.fetch_data(pos[0],
+                                         pos[1],
+                                         crs_wkt):
+                self.update.emit(percent)
+        except Exception as e:
+            self.errored.emit(e.message)
+        else:
+            self.finished.emit()
+
+        # TODO: fetch results
+
+
+class Controller(QtCore.QObject):
     """ Controller class for handling signals/slots
 
     Attributes:
@@ -29,8 +64,14 @@ class Controller(object):
     """
     controls = None
     plots = []
+    working = False
+    worker = None
+    work_thread = None
 
-    def __init__(self, controls, plots):
+    fetch_data = QtCore.pyqtSignal(object, object, str)
+
+    def __init__(self, controls, plots, parent=None):
+        super(Controller, self).__init__()
         self.controls = controls
         self.plots = plots
 
@@ -64,13 +105,117 @@ class Controller(object):
 
         # Setup controls
         self.controls.init_ts()
+        self.controls.plot_options_changed.connect(
+            self.update_plot)
+        self.controls.plot_save_requested.connect(
+            self.save_plot)
         self.controls.image_table_row_clicked.connect(
             partial(self._add_remove_image, settings.series_index_table))
         self.controls.symbology_applied.connect(
             lambda: actions.apply_symbology())
 
-# LAYER MANIPULATION
+        # Setup plots
+        # TODO
+        self._init_plots()
+
+# PLOT TOOL
+    @QtCore.pyqtSlot(object)
+    def plot_request(self, pos):
+        if self.working:
+            qgis_log('Unable to initiate plot request: already working',
+                     logging.INFO)
+        else:
+            qgis_log('Clicked a point: {p} ({t})'.format(p=pos, t=type(pos)),
+                     level=logging.INFO)
+
+            crs = qgis.utils.iface.mapCanvas().mapRenderer().destinationCrs()
+            crs_wkt = crs.toWkt()
+
+            # Setup QProgressBar
+            self.progress_bar = qgis.utils.iface.messageBar().createMessage(
+                'Retrieving data')
+
+            self.progress = QtGui.QProgressBar()
+            self.progress.setValue(0)
+            self.progress.setMaximum(100)
+            self.progress.setAlignment(QtCore.Qt.AlignLeft |
+                                       QtCore.Qt.AlignVCenter)
+
+            self.but_cancel = QtGui.QPushButton('Cancel')
+            self.but_cancel.pressed.connect(self.plot_request_cancel)
+
+            self.progress_bar.layout().addWidget(self.progress)
+            self.progress_bar.layout().addWidget(self.but_cancel)
+
+            qgis.utils.iface.messageBar().pushWidget(
+                self.progress_bar, qgis.utils.iface.messageBar().INFO)
+
+            # Setup worker and thread
+            self.working = True
+
+            self.work_thread = QtCore.QThread()
+            # self.worker = Worker()
+            self.worker = Worker(self)
+            self.worker.moveToThread(self.work_thread)
+            self.worker.update.connect(self.plot_request_update)
+            self.worker.finished.connect(self.plot_request_finish)
+            self.worker.errored.connect(self.plot_request_error)
+            self.work_thread.started.connect(partial(self.plot_request_start,
+                                             tsm.ts,
+                                             (pos[0], pos[1]),
+                                             crs_wkt))
+
+            # TODO: custom controls / custom forms
+
+            # Run thread
+            logger.info('Timeseries (id: {i})'.format(i=hex(id(tsm.ts))))
+            logger.info('Current thread: ({i})'.format(
+                i=hex(self.thread().currentThreadId())))
+
+            self.work_thread.start()
+            logger.info('Started QThread (id: {i})'.format(
+                i=hex(self.work_thread.currentThreadId())))
+
+    @QtCore.pyqtSlot(object, tuple, str)
+    def plot_request_start(self, ts, pos, crs_wkt):
+        logger.info('Fetch data signal sent for point: '
+                    '{p} ({t})'.format(p=pos, t=type(pos)))
+
+        self.fetch_data.emit(ts, pos, crs_wkt)
+
+    @QtCore.pyqtSlot(float)
+    def plot_request_update(self, progress):
+        if self.working is True:
+            self.progress.setValue(progress)
+            logger.info('Working {p}%'.format(p=progress))
+
     @QtCore.pyqtSlot()
+    def plot_request_finish(self):
+        logger.info('Quitting QThread (id: {i})'.format(
+            i=hex(self.work_thread.currentThreadId())))
+        logger.info('Plot request finished')
+        qgis.utils.iface.messageBar().clearWidgets()
+
+        self.working = False
+        self.work_thread.quit()
+
+        # TODO: re-enable tool
+
+    @QtCore.pyqtSlot(str)
+    def plot_request_error(self, txt):
+        qgis.utils.iface.messageBar().clearWidgets()
+        qgis_log(txt, logging.ERROR, duration=5)
+
+        self.working = False
+        self.work_thread.quit()
+
+    @QtCore.pyqtSlot()
+    def plot_request_cancel(self):
+        self.plot_request_finish()
+        pass
+
+# LAYER MANIPULATION
+    @QtCore.pyqtSlot(list)
     def _map_layers_added(self, layers):
         """ Performs necessary functions if added layers in timeseries
 
@@ -94,7 +239,7 @@ class Controller(object):
                         if item.checkState() == QtCore.Qt.Unchecked:
                             item.setCheckState(QtCore.Qt.Checked)
 
-    @QtCore.pyqtSlot()
+    @QtCore.pyqtSlot(list)
     def _map_layers_removed(self, layer_ids):
         """ Perform necessary functions if removed layers in timeseries
 
@@ -129,7 +274,7 @@ class Controller(object):
                 logger.debug('Removed Query layer')
                 settings.canvas['click_layer_id'] = None
 
-    @QtCore.pyqtSlot(int)
+    @QtCore.pyqtSlot(int, int)
     def _add_remove_image(self, i_table, i_image):
         """ Add or remove image at index `i_image`
         """
@@ -268,6 +413,13 @@ class Controller(object):
 # PLOTS
     def _init_plots(self):
         pass
+
+    def update_plot(self):
+        qgis_log('Updating plot', logging.DEBUG)
+        pass
+
+    def save_plot(self):
+        qgis_log('Saving plot', logging.DEBUG)
 
 # DISCONNECT
     def disconnect(self):

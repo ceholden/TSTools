@@ -108,7 +108,7 @@ def read_pixel_GDAL(filenames, x, y, i=None):
             not np.array_equal(_gdal_stack_reader.filenames, filenames):
         _gdal_stack_reader = _GDALStackReader(filenames)
 
-    if i:
+    if i is not None:
         return _gdal_stack_reader.read_pix(x, y, i)
     else:
         return _gdal_stack_reader.read_pix_ts(x, y)
