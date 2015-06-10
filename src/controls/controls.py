@@ -317,6 +317,10 @@ class ControlPanel(QtGui.QWidget, Ui_Controls):
         self.combox_table_series.addItems([series.description for
                                            series in tsm.ts.series])
 
+        # Clear stacked widget
+        for i in range(self.stacked_table.count()):
+            self.stacked_table.removeWidget(self.stacked_table.widget(i))
+
         # Add tables
         for i, series in enumerate(tsm.ts.series):
             # Setup table
@@ -387,7 +391,6 @@ class ControlPanel(QtGui.QWidget, Ui_Controls):
             self.image_tables.append(table)
 
         self.stacked_table.setCurrentIndex(0)
-        print(self.stacked_table.count())
 
 # SYMBOLOGY
     def _init_symbology(self):

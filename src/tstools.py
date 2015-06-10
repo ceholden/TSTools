@@ -35,7 +35,6 @@ from .ts_driver.ts_manager import tsm
 from . import controller
 from .controls import controls
 from . import plots
-from . import plotter
 from . import settings
 from .logger import qgis_log
 
@@ -138,7 +137,7 @@ class TSTools(QtCore.QObject):
         # Map tool
         self.tool_ts = qgis.gui.QgsMapToolEmitPoint(self.canvas)
         self.tool_ts.setAction(self.action)
-        self.tool_ts.canvasClicked.connect(plotter.plot_request)
+        self.tool_ts.canvasClicked.connect(self.controller.plot_request)
 
     def unload(self):
         """ Shutdown and disconnect """
