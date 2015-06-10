@@ -2,6 +2,8 @@
 """
 import logging
 
+import numpy as np
+
 import qgis.core
 
 from .. import settings
@@ -84,6 +86,47 @@ def apply_symbology(rlayers=None):
             rlayer.setCacheImage(None)
         rlayer.triggerRepaint()
         qgis.utils.iface.legendInterface().refreshLayerSymbology(rlayer)
+
+
+def calculate_scale(axis):
+    """ Calculate sane min and max values for plot
+
+    Args:
+      axis (int): axis to scale (either 0 or 1)
+
+    """
+    logger.info('Auto-scaling plot Y-axis {n} min/max'.format(n=axis))
+    # What data are added?
+    bands = (settings.plot['y_axis_1_band'] if axis == 0
+             else settings.plot['y_axis_2_band'])
+
+    print(bands)
+
+    added = np.where(bands)[0]
+    if added.size == 0:
+        # No bands added to axis
+        logger.debug('Cannot autoscale axis {n}: no bands plotted'.format(
+            n=axis))
+        return
+
+    # Iterate through data, finding new min and max
+    _min, _max = float('inf'), float('-inf')
+    for _added in added:
+        # Series --> band
+        _series = settings.plot_series[_added]
+        _band = settings.plot_band_indices[_added]
+
+        _data = tsm.ts.get_data(_series, _band, mask=True)
+        _data_min = np.percentile(_data, 2) - 500
+        _data_max = np.percentile(_data, 98) + 500
+
+        if _min > _data_min:
+            _min = _data_min
+        if _max < _data_max:
+            _max = _data_max
+
+    settings.plot['y_min'][axis] = _min
+    settings.plot['y_max'][axis] = _max
 
 
 def add_clicked_geometry(wkt):
