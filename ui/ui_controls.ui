@@ -41,7 +41,7 @@
       <enum>QTabWidget::Rounded</enum>
      </property>
      <property name="currentIndex">
-      <number>1</number>
+      <number>3</number>
      </property>
      <widget class="QWidget" name="tab_options">
       <attribute name="title">
@@ -288,7 +288,7 @@
         </widget>
        </item>
        <item row="13" column="1" colspan="3">
-        <widget class="QLineEdit" name="edit_ymax">
+        <widget class="QLineEdit" name="edit_ymin">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
            <horstretch>0</horstretch>
@@ -307,7 +307,7 @@
         </widget>
        </item>
        <item row="14" column="1" colspan="3">
-        <widget class="QLineEdit" name="edit_ymin">
+        <widget class="QLineEdit" name="edit_ymax">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
            <horstretch>0</horstretch>
@@ -570,6 +570,27 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>tabWidget</tabstop>
+  <tabstop>cbox_plotlayer</tabstop>
+  <tabstop>combox_band</tabstop>
+  <tabstop>rad_axis_1</tabstop>
+  <tabstop>rad_axis_2</tabstop>
+  <tabstop>cbox_yscale_auto</tabstop>
+  <tabstop>edit_ymin</tabstop>
+  <tabstop>edit_ymax</tabstop>
+  <tabstop>cbox_xscale_fix</tabstop>
+  <tabstop>cbox_fmask</tabstop>
+  <tabstop>cbox_modelfit</tabstop>
+  <tabstop>cbox_breakpoint</tabstop>
+  <tabstop>edit_maskvalues</tabstop>
+  <tabstop>but_symbology</tabstop>
+  <tabstop>but_plot_save</tabstop>
+  <tabstop>combox_table_series</tabstop>
+  <tabstop>cbox_symbolcontrol</tabstop>
+  <tabstop>combox_symbology_series</tabstop>
+  <tabstop>but_symbol_apply</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

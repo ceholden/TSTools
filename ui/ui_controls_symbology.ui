@@ -267,6 +267,18 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>combox_red</tabstop>
+  <tabstop>combox_green</tabstop>
+  <tabstop>combox_blue</tabstop>
+  <tabstop>edit_redmin</tabstop>
+  <tabstop>edit_redmax</tabstop>
+  <tabstop>edit_greenmin</tabstop>
+  <tabstop>edit_greenmax</tabstop>
+  <tabstop>edit_bluemin</tabstop>
+  <tabstop>edit_bluemax</tabstop>
+  <tabstop>combox_cenhance</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>
