@@ -65,7 +65,7 @@ class ControlPanel(QtGui.QWidget, Ui_Controls):
         self._init_plot_options()
         self._init_table()
         self._init_symbology()
-        self._init_custom_options()
+        self._init_custom_controls()
 
 # PLOT TAB
     @QtCore.pyqtSlot(int)
@@ -473,9 +473,9 @@ class ControlPanel(QtGui.QWidget, Ui_Controls):
             self.but_symbol_apply.setEnabled(False)
 
 # CUSTOM OPTIONS
-    def _init_custom_options(self):
+    def _init_custom_controls(self):
         if hasattr(tsm.ts, 'controls') and hasattr(tsm.ts, 'controls_names'):
-            logger.debug('Initializing custom options')
+            logger.debug('Initializing custom controls')
 
 # DISCONNECT SIGNALS
     def disconnect(self):
