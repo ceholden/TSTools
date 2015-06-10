@@ -146,6 +146,10 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
                 self._date_format)
             _images[i]['ordinal'] = dt.toordinal(_images[i]['date'])
 
+        # Sort by date
+        sort_idx = np.argsort(_images['ordinal'])
+        _images = _images[sort_idx]
+
         series.images = _images.copy()
 
     def _init_attributes(self, series):

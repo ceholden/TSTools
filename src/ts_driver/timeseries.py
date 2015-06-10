@@ -196,7 +196,7 @@ class Series(object):
     # Specify two numbers (int or float) for one min/max for all bands
     # OR specify np.ndarray for each band in dataset for min and max
     #     e.g. symbology_hint_minmax = [np.zeros(8), np.ones(8) * 10000]
-    symbology_hint_minmax = [0, 1]
+    symbology_hint_minmax = [0, 10000]
 
     metadata = []
     metadata_table = []
