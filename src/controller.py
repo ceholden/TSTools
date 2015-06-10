@@ -196,7 +196,8 @@ class Controller(QtCore.QObject):
         self.working = False
         self.work_thread.quit()
 
-        # TODO: re-enable tool
+        # Update controls
+        self.controls.plot_option_changed()
 
     @QtCore.pyqtSlot(str)
     def plot_request_error(self, txt):
