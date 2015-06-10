@@ -47,3 +47,4 @@ def qgis_log(msg, level=logging.INFO, duration=3):
             msg,
             level=qgis_level,
             duration=duration)
+    logger.log(level, msg)
