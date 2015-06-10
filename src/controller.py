@@ -42,9 +42,7 @@ class Worker(QtCore.QObject):
 
         # Fetch data
         try:
-            for percent in ts.fetch_data(pos[0],
-                                         pos[1],
-                                         crs_wkt):
+            for percent in ts.fetch_data(pos[0], pos[1], crs_wkt):
                 self.update.emit(percent)
         except Exception as e:
             self.errored.emit(e.message)
@@ -187,7 +185,6 @@ class Controller(QtCore.QObject):
     def plot_request_update(self, progress):
         if self.working is True:
             self.progress.setValue(progress)
-            logger.info('Working {p}%'.format(p=progress))
 
     @QtCore.pyqtSlot()
     def plot_request_finish(self):
@@ -332,11 +329,13 @@ class Controller(QtCore.QObject):
     def _init_plot_options(self):
         """ Initialize plot control data
         """
-        settings.plot_bands = []
         settings.plot_series = []
+        settings.plot_band_indices = []
+        settings.plot_bands = []
         for i, series in enumerate(tsm.ts.series):
-            settings.plot_bands.extend(series.band_names)
             settings.plot_series.extend([i] * len(series.band_names))
+            settings.plot_band_indices.extend(range(len(series.band_names)))
+            settings.plot_bands.extend(series.band_names)
 
         n_bands = len(settings.plot_bands)
 
@@ -351,6 +350,9 @@ class Controller(QtCore.QObject):
                                       for series in tsm.ts.series]).year
         settings.plot['x_max'] = max([series.images['date'].max()
                                       for series in tsm.ts.series]).year
+
+        # Default mask values
+        settings.plot['mask_val'] = tsm.ts.mask_values.copy()
 
     def _init_symbology(self):
         """ Initialize image symbology

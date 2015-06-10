@@ -36,6 +36,7 @@ from .plot_save import SavePlotDialog
 from .. import settings
 from ..logger import qgis_log
 from ..ts_driver.ts_manager import tsm
+from ..utils import actions
 
 logger = logging.getLogger('tstools')
 
@@ -95,7 +96,27 @@ class ControlPanel(QtGui.QWidget, Ui_Controls):
             settings.plot['y_axis_2_band'][index] = False
             item.setText(u'☐: ' + name)
 
-        self.plot_options_changed.emit()
+        # self.plot_options_changed.emit()
+        # Update plot options
+        self._plot_option_changed()
+
+    @QtCore.pyqtSlot()
+    def _plot_y_axis_changed(self):
+        """ Switch Y-axis auto-scaling and min/max text """
+        if self.rad_axis_1.isChecked():
+            settings.plot['axis_select'] = 0
+        elif self.rad_axis_2.isChecked():
+            settings.plot['axis_select'] = 1
+
+        axis = settings.plot['axis_select']
+
+        self.cbox_yscale_auto.setChecked(
+            settings.plot['y_axis_scale_auto'][axis])
+        self.edit_ymin.setText(str(settings.plot['y_min'][axis]))
+        self.edit_ymax.setText(str(settings.plot['y_max'][axis]))
+
+        self.edit_ymin.setEnabled(not settings.plot['y_axis_scale_auto'][axis])
+        self.edit_ymax.setEnabled(not settings.plot['y_axis_scale_auto'][axis])
 
     @QtCore.pyqtSlot(int)
     def _xrange_moved(self, minmax, value):
@@ -169,17 +190,28 @@ class ControlPanel(QtGui.QWidget, Ui_Controls):
 
     @QtCore.pyqtSlot()
     def _plot_option_changed(self):
-        """ Catch all slot for plot control panel changes
+        """ Catch-all slot for plot control panel changes
         """
         logger.debug('Updating plot options')
-        # Y-axis
-        settings.plot['axis_select'] = 0 if self.rad_axis_1.isChecked() else 1
-        settings.plot['y_scale_auto'] = \
-            True if self.cbox_yscale_auto.isChecked() else False
-        settings.plot['y_min'][settings.plot['axis_select']] = \
-            str2num(self.edit_ymin.text())
-        settings.plot['y_max'][settings.plot['axis_select']] = \
-            str2num(self.edit_ymax.text())
+
+        axis = settings.plot['axis_select']
+
+        # Update Y-axis values
+        settings.plot['y_axis_scale_auto'][axis] = \
+            self.cbox_yscale_auto.isChecked()
+        if settings.plot['y_axis_scale_auto'][axis]:
+            # Re-calculate scale
+            actions.calculate_scale(axis)
+            # Update texts
+            self.edit_ymin.setText(str(settings.plot['y_min'][axis]))
+            self.edit_ymax.setText(str(settings.plot['y_max'][axis]))
+
+        settings.plot['y_min'][axis] = str2num(self.edit_ymin.text())
+        settings.plot['y_max'][axis] = str2num(self.edit_ymax.text())
+
+        # Enable/disable Y-axis min/max editing
+        self.edit_ymin.setEnabled(not settings.plot['y_axis_scale_auto'][axis])
+        self.edit_ymax.setEnabled(not settings.plot['y_axis_scale_auto'][axis])
 
         # Plot features
         settings.plot['mask'] = True if self.cbox_fmask.isChecked() else False
@@ -221,22 +253,27 @@ class ControlPanel(QtGui.QWidget, Ui_Controls):
         self.combox_band.view().pressed.connect(self._band_combox_pressed)
 
         # Y-axis selector
-        if settings.plot['axis_select'] == 0:
+        axis = settings.plot['axis_select']
+        if axis == 0:
             self.rad_axis_1.setChecked(True)
             self.rad_axis_2.setChecked(False)
-        else:
+        elif axis == 1:
             self.rad_axis_1.setChecked(False)
             self.rad_axis_2.setChecked(True)
-        self.rad_axis_1.toggled.connect(self._plot_option_changed)
-        self.rad_axis_2.toggled.connect(self._plot_option_changed)
+        self.rad_axis_1.toggled.connect(self._plot_y_axis_changed)
+        self.rad_axis_2.toggled.connect(self._plot_y_axis_changed)
+
+        self.cbox_yscale_auto.setChecked(
+            settings.plot['y_axis_scale_auto'][axis])
+        self.cbox_yscale_auto.stateChanged.connect(self._plot_option_changed)
 
         # Y-axis min/max
-        self.edit_ymin.setText(str(
-            settings.plot['y_min'][settings.plot['axis_select']]))
-        self.edit_ymax.setText(str(
-            settings.plot['y_max'][settings.plot['axis_select']]))
+        self.edit_ymin.setText(str(settings.plot['y_min'][axis]))
+        self.edit_ymax.setText(str(settings.plot['y_max'][axis]))
         self.edit_ymin.editingFinished.connect(self._plot_option_changed)
         self.edit_ymax.editingFinished.connect(self._plot_option_changed)
+        self.edit_ymin.setEnabled(not settings.plot['y_axis_scale_auto'][axis])
+        self.edit_ymax.setEnabled(not settings.plot['y_axis_scale_auto'][axis])
 
         # X-axis
         self.cbox_xscale_fix.setChecked(settings.plot['x_scale_fix'])
