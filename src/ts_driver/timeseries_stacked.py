@@ -10,7 +10,7 @@ import logging
 import os
 
 import numpy as np
-from osgeo import gdal, gdal_array, osr
+from osgeo import gdal, gdal_array
 
 from . import ts_utils
 from .reader import read_pixel_GDAL
@@ -74,7 +74,7 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
         self._pixel_pos = 'Row {py}/Column {px}'.format(py=self._py,
                                                         px=self._px)
 
-    def fetch_data(self, mx, my, crs):
+    def fetch_data(self, mx, my, crs_wkt):
         """ Read data for a given x, y coordinate in a given CRS
 
         Args:
@@ -91,10 +91,11 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
             dataset
 
         """
-        # Convert coordinate
-        # TODO: reprojection if necessary
+        # Convert coordinate reference system
+        mx, my = geo_utils.reproject_point(mx, my, crs_wkt, self._spatialref)
+
+        # Convert map coordinates into image
         self._px, self._py = geo_utils.point2pixel(mx, my, self._geotransform)
-        logger.info('mx/my: {mx}/{my}'.format(mx=mx, my=my))
         self._update_pixel_pos()
 
         if (self._px < 0 or self._py < 0 or
@@ -189,6 +190,6 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
         series.band_names = list(_band_names)
 
         self._geotransform = ds.GetGeoTransform()
-        self._spatialref = osr.SpatialReference(ds.GetProjection())
+        self._spatialref = ds.GetProjection()
 
         ds = None
