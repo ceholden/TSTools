@@ -17,8 +17,9 @@ series_index_symbology = 0
 series_index_table = 0
 
 # Series to plot options "band" QComboBox
-plot_bands = []
 plot_series = []
+plot_band_indices = []
+plot_bands = []
 
 # Dictionary to store plot settings
 plot = {
@@ -30,7 +31,7 @@ plot = {
     'y_axis_1_band': np.zeros(1, dtype=np.bool),
     'y_axis_2_band': np.zeros(1, dtype=np.bool),
     # Plot scaling options
-    'y_scale_auto': True,
+    'y_axis_scale_auto': [True, True],
     'x_scale_fix': False,
     'x_scale_range': None,
     'scale_factor': 0.25,

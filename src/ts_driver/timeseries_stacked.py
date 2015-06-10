@@ -112,16 +112,17 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
                 i += 1
                 yield float(i) / n_images * 100.0
 
-            np.copyto(series.data, series._scratch_data)
+        # Copy from scratch variable if it completes
+        np.copyto(series.data, series._scratch_data)
 
     def fetch_results(self):
         pass
 
     def get_data(self, series, band, mask=True):
         if mask:
-            return self.series[series]._data[band, self._mask]
+            return self.series[series].data[band, self.series[series].mask]
         else:
-            return self.series[series]._data[band, :]
+            return self.series[series].data[band, :]
 
     def get_prediction(self, series, band):
         pass
