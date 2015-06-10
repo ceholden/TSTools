@@ -349,7 +349,7 @@ class Controller(QtCore.QObject):
         settings.plot['y_max'] = [10000, 10000]  # TODO:HARDCODE
         settings.plot['x_min'] = min([series.images['date'].min()
                                       for series in tsm.ts.series]).year
-        settings.plot['x_max'] = max([series.images['date'].min()
+        settings.plot['x_max'] = max([series.images['date'].max()
                                       for series in tsm.ts.series]).year
 
     def _init_symbology(self):
