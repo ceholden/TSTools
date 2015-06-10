@@ -12,6 +12,7 @@ import qgis
 
 from . import config
 from . import settings
+from .utils import actions
 from .logger import qgis_log
 from .ts_driver.ts_manager import tsm
 
@@ -65,6 +66,8 @@ class Controller(object):
         self.controls.init_ts()
         self.controls.image_table_row_clicked.connect(
             partial(self._add_remove_image, settings.series_index_table))
+        self.controls.symbology_applied.connect(
+            lambda: actions.apply_symbology())
 
 # LAYER MANIPULATION
     @QtCore.pyqtSlot()
@@ -142,18 +145,11 @@ class Controller(object):
             if rlayer.isValid():
                 qgis.core.QgsMapLayerRegistry.instance().addMapLayer(rlayer)
                 settings.image_layers.append(rlayer)
-                self._apply_symbology(rlayer)
+                actions.apply_symbology(rlayer)
         # Remove image
         else:
             layer_id = [l.id() for l in layers if l.source() == filename][0]
             qgis.core.QgsMapLayerRegistry.instance().removeMapLayer(layer_id)
-
-    def _apply_symbology(self, rlayer):
-        """ Apply symbology to a raster layer
-        """
-        logger.debug('Applying symbology to raster layer: {r} ({m})'.format(
-            r=rlayer.id(), m=hex(id(rlayer))))
-
 
 # CONFIG
     @QtCore.pyqtSlot()
