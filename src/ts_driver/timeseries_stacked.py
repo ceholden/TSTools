@@ -12,10 +12,12 @@ import os
 import numpy as np
 from osgeo import gdal, gdal_array, osr
 
-from . import utils
+from . import ts_utils
 from .reader import read_pixel_GDAL
 from .timeseries import AbstractTimeSeriesDriver, Series
 from ..utils import geo_utils
+
+logger = logging.getLogger('tstools')
 
 
 class StackedTimeSeries(AbstractTimeSeriesDriver):
@@ -48,20 +50,21 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
                     'Date format',
                     'Mask band']
 
+    _px, _py = 0, 0
+
     def __init__(self, location, config=None):
         super(StackedTimeSeries, self).__init__(location, config=config)
 
         self.series = [Series({'description': 'Stacked Timeseries'})]
 
-        self._n_images = 0
         for series in self.series:
             self._init_images(series)
             self._init_attributes(series)
 
-            series._data = np.zeros((self._n_band, self._n_images),
-                                    dtype=self._dtype)
-            series._mask = np.ones(self._n_images, dtype=np.bool)
-            self._n_images += series._n_images
+            series.data = np.zeros((series._n_band, series._n_images),
+                                   dtype=series._dtype)
+            series._scratch_data = np.zeros_like(series.data)
+            series.mask = np.ones(series._n_images, dtype=np.bool)
 
     @property
     def pixel_pos(self):
@@ -89,21 +92,27 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
 
         """
         # Convert coordinate
-        self._px, self._py = geo_utils.point2pixel(mx, my, crs)
-
+        # TODO: reprojection if necessary
+        self._px, self._py = geo_utils.point2pixel(mx, my, self._geotransform)
+        logger.info('mx/my: {mx}/{my}'.format(mx=mx, my=my))
         self._update_pixel_pos()
 
         if (self._px < 0 or self._py < 0 or
                 self._px > self._x_size or self._py > self._y_size):
+            logger.error('Coordinate specified is outside of dataset '
+                         '(px/py: {px}/{py})'.format(px=self._px, py=self._py))
             raise IndexError('Coordinate specified is outside of dataset')
 
-        # TODO: refactor into _fetch_data_images and _fetch_data_cache
         i = 0
+        n_images = sum([s._n_images for s in self.series])
         for series in self.series:
-            for i_img in range(self._n_images):
-                series._data[:, i_img] = read_pixel_GDAL(
-                    self.images['filename'], self._px, self._py, i_img)
-                yield float(i) / self._n_images
+            for i_img in range(series._n_images):
+                series._scratch_data[:, i_img] = read_pixel_GDAL(
+                    series.images['path'], self._px, self._py, i_img)
+                i += 1
+                yield float(i) / n_images * 100.0
+
+            np.copyto(series.data, series._scratch_data)
 
     def fetch_results(self):
         pass
@@ -130,8 +139,8 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
             ignore_dirs.append(getattr(self, '_results_folder'))
 
         # Find images
-        images = utils.find_files(self.location, self._stack_pattern,
-                                  ignore_dirs=ignore_dirs)
+        images = ts_utils.find_files(self.location, self._stack_pattern,
+                                     ignore_dirs=ignore_dirs)
 
         # Extract attributes
         _images = np.empty(len(images), dtype=series.images.dtype)
@@ -166,8 +175,8 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
 
         self._x_size = ds.RasterXSize
         self._y_size = ds.RasterYSize
-        self._n_band = ds.RasterCount
-        self._dtype = gdal_array.GDALTypeCodeToNumericTypeCode(
+        series._n_band = ds.RasterCount
+        series._dtype = gdal_array.GDALTypeCodeToNumericTypeCode(
             ds.GetRasterBand(1).DataType)
 
         _band_names = []

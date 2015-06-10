@@ -2,7 +2,7 @@ import abc
 
 import numpy as np
 
-from . import utils
+from . import ts_utils
 
 
 class AbstractTimeSeriesDriver(object):
@@ -53,7 +53,7 @@ class AbstractTimeSeriesDriver(object):
     def __init__(self, location, config=None):
         self.location = location
         if config:
-            utils.set_custom_config(self, config)
+            ts_utils.set_custom_config(self, config)
 
     def __repr__(self):
         return "A {d} ({c}) timeseries of {n} Series at {m}".format(
