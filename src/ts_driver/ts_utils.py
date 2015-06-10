@@ -93,9 +93,11 @@ def set_custom_config(obj, values):
     for val, attr in zip(values, obj.config):
         current_val = getattr(obj, attr, None)
 
-        logger.debug('    {a} : {cv} <-- {v} ({t})'.format(
-            a=attr, v=val, cv=current_val, t=type(val)
-        ))
+        _msg = '    {a} : {cv} <-- {v} ({t})'.format(a=attr,
+                                                     v=val,
+                                                     cv=current_val,
+                                                     t=type(val))
+        logger.debug(_msg)
 
         if isinstance(val, type(current_val)):
             setattr(obj, attr, val)
