@@ -399,7 +399,7 @@ class Controller(QtCore.QObject):
                             isinstance(i[1], np.ndarray):
                         logger.debug(
                             'Applying specified min/max symbology hint')
-                        settings.symbol.update({
+                        symbol.update({
                             'min': i[0],
                             'max': i[1]
                         })
