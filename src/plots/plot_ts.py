@@ -80,6 +80,8 @@ class TSPlot(base_plot.BasePlot):
                           ls='',
                           picker=settings.plot['picker_tol'])
 
+        # TODO: Results and break points
+
     def plot(self):
         """ Matplotlib plot of time series
         """
@@ -87,6 +89,8 @@ class TSPlot(base_plot.BasePlot):
         self.axes.clear()
 
         # Setup axes
+        if tsm.ts:
+            self.axes.set_title(tsm.ts.pixel_pos)
         self.axes.set_xlabel('Date')
         self.axes.set_ylabel('Value')  # TODO
 
