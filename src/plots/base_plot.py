@@ -4,22 +4,30 @@ import matplotlib as mpl
 from matplotlib.backends.backend_qt4agg \
     import FigureCanvasQTAgg as FigureCanvas
 
-from tstools import settings
+from .. import settings
 
 
 # Note: FigureCanvas is also a QWidget
 class BasePlot(FigureCanvas):
+    """ Base plot class for methods common to all subclass plots """
+
+    def __str__(self):
+        return "Base plot"
 
     def setup_plots(self):
         # matplotlib
-        mpl.style.use('ggplot')
+        style = settings.plot.get('style')
+        if style:
+            if style == 'xkcd':
+                mpl.pyplot.xkcd()
+            else:
+                mpl.style.use(style)
         self.fig = mpl.figure.Figure()
         self.axes = self.fig.add_subplot(111)
 
         FigureCanvas.__init__(self, self.fig)
 
         self.setAutoFillBackground(False)
-        self.axes.set_ylim([0, 10000])
         self.fig.tight_layout()
 
     def plot(self):

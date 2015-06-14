@@ -24,6 +24,8 @@ plot_bands = []
 
 # Dictionary to store plot settings
 plot = {
+    # Style
+    'style': 'ggplot',
     # Should we plot when we click canvas?
     'plot_layer': True,
     # Axis selector for controls
@@ -52,21 +54,20 @@ plot = {
 }
 
 # Dictionary to store plot symbology options
-plot_symbol = {
-    'enabled': False,
-    'indices': None,
-    'markers': None,
-    'colors': None
+plot_symbol = []
+default_plot_symbol = {
+    'enabled': False,  # bool
+    'indices': None,  # list of np.array
+    'markers': None,  # list of str
+    'colors': None  # list of tuple of 0-255 e.g., (0, 255, 0)
 }
 
 save_plot = {
-
     'fname': 'time_series_plot',
     'format': 'png',
     'transparent': False,
     'facecolor': 'w',
     'edgecolor': 'w'
-
 }
 
 # Enable/disable symbology control for all Series

@@ -1,6 +1,5 @@
 from .plot_doy import DOYPlot
 from .plot_ts import TSPlot
 
-plots = [TSPlot, DOYPlot]
-
-
+# plots = [TSPlot, DOYPlot]
+plots = [TSPlot]

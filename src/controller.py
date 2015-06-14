@@ -2,8 +2,10 @@
 """
 import copy
 from functools import partial
+import itertools
 import logging
 
+import brewer2mpl
 import numpy as np
 
 from PyQt4 import QtCore, QtGui
@@ -37,9 +39,6 @@ class Worker(QtCore.QObject):
     def fetch(self, ts, pos, crs_wkt):
         logger.info('Fetching from QThread (id: {i})'.format(
             i=hex(self.thread().currentThreadId())))
-
-        # TODO: need to catch the exceptions
-
         # Fetch data
         try:
             for percent in ts.fetch_data(pos[0], pos[1], crs_wkt):
@@ -49,7 +48,7 @@ class Worker(QtCore.QObject):
         else:
             self.finished.emit()
 
-        # TODO: fetch results
+        # TODO: Fetch results
 
 
 class Controller(QtCore.QObject):
@@ -114,7 +113,8 @@ class Controller(QtCore.QObject):
 
         # Setup plots
         # TODO
-        self._init_plots()
+        self._init_plots()  # TODO -- do we have any setup to do?
+        self.update_plot()
 
 # PLOT TOOL
     @QtCore.pyqtSlot(object)
@@ -415,11 +415,33 @@ class Controller(QtCore.QObject):
 
 # PLOTS
     def _init_plots(self):
-        pass
+        """ Initialize plot data """
+        # Setup colors to cycle
+        if hasattr(brewer2mpl, 'wesanderson'):
+            # Zissou and Darjeeling combined for 9 colors
+            colors = (brewer2mpl.wesanderson.get_map('Zissou').colors +
+                      brewer2mpl.wesanderson.get_map('Darjeeling1').colors)
+        else:
+            colors = brewer2mpl.get_map('Dark2', 'Qualitative', 8).colors
+
+        # Initialize plot symbology for each series in timeseries
+        settings.plot_symbol = []
+        color_cycle = itertools.cycle(colors)
+        for s, b in zip(settings.plot_series, settings.plot_band_indices):
+            symbol = copy.deepcopy(settings.default_plot_symbol)
+
+            n_image = tsm.ts.series[s].images.shape[0]
+            symbol.update({
+                'indices': [np.arange(n_image)],
+                'markers': ['o'],
+                'colors': [color_cycle.next()]
+            })
+
+            settings.plot_symbol.append(symbol)
 
     def update_plot(self):
-        qgis_log('Updating plot', logging.DEBUG)
-        pass
+        for plot in self.plots:
+            plot.plot()
 
     def save_plot(self):
         qgis_log('Saving plot', logging.DEBUG)
