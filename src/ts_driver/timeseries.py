@@ -34,7 +34,7 @@ class AbstractTimeSeriesDriver(object):
     Required Methods:
       fetch_data: read data for a given X/Y, yielding progress as percentage
       fetch_results: read in or calculate timeseries fetch_results
-      get_data: return data for a specified band
+      get_data: return data (x, y) for a specified band
       get_prediction: return prediction for a specified band
       get_breaks: return timeseries break points for a specified band
 
@@ -118,7 +118,7 @@ class AbstractTimeSeriesDriver(object):
             supported by driver implementation
 
         Returns:
-          np.ndarray: 1D NumPy array containing data
+          tuple: two 1D NumPy arrays containing dates (x) and data (y)
 
         """
         pass

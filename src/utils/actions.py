@@ -114,7 +114,7 @@ def calculate_scale(axis):
         _series = settings.plot_series[_added]
         _band = settings.plot_band_indices[_added]
 
-        _data = tsm.ts.get_data(_series, _band, mask=True)
+        _data = tsm.ts.get_data(_series, _band, mask=True)[1]  # get Y values
         _data_min = np.percentile(_data, 2) - 500
         _data_max = np.percentile(_data, 98) + 500
 

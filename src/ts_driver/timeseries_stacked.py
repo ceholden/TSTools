@@ -122,13 +122,31 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
                                   self.mask_values, invert=True)
 
     def fetch_results(self):
+        """ Read or calculate results for current pixel """
         pass
 
     def get_data(self, series, band, mask=True):
+        """ Return data for a given band
+
+        Args:
+          series (int): index of Series containing data
+          band (int): index of band to return
+          mask (bool, optional): return data masked or left unmasked, if
+            supported by driver implementation
+
+        Returns:
+          tuple: two 1D NumPy arrays containing dates (x) and data (y)
+
+        """
+
+        x = self.series[series].images['date']
+        y = self.series[series].data[band, :]
+
         if mask:
-            return self.series[series].data[band, self.series[series].mask]
-        else:
-            return self.series[series].data[band, :]
+            x = x[self.series[series].mask]
+            y = y[self.series[series].mask]
+
+        return x, y
 
     def get_prediction(self, series, band):
         pass
