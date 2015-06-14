@@ -1,5 +1,6 @@
 """ Module that stores current settings used in TSTools plugin
 """
+import datetime as dt
 import os
 
 import numpy as np
@@ -38,8 +39,8 @@ plot = {
     # Plot min, max
     'y_min': [0, 0],
     'y_max': [10000, 10000],
-    'x_min': None,
-    'x_max': None,
+    'x_min': dt.date.today().year,
+    'x_max': dt.date.today().year + 1,
     # Show mask, model fit, time series breaks
     'mask': True,
     'fit': True,

@@ -95,7 +95,6 @@ def calculate_scale(axis):
       axis (int): axis to scale (either 0 or 1)
 
     """
-    logger.debug('Auto-scaling plot Y-axis {n} min/max'.format(n=axis))
     # What data are added?
     bands = (settings.plot['y_axis_1_band'] if axis == 0
              else settings.plot['y_axis_2_band'])
@@ -107,6 +106,7 @@ def calculate_scale(axis):
             n=axis))
         return
 
+    logger.debug('Auto-scaling plot Y-axis {n} min/max'.format(n=axis))
     # Iterate through data, finding new min and max
     _min, _max = float('inf'), float('-inf')
     for _added in added:

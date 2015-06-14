@@ -138,7 +138,6 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
           tuple: two 1D NumPy arrays containing dates (x) and data (y)
 
         """
-
         x = self.series[series].images['date']
         y = self.series[series].data[band, :]
 
