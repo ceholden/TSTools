@@ -25,7 +25,9 @@ plot_bands = []
 # Dictionary to store plot settings
 plot = {
     # Style
-    'style': 'ggplot',
+    # 'style': 'xkcd' if ('bu.edu' in os.uname()[1] and
+    #                     dt.date.today().weekday() >= 5) else 'ggplot',
+    'style': os.environ.get('TSTOOLS_PLOT_STYLE', 'ggplot'),
     # Should we plot when we click canvas?
     'plot_layer': True,
     # Axis selector for controls
