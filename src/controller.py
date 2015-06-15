@@ -197,7 +197,16 @@ class Controller(QtCore.QObject):
         self.work_thread.quit()
 
         # Update controls
+        # TODO:
+        #   controller calls `controls.plot_option_changed` and controls
+        #   emits `plot_options_changed`. Controller receives
+        #   `plot_options_changed` and runs `update_plots`.
+        #   Seems a bit circular
+        #   Could we add an plot_option_changed(..., emit=True)
         self.controls.plot_option_changed()
+
+        # Add geometry from clicked point
+        self.plot_request_geometry()
 
     @QtCore.pyqtSlot(str)
     def plot_request_error(self, txt):
@@ -211,6 +220,67 @@ class Controller(QtCore.QObject):
     def plot_request_cancel(self):
         self.plot_request_finish()
         pass
+
+    def plot_request_geometry(self):
+        """ Add polygon of geometry from clicked X/Y coordinate """
+        # Record currently selected feature so we can restore it
+        last_selected = qgis.utils.iface.activeLayer()
+
+        geom_wkt, proj_wkt = tsm.ts.get_geometry()
+        geom_qgis = qgis.core.QgsGeometry.fromWkt(geom_wkt)
+        proj_qgis = qgis.core.QgsCoordinateReferenceSystem()
+        proj_qgis.createFromWkt(proj_wkt)
+
+        # Update existing layer
+        if settings.canvas['click_layer_id'] is not None:
+            # Update to new row/column
+            vlayer = qgis.core.QgsMapLayerRegistry.instance().mapLayers()[
+                settings.canvas['click_layer_id']]
+            vlayer.startEditing()
+            pr = vlayer.dataProvider()
+            # attrs = pr.attributeIndexes()
+            for feat in vlayer.getFeatures():
+                vlayer.changeAttributeValue(feat.id(), 0, tsm.ts.pixel_pos)
+                vlayer.changeGeometry(feat.id(), geom_qgis)
+                vlayer.setCrs(proj_qgis)
+            vlayer.commitChanges()
+            vlayer.updateExtents()
+            vlayer.triggerRepaint()
+        # Create new layer
+        else:
+            uri = 'polygon?crs=%s' % proj_wkt
+            vlayer = qgis.core.QgsVectorLayer(uri, 'Query', 'memory')
+            pr = vlayer.dataProvider()
+            vlayer.startEditing()
+            pr.addAttributes([
+                qgis.core.QgsField('position', QtCore.QVariant.String)
+            ])
+            feat = qgis.core.QgsFeature()
+            feat.setGeometry(geom_qgis)
+            feat.setAttributes([tsm.ts.pixel_pos])
+            pr.addFeatures([feat])
+
+            # See: http://lists.osgeo.org/pipermail/qgis-developer/2011-April/013772.html
+            props = {
+                'color_border': '255, 0, 0, 255',
+                'style': 'no',
+                'style_border': 'solid',
+                'width': '0.40'
+            }
+            s = qgis.core.QgsFillSymbolV2.createSimple(props)
+            vlayer.setRendererV2(qgis.core.QgsSingleSymbolRendererV2(s))
+            vlayer.commitChanges()
+            vlayer.updateExtents()
+
+            vlayer_id = qgis.core.QgsMapLayerRegistry.instance().addMapLayer(
+                vlayer).id()
+            if vlayer_id:
+                settings.canvas['click_layer_id'] = vlayer_id
+            else:
+                logger.warning('Could not get ID of "query" layer')
+
+        # Restore active layer
+        qgis.utils.iface.setActiveLayer(last_selected)
 
 # LAYER MANIPULATION
     @QtCore.pyqtSlot(list)
