@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Dialog</string>
+   <string>Plot Symbology - Attach Metadata</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="2" column="0">
@@ -87,8 +87,6 @@
           </widget>
          </item>
         </layout>
-        <zorder>widget_2</zorder>
-        <zorder>widget_2</zorder>
         <zorder>label_5</zorder>
         <zorder>table_metadata</zorder>
         <zorder>but_add_metadata</zorder>

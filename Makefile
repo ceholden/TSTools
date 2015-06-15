@@ -43,7 +43,7 @@ PY_FILES = src/*.py src/controls src/plots src/ts_driver src/utils
 
 EXTRAS = media/ metadata.txt
 
-UI_FILES = ui/ui_config.py ui/ui_controls.py ui/ui_plotsave.py ui/ui_controls_symbology.py ui/ui_symbology.py ui/ui_attach_md.py
+UI_FILES = $(shell find ui/ -name 'ui*.ui' | sed 's|\.ui|\.py|g')
 
 RESOURCE_FILES = resources_rc.py
 

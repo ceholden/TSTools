@@ -3,7 +3,7 @@ import logging
 
 from PyQt4 import QtCore, QtGui
 
-from ..ui_controls_symbology import Ui_Symbology
+from ..ui_raster_symbology import Ui_Raster_Symbology
 
 from .. import settings
 from ..logger import qgis_log
@@ -19,7 +19,7 @@ def str2num(s):
         return float(s)
 
 
-class RasterSymbologyControl(QtGui.QWidget, Ui_Symbology):
+class RasterSymbologyControl(QtGui.QWidget, Ui_Raster_Symbology):
     """ Raster symbology controls """
 
     def __init__(self, iface):

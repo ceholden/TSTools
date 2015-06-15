@@ -28,7 +28,7 @@ from PyQt4 import QtCore, QtGui
 import matplotlib as mpl
 import numpy as np
 
-from ..ui_symbology import Ui_Symbology
+from ..ui_plot_symbology import Ui_Plot_Symbology
 
 from .attach_md import AttachMetadata
 
@@ -38,7 +38,7 @@ from .. import settings
 logger = logging.getLogger('tstools')
 
 
-class SymbologyControl(QtGui.QDialog, Ui_Symbology):
+class SymbologyControl(QtGui.QDialog, Ui_Plot_Symbology):
     """ Plot symbology controls """
 
     plot_symbology_applied = QtCore.pyqtSignal()
