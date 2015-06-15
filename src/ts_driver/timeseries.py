@@ -37,6 +37,8 @@ class AbstractTimeSeriesDriver(object):
       get_data: return data (x, y) for a specified band
       get_prediction: return prediction for a specified band
       get_breaks: return timeseries break points for a specified band
+      get_geometry: return Well Known Text (Wkt) of geometry and projection
+        of query specified by X/Y coordinate
 
     """
 
@@ -149,6 +151,17 @@ class AbstractTimeSeriesDriver(object):
         Returns:
           iterable: sequence of tuples (1D NumPy arrays, x and y) containing
             break points
+
+        """
+        pass
+
+    @abc.abstractproperty
+    def get_geometry(self):
+        """ Return geometry and projection for data queried
+
+        Returns:
+          tuple: geometry and projection of data queried formatted as
+            Well Known Text (Wkt)
 
         """
         pass

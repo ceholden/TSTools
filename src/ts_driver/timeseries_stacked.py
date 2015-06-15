@@ -153,6 +153,18 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
     def get_breaks(self, series, band):
         pass
 
+    def get_geometry(self):
+        """ Return geometry and projection for data queried
+
+        Returns:
+          tuple: geometry and projection of data queried formatted as
+            Well Known Text (Wkt)
+
+        """
+        geom = geo_utils.pixel_geometry(self._geotransform, self._px, self._py)
+
+        return geom.ExportToWkt(), self._spatialref
+
     def _init_images(self, series):
         """ Sets up `self.images` by finding and describing imagery """
         # Ignore results folder and cache, if we have it

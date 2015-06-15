@@ -48,3 +48,32 @@ def reproject_point(x, y, from_crs_wkt, to_crs_wkt):
     point.Transform(transform)
 
     return point.GetX(), point.GetY()
+
+
+def pixel_geometry(gt, px, py):
+    """ Return an instance of ogr.Geometry for a pixel at given X/Y coordinate
+
+    Args:
+      gt (list): geotransform of raster
+      px (int): X (column) pixel coordinate
+      py (int): Y (row) pixel coordinate
+
+    Returns:
+      ogr.Geometry: OGR geometry of pixel at px/py
+
+    """
+    ulx = (gt[0] + px * gt[1] + py * gt[2])
+    uly = (gt[3] + px * gt[4] + py * gt[5])
+
+    geom = ogr.Geometry(ogr.wkbPolygon)
+    ring = ogr.Geometry(type=ogr.wkbLinearRing)
+
+    ring.AddPoint(ulx, uly)  # upper left
+    ring.AddPoint(ulx + gt[1], uly)  # upper right
+    ring.AddPoint(ulx + gt[1], uly + gt[5])  # lower right
+    ring.AddPoint(ulx, uly + gt[5])  # lower left
+    ring.AddPoint(ulx, uly)  # upper left
+
+    geom.AddGeometry(ring)
+
+    return geom
