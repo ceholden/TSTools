@@ -34,6 +34,7 @@ class AbstractTimeSeriesDriver(object):
     Required Methods:
       fetch_data: read data for a given X/Y, yielding progress as percentage
       fetch_results: read in or calculate timeseries fetch_results
+      update_mask: update data mask
       get_data: return data (x, y) for a specified band
       get_prediction: return prediction for a specified band
       get_breaks: return timeseries break points for a specified band
@@ -107,6 +108,16 @@ class AbstractTimeSeriesDriver(object):
     @abc.abstractmethod
     def fetch_results(self):
         """ Read or calculate results for current pixel """
+        pass
+
+    @abc.abstractmethod
+    def update_mask(self, mask_values=None):
+        """ Update data mask. Optionally also update mask values
+
+        Args:
+          mask_values (iterable, optional): values to mask
+
+        """
         pass
 
     @abc.abstractmethod

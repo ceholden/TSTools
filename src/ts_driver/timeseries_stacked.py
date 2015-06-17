@@ -117,13 +117,25 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
         np.copyto(series.data, series._scratch_data)
 
         # Update mask
-        for series in self.series:
-            series.mask = np.in1d(series.data[self._mask_band - 1, :],
-                                  self.mask_values, invert=True)
+        self.update_mask()
 
     def fetch_results(self):
         """ Read or calculate results for current pixel """
         pass
+
+    def update_mask(self, mask_values=None):
+        """ Update data mask. Optionally also update mask values
+
+        Args:
+          mask_values (iterable, optional): values to mask
+
+        """
+        if mask_values is not None:
+            self.mask_values = np.asarray(mask_values).copy()
+
+        for series in self.series:
+            series.mask = np.in1d(series.data[self._mask_band - 1, :],
+                                  self.mask_values, invert=True)
 
     def get_data(self, series, band, mask=True):
         """ Return data for a given band
