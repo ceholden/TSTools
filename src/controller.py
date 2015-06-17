@@ -343,17 +343,17 @@ class Controller(QtCore.QObject):
                 settings.canvas['click_layer_id'] = None
 
     @QtCore.pyqtSlot(int, int)
-    def _add_remove_image(self, i_table, i_image):
+    def _add_remove_image(self, i_series, i_image):
         """ Add or remove image at index `i_image`
         """
         layers = qgis.core.QgsMapLayerRegistry.instance().mapLayers().values()
-        filename = tsm.ts.series[i_table].images['path'][i_image]
+        filename = tsm.ts.series[i_series].images['path'][i_image]
 
         # Add image
         if filename not in [layer.source() for layer in layers]:
             rlayer = qgis.core.QgsRasterLayer(
-                tsm.ts.series[i_table].images['path'][i_image],
-                tsm.ts.series[i_table].images['id'][i_image])
+                tsm.ts.series[i_series].images['path'][i_image],
+                tsm.ts.series[i_series].images['id'][i_image])
 
             if rlayer.isValid():
                 qgis.core.QgsMapLayerRegistry.instance().addMapLayer(rlayer)
