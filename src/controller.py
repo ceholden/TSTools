@@ -6,6 +6,7 @@ import itertools
 import logging
 
 import brewer2mpl
+import matplotlib as mpl
 import numpy as np
 
 from PyQt4 import QtCore, QtGui
@@ -71,6 +72,7 @@ class Controller(QtCore.QObject):
         super(Controller, self).__init__()
         self.controls = controls
         self.plots = plots
+        self.plot_events = []  # Matplotlib event handlers
 
 # TIMESERIES
     def get_timeseries(self, driver, location, custom_config=None):
@@ -283,6 +285,30 @@ class Controller(QtCore.QObject):
         qgis.utils.iface.setActiveLayer(last_selected)
 
 # LAYER MANIPULATION
+    @QtCore.pyqtSlot()
+    def _plot_add_layer(self, event):
+        """ Receives matplotlib event and adds layer for data point picked
+
+        Reference:
+            http://matplotlib.org/users/event_handling.html
+
+        """
+        idx = np.array(event.ind)
+
+        logger.info('Canvas was clicked: {e}'.format(e=event))
+
+        # TS Plot
+        if isinstance(event.artist, mpl.lines.Line2D):
+            for i, series in enumerate(tsm.ts.series):
+                x_idx = np.where(series.images['date'] ==
+                                 event.artist.get_data()[0][idx][0])[0]
+                for x in x_idx:
+                    logger.info('Clicked: {i}: {x}'.format(i=i, x=x))
+                    self._add_remove_image(i, x)
+        # TODO: DOY plot
+        else:
+            logger.error('Unrecognized plot type. Cannot add image.')
+
     @QtCore.pyqtSlot(list)
     def _map_layers_added(self, layers):
         """ Performs necessary functions if added layers in timeseries
@@ -489,6 +515,11 @@ class Controller(QtCore.QObject):
 # PLOTS
     def _init_plots(self):
         """ Initialize plot data """
+        # Connect plot signals for adding images
+        for plot in self.plots:
+            self.plot_events.append(plot.fig.canvas.mpl_connect(
+                'pick_event', self._plot_add_layer))
+
         # Setup colors to cycle
         if hasattr(brewer2mpl, 'wesanderson'):
             # Zissou and Darjeeling combined for 9 colors
