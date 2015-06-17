@@ -407,6 +407,9 @@ class Controller(QtCore.QObject):
             settings.plot_series.extend([i] * len(series.band_names))
             settings.plot_band_indices.extend(range(len(series.band_names)))
             settings.plot_bands.extend(series.band_names)
+        settings.plot_series = np.asarray(settings.plot_series)
+        settings.plot_band_indices = np.asarray(settings.plot_band_indices)
+        settings.plot_bands = np.asarray(settings.plot_bands)
 
         n_bands = len(settings.plot_bands)
 
