@@ -327,8 +327,10 @@ class ControlPanel(QtGui.QWidget, Ui_Controls):
             self.cbox_breakpoint.setEnabled(False)
 
         # Symbology
+        if hasattr(self, 'symbology_controls'):
+            self.symbology_controls.disconnect()
+            self.symbology_controls = None
         self.symbology_controls = SymbologyControl(self)
-        self.symbology_controls.setup_gui()
         self.but_symbology.clicked.connect(
             lambda: self.symbology_controls.show())
         self.symbology_controls.plot_symbology_applied.connect(
