@@ -90,6 +90,7 @@ class TSPlot(base_plot.BasePlot):
         """
         # Clear before plotting again
         self.axis_1.clear()
+        self.axis_2.clear()
 
         # Setup axes
         if tsm.ts:
@@ -102,6 +103,8 @@ class TSPlot(base_plot.BasePlot):
 
         self.axis_1.set_ylim(settings.plot['y_min'][0],
                              settings.plot['y_max'][0])
+        self.axis_2.set_ylim(settings.plot['y_min'][1],
+                             settings.plot['y_max'][1])
 
         # Plot -- axis 1
         added = np.where(settings.plot['y_axis_1_band'])[0]
@@ -111,6 +114,14 @@ class TSPlot(base_plot.BasePlot):
                 _band = settings.plot_band_indices[_added]
 
                 self._plot_series(self.axis_1, _added, _series, _band)
+
+        added = np.where(settings.plot['y_axis_2_band'])[0]
+        if added.size > 0:
+            for _added in added:
+                _series = settings.plot_series[_added]
+                _band = settings.plot_band_indices[_added]
+
+                self._plot_series(self.axis_2, _added, _series, _band)
 
         # Redraw
         self.fig.tight_layout()
