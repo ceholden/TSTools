@@ -39,7 +39,8 @@ class TSPlot(base_plot.BasePlot):
         return "Timeseries Plot"
 
     def __init__(self, parent=None):
-        ### Setup datasets
+        super(TSPlot, self).__init__()
+        # Setup datasets
         # Actual data
         self.x = np.zeros(0)
         self.y = np.zeros(0)
@@ -52,8 +53,10 @@ class TSPlot(base_plot.BasePlot):
         # Location of pixel plotted
         self.title = ''
 
+        # Add second axis
+        self.axis_2 = self.axis_1.twinx()
+
         # Setup plots
-        self.setup_plots()
         self.plot()
 
     def _plot_series(self, axis, idx, series, band):
@@ -86,19 +89,19 @@ class TSPlot(base_plot.BasePlot):
         """ Matplotlib plot of time series
         """
         # Clear before plotting again
-        self.axes.clear()
+        self.axis_1.clear()
 
         # Setup axes
         if tsm.ts:
-            self.axes.set_title(tsm.ts.pixel_pos)
-        self.axes.set_xlabel('Date')
-        self.axes.set_ylabel('Value')  # TODO
+            self.axis_1.set_title(tsm.ts.pixel_pos)
+        self.axis_1.set_xlabel('Date')
+        self.axis_1.set_ylabel('Value')  # TODO
 
-        self.axes.set_xlim(dt.date(settings.plot['x_min'], 01, 01),
-                           dt.date(settings.plot['x_max'], 01, 01))
+        self.axis_1.set_xlim(dt.date(settings.plot['x_min'], 01, 01),
+                             dt.date(settings.plot['x_max'], 01, 01))
 
-        self.axes.set_ylim(settings.plot['y_min'][0],
-                           settings.plot['y_max'][0])
+        self.axis_1.set_ylim(settings.plot['y_min'][0],
+                             settings.plot['y_max'][0])
 
         # Plot -- axis 1
         added = np.where(settings.plot['y_axis_1_band'])[0]
@@ -107,7 +110,7 @@ class TSPlot(base_plot.BasePlot):
                 _series = settings.plot_series[_added]
                 _band = settings.plot_band_indices[_added]
 
-                self._plot_series(self.axes, _added, _series, _band)
+                self._plot_series(self.axis_1, _added, _series, _band)
 
         # Redraw
         self.fig.tight_layout()
