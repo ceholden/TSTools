@@ -513,6 +513,17 @@ class Controller(QtCore.QObject):
             settings.plot_symbol.append(symbol)
 
     def update_plot(self):
+        # Update mask if needed
+        if not np.array_equal(tsm.ts.mask_values, settings.plot['mask_val']):
+            tsm.ts.update_mask(settings.plot['mask_val'])
+            # Re-calculate scale
+            # TODO: already do this in controls but not before we update mask
+            if settings.plot['y_axis_scale_auto'][0]:
+                actions.calculate_scale(0)
+            if settings.plot['y_axis_scale_auto'][1]:
+                actions.calculate_scale(1)
+
+        # Update plots
         for plot in self.plots:
             plot.plot()
 
