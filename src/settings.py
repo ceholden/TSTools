@@ -56,12 +56,12 @@ plot = {
 }
 
 # Dictionary to store plot symbology options
-plot_symbol = []
+plot_symbol = []  #  all bands from all series added together
 default_plot_symbol = {
     'enabled': False,  # bool
     'indices': None,  # list of np.array
-    'markers': None,  # list of str
-    'colors': None  # list of tuple of 0-255 e.g., (0, 255, 0)
+    'markers': 'o',  # list of str
+    'colors': [0, 0, 0]  # list of tuple of 0-255 e.g., (0, 255, 0)
 }
 
 save_plot = {
