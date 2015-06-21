@@ -121,14 +121,17 @@ class AbstractTimeSeriesDriver(object):
         pass
 
     @abc.abstractmethod
-    def get_data(self, series, band, mask=True):
+    def get_data(self, series, band, mask=True, indices=None):
         """ Return data for a given band
 
         Args:
           series (int): index of Series containing data
-          band (int): index of band to return
+          band (int or np.ndarray): index of band (int) or indices of bands
+            (np.ndarray) to return
           mask (bool, optional): return data masked or left unmasked, if
             supported by driver implementation
+          indices (None or np.ndarray, optional): np.ndarray indices to subset
+            data in conjunction with mask, if needed, or None for no indexing
 
         Returns:
           tuple: two 1D NumPy arrays containing dates (x) and data (y)

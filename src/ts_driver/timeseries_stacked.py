@@ -137,25 +137,38 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
             series.mask = np.in1d(series.data[self._mask_band - 1, :],
                                   self.mask_values, invert=True)
 
-    def get_data(self, series, band, mask=True):
+    def get_data(self, series, band, mask=True, indices=None):
         """ Return data for a given band
 
         Args:
           series (int): index of Series containing data
-          band (int): index of band to return
+          band (int or np.ndarray): index of band (int) or indices of bands
+            (np.ndarray) to return
           mask (bool, optional): return data masked or left unmasked, if
             supported by driver implementation
+          indices (None or np.ndarray, optional): np.ndarray indices to subset
+            data in conjunction with mask, if needed, or None for no indexing
 
         Returns:
           tuple: two 1D NumPy arrays containing dates (x) and data (y)
 
         """
         x = self.series[series].images['date']
-        y = self.series[series].data[band, :]
+        # y = self.series[series].data[band, :]
+        y = self.series[series].data.take(band, axis=0)
 
-        if mask:
-            x = x[self.series[series].mask]
-            y = y[self.series[series].mask]
+        if mask is True:
+            mask = self.series[series].mask
+        if isinstance(indices, np.ndarray):
+            if isinstance(mask, np.ndarray):
+                mask = indices[np.in1d(indices,
+                                       np.where(self.series[series].mask)[0])]
+            else:
+                mask = indices
+
+        if mask is not None:
+            x = x.take(mask, axis=0)
+            y = y.take(mask, axis=0)
 
         return x, y
 
