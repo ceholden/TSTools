@@ -92,6 +92,8 @@ class TSPlot(base_plot.BasePlot):
         self.axis_1.clear()
         self.axis_2.clear()
 
+        # TODO: put axis_2 y-ticks on same grid as axis_1
+
         # Setup axes
         if tsm.ts:
             self.axis_1.set_title(tsm.ts.pixel_pos)
