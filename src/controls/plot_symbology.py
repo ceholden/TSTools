@@ -335,10 +335,6 @@ class SymbologyControl(QtGui.QDialog, Ui_Plot_Symbology):
                     settings.plot_symbol[idx]['markers'] = markers
                     settings.plot_symbol[idx]['colors'] = colors
 
-        QtCore.pyqtRemoveInputHook()
-        import pdb
-        pdb.set_trace()
-
     def _set_button_color(self, but, col):
         """ Sets color for a QPushButton """
         c_str = 'rgb({r}, {g}, {b})'.format(r=col[0], g=col[1], b=col[2])
