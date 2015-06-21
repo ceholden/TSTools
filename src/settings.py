@@ -61,7 +61,7 @@ default_plot_symbol = {
     'enabled': False,  # bool
     'indices': None,  # list of np.array
     'markers': 'o',  # list of str
-    'colors': [0, 0, 0]  # list of tuple of 0-255 e.g., (0, 255, 0)
+    'colors': [0, 0, 150]  # list of tuple of 0-255 e.g., (0, 255, 0)
 }
 
 save_plot = {
