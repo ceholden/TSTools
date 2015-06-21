@@ -20,6 +20,8 @@
  *                                                                         *
  ***************************************************************************/
 """
+from collections import OrderedDict
+import copy
 from functools import partial
 import logging
 
@@ -32,14 +34,17 @@ from ..ui_plot_symbology import Ui_Plot_Symbology
 
 from .attach_md import AttachMetadata
 
-from ..ts_driver.ts_manager import tsm
 from .. import settings
+from ..ts_driver.ts_manager import tsm
+from ..utils import ravel_series_band
 
 logger = logging.getLogger('tstools')
 
 
 class SymbologyControl(QtGui.QDialog, Ui_Plot_Symbology):
-    """ Plot symbology controls """
+
+    """ Plot symbology controls
+    """
 
     plot_symbology_applied = QtCore.pyqtSignal()
 
@@ -49,320 +54,300 @@ class SymbologyControl(QtGui.QDialog, Ui_Plot_Symbology):
         QtGui.QDialog.__init__(self)
         self.setupUi(self)
 
+        # Setup matplotlib markers
         keys = [k for k in mpl.lines.Line2D.markers.keys()
                 if len(str(k)) == 1 and k != ' ']
         marker_texts = ['{k} - {v}'.format(k=k, v=mpl.lines.Line2D.markers[k])
                         for k in keys]
         self.markers = {k: text for k, text in zip(keys, marker_texts)}
 
-    def setup_gui(self):
-        """ Setup GUI with metadata from timeseries """
-        self.setup_tables()
+        self.default_sym = dict(marker=settings.default_plot_symbol['markers'],
+                                color=settings.default_plot_symbol['colors'])
 
-        # Add handler for stacked widget
-        self.list_metadata.currentRowChanged.connect(self.metadata_changed)
+        # Finish setting up GUI
+        self.setup()
 
-        # Add slot for Okay / Apply
+    def setup(self):
+        """ Setup GUI with metadata from timeseries
+        """
+        # Find unique values to store in `self.md`
+        self._init_metadata()
+
+        # Store band lists and stack widgets
+        self.list_bands = []  # [series]
+        self.combox_metadata = []  # [series][band]
+        self.stack_metadata_items = []  # [series][band]
+        self.combox_markers = {}  # [series][band][metadata]
+        self.but_colors = {}  # [series][band][metadata]
+
+        # Setup series and band QComboBoxes
+        self.combox_series.clear()
+        self.combox_series.addItems([s.description for s in tsm.ts.series])
+        self.combox_series.currentIndexChanged.connect(
+            self._change_series)
+
+        n = 1
+        for i, series in enumerate(tsm.ts.series):
+            # Populate band selection stack widget
+            qlist = QtGui.QListWidget()
+            qlist.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
+            qlist.setAlternatingRowColors(True)
+            qlist.addItems(series.band_names)
+            qlist.itemSelectionChanged.connect(partial(self._change_band, i))
+
+            self.stack_band.insertWidget(i, qlist)
+            self.list_bands.append(qlist)
+
+            # Setup metadata combo box and metadata table
+            _stack_bands = []
+            _combox_metadata = []
+            _combox_markers = {}
+            _but_colors = {}
+            for j, band in enumerate(series.band_names):
+                widget = QtGui.QWidget()
+                layout = QtGui.QVBoxLayout()
+
+                # Add a copy of all metadata items in series for each band
+                md_combox = QtGui.QComboBox()
+                md_combox.addItems(self.md[i][j].keys())
+                md_combox.currentIndexChanged.connect(
+                    partial(self._change_md, i))
+                layout.addWidget(md_combox)
+                _combox_metadata.append(md_combox)
+
+                stack = QtGui.QStackedWidget()
+                # Add tables of all metadata items to QStackWidget
+                __combox_markers = {}
+                __but_colors = {}
+                for k, (item, vals) in enumerate(self.md[i][j].iteritems()):
+                    table, comboxes, buts = self._setup_metadata_table(
+                        i, j, item, vals)
+                    stack.insertWidget(k, table)
+                    __combox_markers[item] = comboxes
+                    __but_colors[item] = buts
+
+                _stack_bands.append(stack)
+                _combox_markers[j] = __combox_markers
+                _but_colors[j] = __but_colors
+
+                stack.setCurrentIndex(0)
+                layout.addWidget(stack)
+
+                widget.setLayout(layout)
+                self.stack_metadata.insertWidget(n, widget)
+                n += 1
+
+            self.stack_metadata_items.append(_stack_bands)
+            self.combox_metadata.append(_combox_metadata)
+            self.combox_markers[i] = _combox_markers
+            self.but_colors[i] = _but_colors
+
+        self.stack_band.setCurrentIndex(0)
+        self.stack_metadata.setCurrentIndex(0)
+
         self.button_box.button(QtGui.QDialogButtonBox.Apply).clicked.connect(
-            self.symbology_applied)
+            self._apply_symbology)
 
-        # Attach metadata
-        self.attach_md = AttachMetadata(self.iface)
-        self.attach_md.metadata_attached.connect(self.refresh_metadata)
-        self.but_load_metadata.clicked.connect(self.load_metadata)
+    def _init_metadata(self):
+        """ Finds unique values for each metadata item and sets up symbology
+        """
+        self.md = OrderedDict()  # {series}{band}{metadata}{value}
+        for i, series in enumerate(tsm.ts.series):
+            self.md[i] = OrderedDict()
+            for j, band in enumerate(series.band_names):
+                item = OrderedDict()
+                # Setup default (no metadata)
+                idx = ravel_series_band(i, j)
+                item['Default'] = {
+                    # None: self.default_sym
+                    None: {
+                        'color': settings.plot_symbol[idx]['colors'][0],
+                        'marker': settings.plot_symbol[idx]['markers'][0]
+                    }
+                }
 
-    def setup_tables(self):
-        """ Setup tables """
-        # Check for metadata
-        md = getattr(tsm.ts, 'metadata', None)
-        if not isinstance(md, list) or len(md) == 0:
-            self.has_metadata = False
-            self.setup_gui_nomd()
-            return
+                # If has metadata, add that in too
+                if (hasattr(series, 'metadata') and
+                        hasattr(series, 'metadata_names')):
+                    for _md, _md_str in zip(series.metadata,
+                                            series.metadata_names):
+                        vals = OrderedDict()
+                        for uniq in np.unique(getattr(series, _md)):
+                            vals[uniq] = copy.deepcopy(self.default_sym)
+                        item[_md_str] = copy.deepcopy(vals)
 
-        self.metadata = list(md)
+                self.md[i][j] = copy.deepcopy(item)
 
-        self.md = [getattr(tsm.ts, _md) for _md in md]
-
-        self.has_metadata = True
-
-        # Setup metadata listing
-        self.md_str = getattr(tsm.ts, 'metadata_str', None)
-        if not isinstance(self.md_str, list) or \
-                len(self.md_str) != len(self.md):
-            # If there is no description string, just use variable names
-            self.md_str = list(md)
-
-        # First item should be None to default to no symbology
-        self.list_metadata.addItem(QtGui.QListWidgetItem('None'))
-        for _md_str in self.md_str:
-            self.list_metadata.addItem(QtGui.QListWidgetItem(_md_str))
-        self.list_metadata.setCurrentRow(0)
-
-        # Find all unique values for all metadata items
-        self.unique_values = [None]
-        for _md in self.md:
-            self.unique_values.append(np.unique(_md))
-
-        ### Init marker and color for unique values in all metadatas
-        # list of dictionaries
-        #   entries in list are for metadata types (entries in QListWidget)
-        #       each list has dictionary for each unique value in metadata
-        #           each list's dictionary has dict of 'color', 'marker'
-        self.unique_symbologies = [None]
-        for md in self.unique_values:
-            if md is None:
-                continue
-            color = [0, 0, 0]
-            marker = 'o'
-            unique_md = {}
-            for unique in md:
-                unique_md[unique] = {'color': color,
-                                     'marker': marker
-                                     }
-            self.unique_symbologies.append(unique_md)
-
-        # Setup initial set of symbology for item selected
-        self.tables = []
-        logger.debug(self.unique_values)
-        for i_md, unique_values in enumerate(self.unique_values):
-            logger.debug('Init table {i}'.format(i=i_md))
-            self.init_metadata(i_md)
-        self.stack_widget.setCurrentIndex(0)
-
-    def init_metadata(self, i_md):
-        """ Initialize symbology table with selected metadata attributes """
-        if not self.has_metadata:
-            return
-
-        # Add QTableWidget
+    def _setup_metadata_table(self, series, band, md_item, values):
+        """ Add QTableWidgets containing metadata for each metadata item
+        """
+        # Setup table
         table = QtGui.QTableWidget()
         table.setColumnCount(3)
         table.setHorizontalHeaderLabels(['Value', 'Marker', 'Color'])
-        table.horizontalHeader().setStretchLastSection(True)
+        table.horizontalHeader().setResizeMode(QtGui.QHeaderView.Stretch)
+        table.setRowCount(len(values.keys()))
 
-        if self.unique_values[i_md] is None:
-            table.setRowCount(0)
+        comboxes = {}
+        buts = {}
+        for i, (val, sym) in enumerate(values.iteritems()):
+            # Value label
+            lab = QtGui.QLabel(str(val))
+            lab.setAlignment(QtCore.Qt.AlignCenter)
+
+            # Marker
+            combox = QtGui.QComboBox()
+            combox.addItems(self.markers.values())
+            combox.setCurrentIndex(
+                combox.findText(self.markers[sym['marker']]))
+            combox.currentIndexChanged.connect(
+                partial(self._change_marker, series, md_item, val))
+            comboxes[val] = combox
+
+            # Color button
+            but = QtGui.QPushButton('Color')
+            but.setAutoFillBackground(True)
+            self._set_button_color(but, sym['color'])
+            but.clicked.connect(
+                partial(self._change_color, series, band, md_item, val))
+            buts[val] = but
+
+            # Add to table
+            table.setCellWidget(i, 0, lab)
+            table.setCellWidget(i, 1, combox)
+            table.setCellWidget(i, 2, but)
+
+        table.resizeColumnsToContents()
+
+        return table, comboxes, buts
+
+# SLOTS
+    @QtCore.pyqtSlot(int)
+    def _change_series(self, index):
+        """ Change bands, metadata, and symbology based on series """
+        logger.debug('Series selected {s}'.format(s=index))
+        self.stack_band.setCurrentIndex(index)
+
+    @QtCore.pyqtSlot(int, int)
+    def _change_band(self, idx):
+        """ Change metadata table based on currently selected band """
+        selected = self.list_bands[idx].selectedItems()
+        if not selected:
+            self.stack_metadata.setCurrentIndex(0)
         else:
-            # Populate table
-            table.setRowCount(len(self.unique_values[i_md]))
+            logger.debug('Selected rows: {s}'.format(
+                s=[self.list_bands[idx].row(s) for s in selected]))
+            i_series = self.combox_series.currentIndex()
+            i_band = self.list_bands[idx].row(selected[0])
 
-            for i, unique in enumerate(self.unique_values[i_md]):
-                # Fetch current values
-                color = self.unique_symbologies[i_md][unique]['color']
-                marker = self.unique_symbologies[i_md][unique]['marker']
+            self.stack_metadata.setCurrentWidget(
+                self.stack_metadata_items[i_series][i_band].parentWidget())
 
-                # Label for value
-                lab = QtGui.QLabel(str(unique))
-                lab.setAlignment(QtCore.Qt.AlignCenter)
+    @QtCore.pyqtSlot(int)
+    def _change_md(self, series, idx):
+        for selected in self.list_bands[series].selectedItems():
+            band = self.list_bands[series].row(selected)
+            logger.debug('Changing metadata to: {md}'.format(
+                md=self.md[series][band].keys()[idx]))
+            self.stack_metadata_items[series][band].setCurrentIndex(idx)
+            # Block signal from changing metadata QComboBox
+            self.combox_metadata[series][band].blockSignals(True)
+            self.combox_metadata[series][band].setCurrentIndex(idx)
+            self.combox_metadata[series][band].blockSignals(False)
 
-                # Possible markers in combobox
-                cbox = QtGui.QComboBox()
-                for m in self.markers.values():
-                    cbox.addItem(m)
-                cbox.setCurrentIndex(cbox.findText(self.markers[marker]))
-                cbox.currentIndexChanged.connect(partial(self.marker_changed,
-                                                 i, i_md, unique))
-
-                # Colors
-                button = QtGui.QPushButton('Color')
-                button.setAutoFillBackground(True)
-                self.set_button_color(button, color)
-
-                button.pressed.connect(partial(self.color_button_pressed,
-                                               i, i_md, unique))
-
-                # Add to table
-                table.setCellWidget(i, 0, lab)
-                table.setCellWidget(i, 1, cbox)
-                table.setCellWidget(i, 2, button)
-
-        self.tables.append(table)
-        self.stack_widget.insertWidget(i_md, table)
+    @QtCore.pyqtSlot(int)
+    def _change_marker(self, series, md_item, value, idx):
+        for selected in self.list_bands[series].selectedItems():
+            band = self.list_bands[series].row(selected)
+            logger.debug('Changing marker from {f} to {t}'.format(
+                f=self.md[series][band][md_item][value], t=idx))
+            # Block signal when changing metadata marker
+            self.combox_markers[series][band][
+                md_item][value].blockSignals(True)
+            self.combox_markers[series][band][
+                md_item][value].setCurrentIndex(idx)
+            self.combox_markers[series][band][
+                md_item][value].blockSignals(False)
+            self.md[series][band][md_item][value]['marker'] = \
+                self.markers.keys()[idx]
 
     @QtCore.pyqtSlot()
-    def color_button_pressed(self, i, i_md, unique):
-        """ Slot for color chooser
+    def _change_color(self, series, band, md_item, value):
+        logger.debug('Changing color')
+        col = self.md[series][band][md_item][value]['color']
+        col = QtGui.QColor(col[0], col[1], col[2])
 
-        Pops up color chooser dialog and stores values
-        """
-        # Current color
-        c = self.unique_symbologies[i_md][unique]['color']
-        current_c = QtGui.QColor(c[0], c[1], c[2])
-
-        # Get new color
         color_dialog = QtGui.QColorDialog()
+        new_col = color_dialog.getColor(
+            col, self, 'Pick color for {u}'.format(u=value))
 
-        new_c = color_dialog.getColor(current_c, self,
-                                      'Pick color for {u}'.format(u=unique))
-        if not new_c.isValid():
+        if not new_col.isValid():
             return
 
-        # Update color and button
-        self.unique_symbologies[i_md][unique]['color'] = [new_c.red(),
-                                                          new_c.green(),
-                                                          new_c.blue()
-                                                          ]
-        button = self.tables[i_md].cellWidget(i, 2)
+        for selected in self.list_bands[series].selectedItems():
+            band = self.list_bands[series].row(selected)
+            but = self.but_colors[series][band][md_item][value]
 
-        self.set_button_color(button,
-                              self.unique_symbologies[i_md][unique]['color'])
-
-    @QtCore.pyqtSlot(int)
-    def marker_changed(self, i, i_md, unique, index):
-        """ Slot for changing marker style """
-        # Find combobox
-        cbox = self.tables[i_md].cellWidget(i, 1)
-        # Update value
-        self.unique_symbologies[i_md][unique]['marker'] = \
-            self.markers.keys()[index]
-
-    @QtCore.pyqtSlot(int)
-    def metadata_changed(self, row):
-        """ Switch metadata tables """
-        self.stack_widget.setCurrentIndex(row)
-
-    def set_button_color(self, button, c):
-        """ Sets button text color """
-        c_str = 'rgb({r}, {g}, {b})'.format(r=c[0], g=c[1], b=c[2])
-        style = 'QPushButton {{color: {c}; font-weight: bold}}'.format(c=c_str)
-
-        button.setStyleSheet(style)
+            self.md[series][band][md_item][value]['color'] = [
+                new_col.red(), new_col.green(), new_col.blue()]
+            self._set_button_color(
+                but, self.md[series][band][md_item][value]['color'])
 
     @QtCore.pyqtSlot()
-    def symbology_applied(self):
-        """ Slot for Apply or OK button on QDialogButtonBox
-
-        Emits "plot_symbology_applied" to Controls, which pushes to Controller,
-        and then to the plots
-        """
-        # Send symbology to settings
-        row = self.list_metadata.currentRow()
-
-        if row == 0:
-            # If row == 0, either no symbology or no metadata
-            settings.plot_symbol['enabled'] = False
-            settings.plot_symbol['indices'] = None
-            settings.plot_symbol['markers'] = None
-            settings.plot_symbol['colors'] = None
-        else:
-            settings.plot_symbol['enabled'] = True
-            self.parse_metadata_symbology()
-
-        # Emit changes
+    def _apply_symbology(self):
+        """ Forward current symbology from here to settings and emit update """
+        logger.debug('Applying symbology')
+        self._update_metadata()
         self.plot_symbology_applied.emit()
 
-    @QtCore.pyqtSlot()
-    def load_metadata(self):
-        """ Open AttachMetadata window to retrieve more metadata """
-        self.attach_md.show()
+# UTILITY
+    def _update_metadata(self):
+        for i, series in enumerate(tsm.ts.series):
+            for j, band in enumerate(series.band_names):
+                idx = ravel_series_band(i, j)
+                md = self.combox_metadata[i][j].currentText()
 
-    @QtCore.pyqtSlot()
-    def refresh_metadata(self):
-        """ Reset old table and load up new metadata """
-        self.update_tables()
+                if md == 'Default':
+                    # Default -- just on index
+                    n_image = series.images.shape[0]
+                    settings.plot_symbol[idx]['indices'] = [np.arange(n_image)]
+                    settings.plot_symbol[idx]['markers'] = [
+                        self.md[i][j][md][None]['marker']]
+                    settings.plot_symbol[idx]['colors'] = [
+                        self.md[i][j][md][None]['color']]
+                else:
+                    # Otherwise, index based on dataset values
+                    md_i = [i for i, name in enumerate(series.metadata_names)
+                            if name == md][0]
+                    dat = getattr(series, series.metadata[md_i])
+                    # For each metadata item value, find index and
+                    #   assign marker and color
+                    indices = []
+                    markers = []
+                    colors = []
+                    for k, val in self.md[i][j][md].iteritems():
+                        # TODO: we don't always need to update index,
+                        #   and this might be expensive
+                        indices.append(np.where(dat == k)[0])
+                        markers.append(val['marker'])
+                        colors.append(val['color'])
+                    settings.plot_symbol[idx]['indices'] = indices
+                    settings.plot_symbol[idx]['markers'] = markers
+                    settings.plot_symbol[idx]['colors'] = colors
 
-    def update_tables(self):
-        """ Setup tables """
-        # Check for new metadata
-        new_i = []
-        for i, (_md, _md_str) in enumerate(zip(tsm.ts.metadata,
-                                               tsm.ts.metadata_str)):
-            if _md not in self.metadata:
-                self.metadata.append(_md)
-                self.md.append(getattr(tsm.ts, _md))
-                self.md_str.append(_md_str)
-                new_i.append(i)
+        QtCore.pyqtRemoveInputHook()
+        import pdb
+        pdb.set_trace()
 
-        # First item should be None to default to no symbology
-        for i, _md_str in enumerate(self.md_str):
-            if i in new_i:
-                self.list_metadata.addItem(QtGui.QListWidgetItem(_md_str))
-        self.list_metadata.setCurrentRow(0)
+    def _set_button_color(self, but, col):
+        """ Sets color for a QPushButton """
+        c_str = 'rgb({r}, {g}, {b})'.format(r=col[0], g=col[1], b=col[2])
+        style = 'QPushButton {{color: {c}; font-weight: bold}}'.format(c=c_str)
 
-        # Find all unique values for all metadata items
-        self.unique_values = [None]
-        for _md in self.md:
-            self.unique_values.append(np.unique(_md))
+        but.setStyleSheet(style)
 
-        ### Init marker and color for unique values in all metadatas
-        # list of dictionaries
-        #   entries in list are for metadata types (entries in QListWidget)
-        #       each list has dictionary for each unique value in metadata
-        #           each list's dictionary has dict of 'color', 'marker'
-        self.unique_symbologies = [None]
-        for md in self.unique_values:
-            if md is None:
-                continue
-            color = [0, 0, 0]
-            marker = 'o'
-            unique_md = {}
-            for unique in md:
-                unique_md[unique] = {'color': color,
-                                     'marker': marker
-                                     }
-            self.unique_symbologies.append(unique_md)
-
-        # Setup initial set of symbology for item selected
-        for i_md, unique_values in enumerate(self.unique_values):
-            if (i_md - 1) not in new_i:
-                continue
-            print 'Init table {i}'.format(i=i_md)
-            self.init_metadata(i_md)
-
-        self.stack_widget.setCurrentIndex(0)
-
-    def parse_metadata_symbology(self):
-        """ Parses TS's metadata to update the symbology attributes """
-        logger.debug(
-            'Updating symbology?: %s' % str(settings.plot_symbol['enabled']))
-
-        if settings.plot_symbol['enabled']:
-            # Determine current metadata
-            row = self.list_metadata.currentRow()
-
-            # Update metadata
-            self.md[row - 1] = getattr(tsm.ts, tsm.ts.metadata[row - 1])
-
-            # Grab unique values
-            keys = self.unique_symbologies[row].keys()
-            # Grab unique value's markers and colors
-            indices = []
-            markers = []
-            colors = []
-            for k in keys:
-                indices.append(np.where(self.md[row - 1] == k)[0])
-                markers.append(self.unique_symbologies[row][k]['marker'])
-                colors.append(self.unique_symbologies[row][k]['color'])
-                print (self.md[row - 1] == k).sum()
-            settings.plot_symbol['indices'] = list(indices)
-            settings.plot_symbol['markers'] = list(markers)
-            settings.plot_symbol['colors'] = list(colors)
-
-#    def reset_tables(self):
-#        """ Removes all metadata items from table """
-#        # Remove all table entries and stacked widgets
-#        self.tables = []
-#        self.list_metadata.clear()
-#
-#        print self.stack_widget.count()
-#        for i in range(self.stack_widget.count()):
-#            print 'Removing stacked widget {i}'.format(i=i)
-#            w = self.stack_widget.widget(i)
-#            print w
-#            if w:
-#                self.stack_widget.removeWidget(w)
-#                w.deleteLater()
-#
-#        self.stack_widget.update()
-#
-#        self.widget_sym.layout().removeWidget(self.stack_widget)
-#        self.stack_widget = QtGui.QStackedWidget(self.widget_sym)
-#
-#        print self.stack_widget.count()
-
-    def setup_gui_nomd(self):
-        """ Setup GUI if timeseries has no metadata """
-        item = QtGui.QListWidgetItem('No Metadata')
-        self.list_metadata.addItem(item)
-        item.setFlags(item.flags() & ~QtCore.Qt.ItemIsEnabled)
+# CLEANUP
+    def disconnect(self):
+        self.combox_series.currentIndexChanged.disconnect()
+        for qlist in self.band_lists:
+            qlist.itemSelectionChanged.disconnect()

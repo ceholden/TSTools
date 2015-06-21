@@ -100,7 +100,8 @@ class Controller(QtCore.QObject):
 
         # Prepare TS driver data for controls
         self._init_plot_options()
-        self._init_symbology()
+        self._init_plot_symbology()
+        self._init_raster_symbology()
 
         # Setup controls
         self.controls.init_ts()
@@ -422,10 +423,37 @@ class Controller(QtCore.QObject):
 
         self.config = None
 
+# PLOT SYMBOLOGY / SETTINGS
+    def _init_plot_symbology(self):
+        logger.debug('Initialize plot symbology')
+        # Setup colors to cycle
+        if hasattr(brewer2mpl, 'wesanderson'):
+            # Zissou and Darjeeling combined for 9 colors
+            colors = (brewer2mpl.wesanderson.get_map('Zissou').colors +
+                      brewer2mpl.wesanderson.get_map('Darjeeling1').colors)
+        else:
+            colors = brewer2mpl.get_map('Dark2', 'Qualitative', 8).colors
+
+        # Initialize plot symbology for each series in timeseries
+        settings.plot_symbol = []
+        color_cycle = itertools.cycle(colors)
+        for s, b in zip(settings.plot_series, settings.plot_band_indices):
+            symbol = copy.deepcopy(settings.default_plot_symbol)
+
+            n_image = tsm.ts.series[s].images.shape[0]
+            symbol.update({
+                'indices': [np.arange(n_image)],
+                'markers': ['o'],
+                'colors': [color_cycle.next()]
+            })
+
+            settings.plot_symbol.append(symbol)
+
 # CONTROLS
     def _init_plot_options(self):
         """ Initialize plot control data
         """
+        logger.debug('Initialize plot options')
         settings.plot_series = []
         settings.plot_band_indices = []
         settings.plot_bands = []
@@ -454,9 +482,10 @@ class Controller(QtCore.QObject):
         # Default mask values
         settings.plot['mask_val'] = tsm.ts.mask_values.copy()
 
-    def _init_symbology(self):
+    def _init_raster_symbology(self):
         """ Initialize image symbology
         """
+        logger.debug('Initialize raster symbology')
         settings.symbol = []
         for i, series in enumerate(tsm.ts.series):
             # Setup symbology settings for series
@@ -519,29 +548,6 @@ class Controller(QtCore.QObject):
         for plot in self.plots:
             self.plot_events.append(plot.fig.canvas.mpl_connect(
                 'pick_event', self._plot_add_layer))
-
-        # Setup colors to cycle
-        if hasattr(brewer2mpl, 'wesanderson'):
-            # Zissou and Darjeeling combined for 9 colors
-            colors = (brewer2mpl.wesanderson.get_map('Zissou').colors +
-                      brewer2mpl.wesanderson.get_map('Darjeeling1').colors)
-        else:
-            colors = brewer2mpl.get_map('Dark2', 'Qualitative', 8).colors
-
-        # Initialize plot symbology for each series in timeseries
-        settings.plot_symbol = []
-        color_cycle = itertools.cycle(colors)
-        for s, b in zip(settings.plot_series, settings.plot_band_indices):
-            symbol = copy.deepcopy(settings.default_plot_symbol)
-
-            n_image = tsm.ts.series[s].images.shape[0]
-            symbol.update({
-                'indices': [np.arange(n_image)],
-                'markers': ['o'],
-                'colors': [color_cycle.next()]
-            })
-
-            settings.plot_symbol.append(symbol)
 
     def update_plot(self):
         # Update mask if needed
