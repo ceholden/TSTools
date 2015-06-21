@@ -238,7 +238,7 @@ class ControlPanel(QtGui.QWidget, Ui_Controls):
     def _init_plot_options(self):
         logger.debug('Initializing plot options')
         # Click point, add layer
-        self.cbox_plotlayer.setChecked(settings.plot['plot_layer'])
+        self.cbox_plotlayer.setChecked(settings.plot['plot_layer'])  # TODO: wire
 
         # Band select
         self.combox_band.clear()
@@ -483,15 +483,19 @@ class ControlPanel(QtGui.QWidget, Ui_Controls):
     def disconnect(self):
         """ Disconnect all signals
         """
+        self.cbox_plotlayer.disconnect()
         # Plot options
         self.combox_band.disconnect()
         self.rad_axis_1.disconnect()
         self.rad_axis_2.disconnect()
+        self.cbox_yscale_auto.disconnect()
         self.edit_ymin.disconnect()
         self.edit_ymax.disconnect()
         self.scroll_xmin.disconnect()
         self.scroll_xmax.disconnect()
+        self.cbox_xscale_fix.disconnect()
         self.cbox_fmask.disconnect()
+        self.edit_maskvalues.disconnect()
         self.cbox_modelfit.disconnect()
         self.cbox_breakpoint.disconnect()
 
