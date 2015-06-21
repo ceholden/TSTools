@@ -40,21 +40,13 @@ class TSPlot(base_plot.BasePlot):
 
     def __init__(self, parent=None):
         super(TSPlot, self).__init__()
-        # Setup datasets
-        # Actual data
-        self.x = np.zeros(0)
-        self.y = np.zeros(0)
-        # Modeled fitted data
-        self.mx = np.zeros(0)
-        self.my = np.zeros(0)
-        # Breaks
-        self.bx = np.zeros(0)
-        self.by = np.zeros(0)
         # Location of pixel plotted
         self.title = ''
 
         # Add second axis
         self.axis_2 = self.axis_1.twinx()
+        self.axis_2.xaxis.set_visible(False)
+        self.axes.append(self.axis_2)
 
         # Setup plots
         self.plot()
@@ -69,14 +61,16 @@ class TSPlot(base_plot.BasePlot):
           band (int): index of band within series within timeseries driver
 
         """
-        x, y = tsm.ts.get_data(series, band, settings.plot['mask'])
-
         # Iterate over symbology descriptions
         for index, marker, color in zip(settings.plot_symbol[idx]['indices'],
                                         settings.plot_symbol[idx]['markers'],
                                         settings.plot_symbol[idx]['colors']):
             # Any points falling into this category?
             if index.size > 0:
+                x, y = tsm.ts.get_data(series, band,
+                                       mask=settings.plot['mask'],
+                                       indices=index)
+
                 color = [c / 255.0 for c in color]
                 axis.plot(x, y,
                           marker=marker, color=color, markeredgecolor=color,
