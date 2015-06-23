@@ -96,9 +96,7 @@ class PlotHandler(QtCore.QObject):
             on_series = settings.plot_series[on]
             on_band = settings.plot_band_indices[on]
 
-            logger.debug('Checking axis: {a}'.format(a=ax))
             for i, j in zip(on_series, on_band):
-                logger.debug('Checking series/band: {s}/{b}'.format(s=i, b=j))
                 _x, _y = tsm.ts.get_data(i, j, settings.plot['mask'])
                 _x = np.array([dt.toordinal(d) for d in _x])
 
@@ -107,7 +105,6 @@ class PlotHandler(QtCore.QObject):
 
                 delta = np.linalg.norm(np.vstack((delta_x, delta_y)), axis=0)
 
-                logger.debug('Click distance: {d}'.format(d=delta))
                 clicked = np.where(delta < self.tolerance)[0]
 
                 for _clicked in clicked:
