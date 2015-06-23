@@ -15,9 +15,6 @@ class BasePlot(FigureCanvas):
         return "Base plot"
 
     def __init__(self):
-        self.setup_plots()
-
-    def setup_plots(self):
         # matplotlib
         style = settings.plot.get('style')
         if style:
@@ -26,7 +23,9 @@ class BasePlot(FigureCanvas):
             else:
                 mpl.style.use(style)
         self.fig = mpl.figure.Figure()
+        self.axes = []
         self.axis_1 = self.fig.add_subplot(111)
+        self.axes.append(self.axis_1)
 
         FigureCanvas.__init__(self, self.fig)
 
