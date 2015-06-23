@@ -165,8 +165,10 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
                                        np.where(self.series[series].mask)[0])]
             else:
                 mask = indices
+        else:
+            mask = np.where(mask)[0]
 
-        if mask is not None:
+        if mask is not False:
             x = x.take(mask, axis=0)
             y = y.take(mask, axis=0)
 
