@@ -28,6 +28,7 @@ class AbstractTimeSeriesDriver(object):
 
       controls (iterable): list of variables used for custom controls within
         "Controls" tab
+      controls_title (str): title of custom controls
       controls_names (iterable): list of names of variables used for custom
         controls within "Controls" tab
 
@@ -51,6 +52,7 @@ class AbstractTimeSeriesDriver(object):
 
     # No extra controls by default
     controls = []
+    controls_title = ''
     controls_names = []
 
     def __init__(self, location, config=None):
