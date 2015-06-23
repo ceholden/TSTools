@@ -20,6 +20,7 @@
  *                                                                         *
  ***************************************************************************/
 """
+from collections import OrderedDict
 from functools import partial
 import logging
 
@@ -32,6 +33,7 @@ from ..ui_controls import Ui_Controls
 from .raster_symbology import RasterSymbologyControl
 from .plot_symbology import SymbologyControl
 from .plot_save import SavePlotDialog
+from ..utils.custom_form import CustomForm
 
 from .. import settings
 from ..logger import qgis_log
@@ -476,8 +478,22 @@ class ControlPanel(QtGui.QWidget, Ui_Controls):
 
 # CUSTOM OPTIONS
     def _init_custom_controls(self):
-        if hasattr(tsm.ts, 'controls') and hasattr(tsm.ts, 'controls_names'):
-            logger.debug('Initializing custom controls')
+        if not (getattr(tsm.ts, 'controls', None) and
+                getattr(tsm.ts, 'controls_title', None) and
+                getattr(tsm.ts, 'controls_names', None)):
+            logger.debug('No custom controls to initialize')
+            return
+        if not hasattr(tsm.ts, 'set_custom_controls'):
+            logger.info('Timeseries driver has controls but no setter method')
+            return
+
+        logger.debug('Initializing custom controls')
+        config = OrderedDict([
+            [var, [name, getattr(tsm.ts, var)]] for var, name in
+            zip(tsm.ts.controls, tsm.ts.controls_names)
+        ])
+        self.custom_form = CustomForm(config)
+        self.tab_options.layout().addWidget(self.custom_form)
 
 # DISCONNECT SIGNALS
     def disconnect(self):

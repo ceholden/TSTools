@@ -180,8 +180,7 @@ class Controller(QtCore.QObject):
             lambda: actions.apply_symbology())
 
         # Setup plots
-        # TODO
-        self._init_plots()  # TODO -- do we have any setup to do?
+        self._init_plots()
         self.update_plot()
 
 # PLOT TOOL
@@ -232,6 +231,16 @@ class Controller(QtCore.QObject):
                                              crs_wkt))
 
             # TODO: custom controls / custom forms
+            if (getattr(self.controls, 'custom_form', None) is not None and
+                    hasattr(tsm.ts, 'set_custom_controls')):
+                try:
+                    options = self.controls.custom_form.get()
+                    tsm.ts.set_custom_controls(options)
+                except:
+                    qgis_log('Could not use custom controls for timeseries',
+                             level=logging.WARNING)
+                    self.controls.custom_form.reset()
+                    return
 
             # Run thread
             logger.info('Timeseries (id: {i})'.format(i=hex(id(tsm.ts))))
