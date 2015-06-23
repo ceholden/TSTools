@@ -204,7 +204,8 @@ class Series(object):
       metadata (iterable): list of variables used for plot and image table
         metadata
       metadata_table (iterable): list of True/False for each metadata variable
-        indicating suitability of variable within images table on "Controls" tab
+        indicating suitability of variable within images table on "Controls"
+        tab
       metadata_names (iterable): list of names of variables used for plot and
         image table metadata
 
