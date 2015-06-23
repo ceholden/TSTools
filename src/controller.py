@@ -1,6 +1,7 @@
 """ Controller for TSTools that handles slots/signals communication
 """
 import copy
+from datetime import datetime as dt
 from functools import partial
 import itertools
 import logging
@@ -50,6 +51,73 @@ class Worker(QtCore.QObject):
             self.finished.emit()
 
         # TODO: Fetch results
+
+
+class PlotHandler(QtCore.QObject):
+    """ Workaround for connecting `pick_event` signals to `twinx()` axes
+
+    Forwards `pick_event` signal to an axis onward.
+
+    Args:
+      canvas (matplotlib.backend_bases.FigureCanvasBase): figure canvas to
+        connect
+      tolerance (float or int): tolerance for picking plot point in days
+        (default: 10)
+
+    """
+    picked = QtCore.pyqtSignal(set)
+
+    def __init__(self, canvas, tolerance=25):
+        super(PlotHandler, self).__init__()
+        self.canvas = canvas
+        self.tolerance = tolerance
+        self.cid = self.canvas.mpl_connect('button_release_event', self)
+
+    def __call__(self, event):
+        # Plot X/Y clicked
+        x, y = event.x, event.y
+        # Bands plotted on each axis
+        plotted = (settings.plot['y_axis_1_band'],
+                   settings.plot['y_axis_2_band'])
+
+        # Store output as a set
+        images = set()
+        for ax, _plotted in zip(event.canvas.axes, plotted):
+            # If nothing plotted on this axis, continue
+            if not np.any(_plotted):
+                continue
+
+            # Find X/Y data values clicked
+            inv = ax.transData.inverted()
+            xdat, ydat = inv.transform(np.array((x, y)).reshape(1, 2)).ravel()
+
+            # Check bands that are plotted on current axis
+            on = np.where(_plotted)[0]
+            on_series = settings.plot_series[on]
+            on_band = settings.plot_band_indices[on]
+
+            logger.debug('Checking axis: {a}'.format(a=ax))
+            for i, j in zip(on_series, on_band):
+                logger.debug('Checking series/band: {s}/{b}'.format(s=i, b=j))
+                _x, _y = tsm.ts.get_data(i, j, settings.plot['mask'])
+                _x = np.array([dt.toordinal(d) for d in _x])
+
+                delta_x = np.abs(_x - xdat)
+                delta_y = np.abs(_y - ydat)
+
+                delta = np.linalg.norm(np.vstack((delta_x, delta_y)), axis=0)
+
+                logger.debug('Click distance: {d}'.format(d=delta))
+                clicked = np.where(delta < self.tolerance)[0]
+
+                for _clicked in clicked:
+                    # Add index of series and index of image
+                    images.add((i, _clicked))
+
+        self.picked.emit(images)
+
+    def disconnect(self):
+        self.canvas.mpl_disconnect(self.cid)
 
 
 class Controller(QtCore.QObject):
@@ -286,29 +354,17 @@ class Controller(QtCore.QObject):
         qgis.utils.iface.setActiveLayer(last_selected)
 
 # LAYER MANIPULATION
-    @QtCore.pyqtSlot()
-    def _plot_add_layer(self, event):
-        """ Receives matplotlib event and adds layer for data point picked
+    @QtCore.pyqtSlot(set)
+    def _plot_add_layer(self, idx):
+        """ Add or remove image described by idx
 
-        Reference:
-            http://matplotlib.org/users/event_handling.html
+        Args:
+          idx (list): list of tuples (index of series, index of image) to add
+            or remove
 
         """
-        idx = np.array(event.ind)
-
-        logger.info('Canvas was clicked: {e}'.format(e=event))
-
-        # TS Plot
-        if isinstance(event.artist, mpl.lines.Line2D):
-            for i, series in enumerate(tsm.ts.series):
-                x_idx = np.where(series.images['date'] ==
-                                 event.artist.get_data()[0][idx][0])[0]
-                for x in x_idx:
-                    logger.info('Clicked: {i}: {x}'.format(i=i, x=x))
-                    self._add_remove_image(i, x)
-        # TODO: DOY plot
-        else:
-            logger.error('Unrecognized plot type. Cannot add image.')
+        for i_series, i_img in idx:
+            self._add_remove_image(i_series, i_img)
 
     @QtCore.pyqtSlot(list)
     def _map_layers_added(self, layers):
@@ -544,10 +600,18 @@ class Controller(QtCore.QObject):
 # PLOTS
     def _init_plots(self):
         """ Initialize plot data """
+        # Disconnect any existing signals
+        for pe in zip(self.plot_events):
+            pe.disconnect()
+            pe.deleteLater()
+            pe = None
+
         # Connect plot signals for adding images
+        self.plot_events = []
         for plot in self.plots:
-            self.plot_events.append(plot.fig.canvas.mpl_connect(
-                'pick_event', self._plot_add_layer))
+            handler = PlotHandler(plot.fig.canvas)
+            handler.picked.connect(self._plot_add_layer)
+            self.plot_events.append(handler)
 
     def update_plot(self):
         # Update mask if needed
@@ -573,6 +637,12 @@ class Controller(QtCore.QObject):
             .layersAdded.disconnect()
         qgis.core.QgsMapLayerRegistry.instance()\
             .layersWillBeRemoved.disconnect()
+
+        # Disconnect plot mouse event signals
+        for pe in zip(self.plot_events):
+            pe.disconnect()
+            pe.deleteLater()
+            pe = None
 
         # Controls
         self.controls.plot_options_changed.disconnect()
