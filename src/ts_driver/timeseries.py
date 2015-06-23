@@ -42,6 +42,10 @@ class AbstractTimeSeriesDriver(object):
       get_geometry: return Well Known Text (Wkt) of geometry and projection
         of query specified by X/Y coordinate
 
+    Extra Methods:
+      set_custom_controls: setter for custom control variables defined in
+        `controls`. Required to enable custom controls
+
     """
 
     __metaclass__ = abc.ABCMeta
