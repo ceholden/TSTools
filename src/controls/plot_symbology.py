@@ -344,6 +344,5 @@ class SymbologyControl(QtGui.QDialog, Ui_Plot_Symbology):
 
 # CLEANUP
     def disconnect(self):
+        # TODO: finish disconnect
         self.combox_series.currentIndexChanged.disconnect()
-        for qlist in self.band_lists:
-            qlist.itemSelectionChanged.disconnect()
