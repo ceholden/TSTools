@@ -79,9 +79,9 @@ symbol = []
 # Defaults for `symbol`
 default_symbol = {
     # RGB color options
-    'band_red': 4,
-    'band_green': 3,
-    'band_blue': 2,
+    'band_red': 5,
+    'band_green': 4,
+    'band_blue': 3,
     # Min/max values for all bands
     'min': np.zeros(1, dtype=np.int),
     'max': np.ones(1, dtype=np.int) * 10000,
