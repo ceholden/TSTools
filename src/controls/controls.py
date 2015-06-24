@@ -317,11 +317,11 @@ class ControlPanel(QtGui.QWidget, Ui_Controls):
         if tsm.ts.has_results is True:
             self.cbox_modelfit.setEnabled(True)
             self.cbox_modelfit.setChecked(settings.plot['fit'])
-            self.cbox_modelfit.stateChanged.connect(self.set_model_fit)
+            self.cbox_modelfit.stateChanged.connect(self.plot_option_changed)
 
             self.cbox_breakpoint.setEnabled(True)
             self.cbox_breakpoint.setChecked(settings.plot['break'])
-            self.cbox_breakpoint.stateChanged.connect(self.set_break_point)
+            self.cbox_breakpoint.stateChanged.connect(self.plot_option_changed)
         else:
             self.cbox_modelfit.setChecked(False)
             self.cbox_modelfit.setEnabled(False)
