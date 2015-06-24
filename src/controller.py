@@ -236,9 +236,10 @@ class Controller(QtCore.QObject):
                 try:
                     options = self.controls.custom_form.get()
                     tsm.ts.set_custom_controls(options)
-                except:
-                    qgis_log('Could not use custom controls for timeseries',
-                             level=logging.WARNING)
+                except Exception as e:
+                    logger.warning(
+                        'Could not use custom controls for timeseries')
+                    qgis_log(e.msg, level=logging.WARNING)
                     self.controls.custom_form.reset()
                     return
 
