@@ -376,13 +376,15 @@ class ControlPanel(QtGui.QWidget, Ui_Controls):
             headers = ['ID', 'Date']
             extra_metadata = []
 
-            if (hasattr(series, 'metadata') and
-                    hasattr(series, 'metadata_table')
-                    and hasattr(tsm.ts, 'metadata_names')):
+            if (hasattr(series, 'metadata')
+                    and hasattr(series, 'metadata_table')
+                    and hasattr(series, 'metadata_names')):
                 for md, md_str, md_bool in zip(series.metadata,
-                                               series.metadata_table,
-                                               series.metadata_names):
+                                               series.metadata_names,
+                                               series.metadata_table):
                     if md_bool is True:
+                        logger.debug('Adding TS driver supplied metadata: '
+                                     '{m}'.format(m=md_str))
                         headers.append(md_str)
                         extra_metadata.append(getattr(series, md))
 
