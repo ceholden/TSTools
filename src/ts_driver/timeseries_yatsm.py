@@ -1,4 +1,6 @@
+from datetime import datetime as dt
 import logging
+import re
 
 import numpy as np
 import patsy
@@ -108,6 +110,7 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
         self._init_metadata()
 
         # Setup YATSM
+        self.yatsm_model = None
         self.X = None
         self.Y = None
         self.coef_name = 'coef'
@@ -150,14 +153,69 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
                         invert=True).astype(np.uint8)
 
     def get_prediction(self, series, band):
-        pass
+        if self.yatsm_model is None:
+            return
+        # Setup output
+        mx = []
+        my = []
+
+        # Don't predict with any categorical information
+        design = re.sub(r'[\+\-][\ ]+C\(.*\)', '', self._design)
+        coef_columns = []
+        for k, v in self._design_info.column_name_indexes.iteritems():
+            if not re.match('C\(.*\)', k):
+                coef_columns.append(v)
+        coef_columns = np.asarray(coef_columns)
+
+        if len(self.yatsm_model.record) > 0:
+            for rec in self.yatsm_model.record:
+                # Check for reverse
+                if rec['end'] < rec['start']:
+                    i_step = -1
+                else:
+                    i_step = 1
+                # Date range to predict
+                _mx = np.arange(rec['start'], rec['end'], i_step)
+                # Coefficients to use for prediction
+                _coef = rec[self.coef_name][coef_columns, band]
+                # Setup design matrix
+                _mX = patsy.dmatrix(design, {'x': _mx}).T
+                # Predict
+                _my = np.dot(_coef, _mX)
+                # Transform ordinal back to datetime for plotting
+                _mx = np.array([dt.fromordinal(int(_x)) for _x in _mx])
+
+                mx.append(_mx)
+                my.append(_my)
+
+        return mx, my
 
     def get_breaks(self, series, band):
-        pass
+        if self.yatsm_model is None:
+            return
+        # Setup output
+        bx = []
+        by = []
+
+        if len(self.yatsm_model.record) > 0:
+            for rec in self.yatsm_model.record:
+                if rec['break'] != 0:
+                    _bx = dt.fromordinal(int(rec['break']))
+                    index = np.where(self.series[series].images['date']
+                                     == _bx)[0]
+                    if (index.size > 0 and
+                            index[0] < self.series[series].data.shape[1]):
+                        bx.append(_bx)
+                        by.append(self.series[series].data[band, index[0]])
+                    else:
+                        logger.warning('Could not determine breakpoint')
+
+        return bx, by
 
 # RESULTS HELPER METHODS
     def _fetch_results_live(self):
         """ Run YATSM and get results """
+        logger.debug('Calculating YATSM results on the fly')
         # Setup design matrix
         self.X = patsy.dmatrix(self._design,
                                {
@@ -201,6 +259,10 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
                                      self.Y[:-1, clear],
                                      **kwargs)
 
+        # Don't want to have DEBUG logging when we run YATSM
+        log_level = logger.level
+        logger.setLevel(logging.INFO)
+
         self.yatsm_model.run()
 
         if self._commit_test:
@@ -211,6 +273,9 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
             self.coef_name = 'robust_coef'
         else:
             self.coef_name = 'coef'
+
+        # Restore log level
+        logger.setLevel(log_level)
 
 # SETUP
     def _init_metadata(self):

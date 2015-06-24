@@ -43,8 +43,8 @@ class AbstractTimeSeriesDriver(object):
         of query specified by X/Y coordinate
 
     Extra Methods:
-      set_custom_controls: setter for custom control variables defined in
-        `controls`. Required to enable custom controls
+      set_custom_controls(values): setter for custom control variables defined
+        in `controls`. Required to enable custom controls
 
     """
 

@@ -50,7 +50,7 @@ class Worker(QtCore.QObject):
         else:
             self.finished.emit()
 
-        # TODO: Fetch results
+        tsm.ts.fetch_results()
 
 
 class PlotHandler(QtCore.QObject):
@@ -230,7 +230,6 @@ class Controller(QtCore.QObject):
                                              (pos[0], pos[1]),
                                              crs_wkt))
 
-            # TODO: custom controls / custom forms
             if (getattr(self.controls, 'custom_form', None) is not None and
                     hasattr(tsm.ts, 'set_custom_controls')):
                 try:

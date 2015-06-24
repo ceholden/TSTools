@@ -77,7 +77,20 @@ class TSPlot(base_plot.BasePlot):
                           ls='',
                           picker=settings.plot['picker_tol'])
 
-        # TODO: Results and break points
+        predict = tsm.ts.get_prediction(series, band)
+        if predict is not None:
+            px, py = predict[0], predict[1]
+            for _px, _py in zip(px, py):
+                axis.plot(_px, _py, linewidth=2)
+
+        breaks = tsm.ts.get_breaks(series, band)
+        if breaks is not None:
+            bx, by = breaks[0], breaks[1]
+            for _bx, _by in zip(bx, by):
+                axis.plot(_bx, _by, 'ro', mec='r', mfc='none', ms=10, mew=5)
+
+        # Reset color cycle for later
+        axis.set_color_cycle(None)
 
     def plot(self):
         """ Matplotlib plot of time series
