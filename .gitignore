@@ -3,7 +3,7 @@
 *.swp
 *~
 
-# Compiled pyQt stuff
+# Compiled PyQt stuff
 resources_rc.py
 ui/*.py
 
