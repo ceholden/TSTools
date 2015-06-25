@@ -6,13 +6,11 @@
 # This file should be included when you package your plugin.
 
 # Mandatory items:
-
-
 [general]
 name=TSTools
 qgisMinimumVersion=2.0
 description=Plugin for visualization and analysis of remote sensing time series
-version=0.1
+version=0.99
 author=Chris Holden
 email=ceholden@gmail.com
 
@@ -26,13 +24,12 @@ email=ceholden@gmail.com
 # tags are comma separated with spaces allowed
 tags=remote sensing; time series
 
-homepage=
-tracker=
-repository=
-icon=icon.png
+homepage=https://github.com/ceholden/TSTools
+tracker=https://github.com/ceholden/TSTools/issues
+repository=https://github.com/ceholden/TSTools
+icon=media/tstools_click.png
 # experimental flag
 experimental=True
 
 # deprecated flag (applies to the whole plugin, not just a single version
 deprecated=False
-
