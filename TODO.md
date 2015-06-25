@@ -14,6 +14,5 @@
 8. [ ] Try to implement caching as a decorator? Generic TS tools as decorators?
 9. [ ] DOY plot
 10. [ ] Configuration / settings control panel that joins into persistent settings storage with `QSettings` [here](http://docs.qgis.org/testing/en/docs/pyqgis_developer_cookbook/settings.html) (issue #51)
-11. [ ] Fix bug with plot -- seems to only plot some of the predicted line first time it plots. Fixed on a replot of the data
 98. [ ] Remove exception raised in `controller` (see #TODO tag)
 99. [ ] Search for and resolve `TODO:HARDCODE` tags
