@@ -45,12 +45,11 @@ class Worker(QtCore.QObject):
         try:
             for percent in ts.fetch_data(pos[0], pos[1], crs_wkt):
                 self.update.emit(percent)
+            tsm.ts.fetch_results()
         except Exception as e:
             self.errored.emit(e.message)
         else:
             self.finished.emit()
-
-        tsm.ts.fetch_results()
 
 
 class PlotHandler(QtCore.QObject):
