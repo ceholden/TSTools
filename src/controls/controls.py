@@ -64,19 +64,19 @@ class ControlPanel(QtGui.QWidget, Ui_Controls):
         if not settings.plot['y_axis_1_band'][index] and \
                 not settings.plot['y_axis_2_band'][index]:
             settings.plot['y_axis_1_band'][index] = True
-            item.setText(u'☒: ' + name)
+            item.setText(u'Axis 1: ' + name)
         # On axis 1 -- move to axis 2
         elif settings.plot['y_axis_1_band'][index] and \
                 not settings.plot['y_axis_2_band'][index]:
             settings.plot['y_axis_1_band'][index] = False
             settings.plot['y_axis_2_band'][index] = True
-            item.setText(u'☑: ' + name)
+            item.setText(u'Axis 2: ' + name)
         # On axis 2 -- turn off
         elif not settings.plot['y_axis_1_band'][index] and \
                 settings.plot['y_axis_2_band'][index]:
             settings.plot['y_axis_1_band'][index] = False
             settings.plot['y_axis_2_band'][index] = False
-            item.setText(u'☐: ' + name)
+            item.setText(u'OFF: ' + name)
 
         # self.plot_options_changed.emit()
         # Update plot options
@@ -233,7 +233,7 @@ class ControlPanel(QtGui.QWidget, Ui_Controls):
         model.setItem(0, 0, item)
 
         for i, name in enumerate(settings.plot_bands):
-            item = QtGui.QStandardItem(u'☐: ' + name)
+            item = QtGui.QStandardItem(u'OFF: ' + name)
             item.setSelectable(False)
             model.setItem(i + 1, 0, item)
         self.combox_band.setModel(model)
