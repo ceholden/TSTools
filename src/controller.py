@@ -273,13 +273,10 @@ class Controller(QtCore.QObject):
         self.work_thread.quit()
 
         # Update controls
-        # TODO:
-        #   controller calls `controls.plot_option_changed` and controls
-        #   emits `plot_options_changed`. Controller receives
-        #   `plot_options_changed` and runs `update_plots`.
-        #   Seems a bit circular
-        #   Could we add an plot_option_changed(..., emit=True)
-        self.controls.plot_option_changed()
+        self.controls.plot_option_changed(emit=False)
+
+        # Update plots
+        self.update_plot()
 
         # Add geometry from clicked point
         self.plot_request_geometry()

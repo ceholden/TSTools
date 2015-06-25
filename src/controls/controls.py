@@ -191,7 +191,7 @@ class ControlPanel(QtGui.QWidget, Ui_Controls):
             self.cbox_xscale_fix.setText('Fixed date range')
 
     @QtCore.pyqtSlot()
-    def plot_option_changed(self):
+    def plot_option_changed(self, emit=True):
         """ Catch-all slot for plot control panel changes
         """
         logger.debug('Updating plot options')
@@ -235,7 +235,8 @@ class ControlPanel(QtGui.QWidget, Ui_Controls):
                 ', '.join([str(v) for v in settings.plot['mask_val']]))
 
         # Emit signal to trigger plot updates/etc
-        self.plot_options_changed.emit()
+        if emit:
+            self.plot_options_changed.emit()
 
     def _init_plot_options(self):
         logger.debug('Initializing plot options')
