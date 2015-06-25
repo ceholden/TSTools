@@ -1,3 +1,5 @@
+""" QWidget for setting raster symbology (RGB, stretch, etc.)
+"""
 from functools import partial
 import logging
 

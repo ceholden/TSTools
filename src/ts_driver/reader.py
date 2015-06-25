@@ -1,3 +1,5 @@
+""" Functions and classes useful for reading remote sensing imagery in GDAL
+"""
 import numpy as np
 from osgeo import gdal, gdal_array
 

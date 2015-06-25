@@ -1,24 +1,8 @@
-# -*- coding: utf-8 -*
-# vim: set expandtab:ts=4
-"""
-/***************************************************************************
- Create custom input widgets from dict
-                                 A QGIS plugin
- Plugin for visualization and analysis of remote sensing time series
-                             -------------------
-        begin                : 2013-03-15
-        copyright            : (C) 2013 by Chris Holden
-        email                : ceholden@gmail.com
- ***************************************************************************/
+""" Class for creating Qt UI elements from a `dict`
 
-/***************************************************************************
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- ***************************************************************************/
+Class is heavily inspired by "formlayout" module by Pierre Raybut:
+    https://code.google.com/p/formlayout/
+    MIT License
 """
 import copy
 

@@ -1,24 +1,7 @@
-# -*- coding: utf-8 -*-
-# vim: set expandtab:ts=4
-"""
-/***************************************************************************
- Timeseries manager
-                                 A QGIS plugin
- Plugin for visualization and analysis of remote sensing time series
-                             -------------------
-        begin                : 2013-03-15
-        copyright            : (C) 2013 by Chris Holden
-        email                : ceholden@gmail.com
- ***************************************************************************/
+""" Find, detect, and make available timeseries drivers implementations
 
-/***************************************************************************
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- ***************************************************************************/
+Timeseries drivers must inherit from the Abstract Base Class
+"AbstractTimeSeriesDriver" to be detected.
 """
 import importlib
 import logging

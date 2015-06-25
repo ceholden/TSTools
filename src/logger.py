@@ -1,3 +1,5 @@
+""" Set up logger for TSTools and provide function for logging to QgsMessageBar
+"""
 import logging
 import os
 

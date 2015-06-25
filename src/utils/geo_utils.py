@@ -1,4 +1,5 @@
-""" Utility functions to deal with spatial data coordinates/etc """
+""" Utility functions to deal with spatial data coordinates/etc
+"""
 from osgeo import osr, ogr
 
 

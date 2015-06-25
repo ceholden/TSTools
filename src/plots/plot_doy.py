@@ -1,24 +1,7 @@
-# -*- coding: utf-8 -*-
-# vim: set expandtab:ts=4
-"""
-/***************************************************************************
- Within-year timeseries plot (years represented using colors)
-                                 A QGIS plugin
- Plugin for visualization and analysis of remote sensing time series
-                             -------------------
-        begin                : 2013-03-15
-        copyright            : (C) 2013 by Chris Holden
-        email                : ceholden@gmail.com
- ***************************************************************************/
+""" "Day of Year" (DOY) plot
 
-/***************************************************************************
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- ***************************************************************************/
+DOY plot shows within-year variation in the data on the X axis and across-year
+variation in the data using a color ramp.
 """
 import matplotlib as mpl
 import mpl_toolkits.axes_grid1 as mpl_grid

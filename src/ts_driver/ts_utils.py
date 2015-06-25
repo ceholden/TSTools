@@ -1,3 +1,5 @@
+""" Various utilities useful for timeseries drivers
+"""
 import fnmatch
 import logging
 import os

@@ -1,3 +1,5 @@
+""" A basic timeseries driver for running YATSM on stacked timeseries
+"""
 from datetime import datetime as dt
 import logging
 import re

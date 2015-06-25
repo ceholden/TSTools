@@ -1,3 +1,8 @@
+""" Abstract Base Class (an interface, basically) for timeseries drivers
+
+The AbstractTimeSeriesDriver defines all the properties and methods required
+of a timeseries driver for auto-detection and use within the TSTools plugin.
+"""
 import abc
 
 import numpy as np

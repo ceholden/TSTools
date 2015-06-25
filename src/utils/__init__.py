@@ -1,3 +1,5 @@
+""" Utilities useful for UI or backend of TSTools plugin
+"""
 import numpy as np
 
 from .. import settings

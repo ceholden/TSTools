@@ -1,4 +1,4 @@
-""" TSTools QGIS Plugin: __init__.py
+""" Make plugin known to QGIS
 """
 
 

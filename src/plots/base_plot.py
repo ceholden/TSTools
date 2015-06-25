@@ -1,3 +1,5 @@
+""" Base class that sets up plots for TSTools
+"""
 import os
 
 import matplotlib as mpl

@@ -1,4 +1,4 @@
-""" Module that stores current settings used in TSTools plugin
+""" Data store for current settings used in TSTools plugin
 """
 import datetime as dt
 import os
