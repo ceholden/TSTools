@@ -317,7 +317,7 @@ class SymbologyControl(QtGui.QDialog, Ui_Plot_Symbology):
                         self.md[i][j][md][None]['color']]
                 else:
                     # Otherwise, index based on dataset values
-                    md_i = [i for i, name in enumerate(series.metadata_names)
+                    md_i = [_i for _i, name in enumerate(series.metadata_names)
                             if name == md][0]
                     dat = getattr(series, series.metadata[md_i])
                     # For each metadata item value, find index and
