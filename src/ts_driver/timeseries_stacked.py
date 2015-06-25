@@ -55,7 +55,10 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
     def __init__(self, location, config=None):
         super(StackedTimeSeries, self).__init__(location, config=config)
 
-        self.series = [Series({'description': 'Stacked Timeseries'})]
+        self.series = [Series({
+            'description': 'Stacked Timeseries',
+            'symbology_hint_indices': [4, 3, 2]
+        })]
 
         for series in self.series:
             self._init_images(series)
