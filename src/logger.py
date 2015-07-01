@@ -13,6 +13,7 @@ _handler = logging.StreamHandler()
 _handler.setFormatter(_formatter)
 
 logger = logging.getLogger('tstools')
+logger.handlers = []
 logger.addHandler(_handler)
 logger.setLevel(logging.INFO)
 
