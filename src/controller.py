@@ -15,6 +15,7 @@ from PyQt4 import QtCore, QtGui
 import qgis
 
 from . import config
+from . import plots
 from . import settings
 from .utils import actions
 from .logger import qgis_log
@@ -97,7 +98,11 @@ class PlotHandler(QtCore.QObject):
 
             for i, j in zip(on_series, on_band):
                 _x, _y = tsm.ts.get_data(i, j, mask=False)
-                _x = np.array([dt.toordinal(d) for d in _x])
+                # Switch based on plot type
+                if isinstance(event.canvas, plots.TSPlot):
+                    _x = np.array([dt.toordinal(d) for d in _x])
+                elif isinstance(event.canvas, plots.DOYPlot):
+                    _x = np.array([int(d.strftime('%j')) for d in _x])
 
                 delta_x = np.abs(_x - xdat)
                 delta_y = np.abs(_y - ydat)
