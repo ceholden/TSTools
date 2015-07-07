@@ -1,14 +1,32 @@
 """ Set up logger for TSTools and provide function for logging to QgsMessageBar
 """
+import datetime as dt
 import logging
 import os
 
 from qgis.gui import QgsMessageBar
 import qgis.utils
 
+
+class MsFormatter(logging.Formatter):
+    """ Modified custom log handler by HappyLeapSecond for millisecond logging
+    http://stackoverflow.com/questions/6290739/python-logging-use-milliseconds-in-time-format
+    """
+    converter = dt.datetime.fromtimestamp
+
+    def formatTime(self, record, datefmt=None):
+        ct = self.converter(record.created)
+        if datefmt:
+            s = ct.strftime(datefmt)
+        else:
+            t = ct.strftime("%H:%M:%S")
+            s = "%s.%03d" % (t, record.msecs)
+        return s
+
 # Logging setup
-_FORMAT = 'tstools:%(filename)s.%(funcName)s.%(levelname)s: %(message)s'
-_formatter = logging.Formatter(_FORMAT)
+_FORMAT = ('tstools:%(asctime)s:%(filename)s.%(funcName)s.%(levelname)s: '
+           '%(message)s')
+_formatter = MsFormatter(_FORMAT)
 _handler = logging.StreamHandler()
 _handler.setFormatter(_formatter)
 
