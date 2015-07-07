@@ -220,6 +220,7 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
                 _images[i]['id'][self._date_index[0]:self._date_index[1]],
                 self._date_format)
             _images[i]['ordinal'] = dt.toordinal(_images[i]['date'])
+            _images[i]['doy'] = int(_images[i]['date'].strftime('%j'))
 
         # Sort by date
         sort_idx = np.argsort(_images['ordinal'])

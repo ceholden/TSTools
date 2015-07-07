@@ -227,7 +227,8 @@ class Series(object):
                              ('path', object),
                              ('id', object),
                              ('date', object),
-                             ('ordinal', 'u4')])
+                             ('ordinal', 'u4'),
+                             ('doy', 'u2')])
     band_names = []
 
     # Basic symbology hints by default
