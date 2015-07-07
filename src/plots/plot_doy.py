@@ -62,16 +62,16 @@ class DOYPlot(base_plot.BasePlot):
                 continue
 
             # Get data and extract DOY and year
-            x, y = tsm.ts.get_data(series, band,
+            X, y = tsm.ts.get_data(series, band,
                                    mask=settings.plot['mask'],
                                    indices=index)
 
-            doy = np.array([int(d.strftime('%j')) for d in x])
-            year = np.array([d.year for d in x])
+            doy = X['doy']
+            year = np.array([d.year for d in X['date']])
 
             # Check for year range
             year_in = np.where((year >= settings.plot['x_min']) &
-                                (year <= settings.plot['x_max']))[0]
+                               (year <= settings.plot['x_max']))[0]
 
             # Plot
             self.axis_1.scatter(doy[year_in], y[year_in],

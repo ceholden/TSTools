@@ -153,10 +153,10 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
             data in conjunction with mask, if needed, or None for no indexing
 
         Returns:
-          tuple: two 1D NumPy arrays containing dates (x) and data (y)
+          tuple: two NumPy arrays containing images (X) and data (y)
 
         """
-        x = self.series[series].images['date']
+        X = self.series[series].images
         # y = self.series[series].data[band, :]
         y = self.series[series].data.take(band, axis=0)
 
@@ -172,10 +172,10 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
             mask = np.where(mask)[0]
 
         if mask is not False:
-            x = x.take(mask, axis=0)
+            X = X.take(mask, axis=0)
             y = y.take(mask, axis=0)
 
-        return x, y
+        return X, y
 
     def get_prediction(self, series, band):
         pass
