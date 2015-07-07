@@ -42,19 +42,42 @@ class DOYPlot(base_plot.BasePlot):
                 'Cannot find colormap {c}. Using backup'.format(c=cmap))
             self.cmap = mpl.cm.cubehelix
 
+        self.reset()
         self.plot()
 
-    def _plot_series(self, idx, series, band, norm, mapper):
+    def reset(self):
+        """ Resets variables pertinent to making a plot
+
+        Useful for reconfiguring existing plot object for new timeseries
+        """
+        # Setup colormap
+        if tsm.ts:
+            yr_min, yr_max = float('inf'), float('-inf')
+            for series in tsm.ts.series:
+                year = np.array([d.year for d in series.images['date']])
+                if year.min() <= yr_min:
+                    yr_min = year.min()
+                if year.max() >= yr_max:
+                    yr_max = year.max()
+        else:
+            yr_min, yr_max = dt.today().year, dt.today().year + 1
+
+        self.norm = mpl.colors.Normalize(vmin=yr_min, vmax=yr_max)
+        self.mapper = mpl.cm.ScalarMappable(norm=self.norm, cmap=self.cmap)
+
+        self.cm = mpl.cm.ScalarMappable(cmap=self.cmap, norm=self.norm)
+        self.cm.set_array([yr_min, yr_max])
+
+    def _plot_series(self, idx, series, band):
         """ Plot a timeseries from a timeseries ts_driver
 
         Args:
           idx (int): index of all available plotting bands
           series (int): index of series within timeseries driver
           band (int): index of band within series within timeseries driver
-          norm (mpl.colors.Normalize): colormap normalizer
-          mapper (mpl.cm.ScalarMappable): scale mapper
 
         """
+        logger.debug('Plotting DOY plot series')
         for index, marker in zip(settings.plot_symbol[idx]['indices'],
                                  settings.plot_symbol[idx]['markers']):
             # Any points falling into this category?
@@ -76,13 +99,14 @@ class DOYPlot(base_plot.BasePlot):
             # Plot
             self.axis_1.scatter(doy[year_in], y[year_in],
                                 cmap=self.cmap, c=year[year_in],
-                                norm=norm,
+                                norm=self.norm,
                                 marker='o', edgecolors='none', s=25,
                                 picker=settings.plot['picker_tol'])
 
         # TODO: prediction & breaks
 
     def plot(self):
+        logger.debug('Plotting DOY plot')
         self.axis_1.clear()
 
         # Setup axes
@@ -92,28 +116,23 @@ class DOYPlot(base_plot.BasePlot):
         self.axis_1.set_xlabel('Day of Year')
         self.axis_1.set_ylabel('Value')
 
-        # Setup colormap
-        if tsm.ts:
-            yr_min, yr_max = float('inf'), float('-inf')
-            for series in tsm.ts.series:
-                year = np.array([d.year for d in series.images['date']])
-                if year.min() <= yr_min:
-                    yr_min = year.min()
-                if year.max() >= yr_max:
-                    yr_max = year.max()
-        else:
-            yr_min, yr_max = dt.today().year, dt.today().year + 1
-
-        norm = mpl.colors.Normalize(vmin=yr_min, vmax=yr_max)
-        mapper = mpl.cm.ScalarMappable(norm=norm, cmap=self.cmap)
-
         added = np.where(settings.plot['y_axis_1_band'])[0]
         if added.size > 0:
             for _added in added:
                 _series = settings.plot_series[_added]
                 _band = settings.plot_band_indices[_added]
+                self._plot_series(_added, _series, _band)
 
-                self._plot_series(_added, _series, _band, norm, mapper)
+        # Legend
+        if tsm.ts is not None:
+            # Setup layout to add space
+            # http://matplotlib.org/mpl_toolkits/axes_grid/users/overview.html#axesdivider
+            divider = mpl_grid.make_axes_locatable(self.axis_1)
+            cax = divider.append_axes('right', size='5%', pad=0.05)
+            if getattr(self, 'cbar', None) is not None:
+                self.fig.delaxes(self.fig.axes[1])
+                self.fig.subplots_adjust(right=0.90)
+            self.cbar = self.fig.colorbar(self.cm, cax=cax)
 
         self.axis_1.set_xlim((1, 366))
         self.axis_1.set_ylim(settings.plot['y_min'][0],
@@ -121,6 +140,7 @@ class DOYPlot(base_plot.BasePlot):
 
         self.fig.tight_layout()
         self.fig.canvas.draw()
+        logger.debug('Done plotting DOY plot')
 
     #     # Only put colorbar if we have data
     #     if tsm.ts is not None:

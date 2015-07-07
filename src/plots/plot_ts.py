@@ -33,6 +33,14 @@ class TSPlot(base_plot.BasePlot):
         # Setup plots
         self.plot()
 
+    def reset(self):
+        """ Resets variables pertinent to making a plot
+
+        Useful for reconfiguring existing plot object for new timeseries
+        """
+        # Nothing to do
+        pass
+
     def _plot_series(self, axis, idx, series, band):
         """ Plot a timeseries from a timeseries ts_driver
 
@@ -43,21 +51,23 @@ class TSPlot(base_plot.BasePlot):
           band (int): index of band within series within timeseries driver
 
         """
+        logger.debug('Plotting TS plot series')
         # Iterate over symbology descriptions
         for index, marker, color in zip(settings.plot_symbol[idx]['indices'],
                                         settings.plot_symbol[idx]['markers'],
                                         settings.plot_symbol[idx]['colors']):
             # Any points falling into this category?
-            if index.size > 0:
-                x, y = tsm.ts.get_data(series, band,
-                                       mask=settings.plot['mask'],
-                                       indices=index)
+            if index.size == 0:
+                continue
+            X, y = tsm.ts.get_data(series, band,
+                                   mask=settings.plot['mask'],
+                                   indices=index)
 
-                color = [c / 255.0 for c in color]
-                axis.plot(x, y,
-                          marker=marker, color=color, markeredgecolor=color,
-                          ls='',
-                          picker=settings.plot['picker_tol'])
+            color = [c / 255.0 for c in color]
+            axis.plot(X['date'], y,
+                      marker=marker, color=color, markeredgecolor=color,
+                      ls='',
+                      picker=settings.plot['picker_tol'])
 
         if settings.plot['fit']:
             predict = tsm.ts.get_prediction(series, band)
@@ -80,6 +90,7 @@ class TSPlot(base_plot.BasePlot):
     def plot(self):
         """ Matplotlib plot of time series
         """
+        logger.debug('Plotting TS plot')
         # Clear before plotting again
         self.axis_1.clear()
         self.axis_2.clear()
@@ -120,6 +131,7 @@ class TSPlot(base_plot.BasePlot):
         # Redraw
         self.fig.tight_layout()
         self.fig.canvas.draw()
+        logger.debug('Done plotting TS plot')
 
     def disconnect(self):
         pass

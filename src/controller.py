@@ -614,6 +614,9 @@ class Controller(QtCore.QObject):
             pe.deleteLater()
             pe = None
 
+        for plt in self.plots:
+            plt.reset()
+
         # Connect plot signals for adding images
         self.plot_events = []
         for plot in self.plots:
