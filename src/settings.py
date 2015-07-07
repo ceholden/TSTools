@@ -23,6 +23,8 @@ plot_band_indices = []
 plot_bands = []
 
 # Dictionary to store plot settings
+plot_current = 0
+plot_dirty = []
 plot = {
     # Style
     # 'style': 'xkcd' if ('bu.edu' in os.uname()[1] and

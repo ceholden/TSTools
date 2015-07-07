@@ -635,9 +635,13 @@ class Controller(QtCore.QObject):
             if settings.plot['y_axis_scale_auto'][1]:
                 actions.calculate_scale(1)
 
-        # Update plots
-        for plot in self.plots:
-            plot.plot()
+        # Update plots -- only visible
+        for i, plot in enumerate(self.plots):
+            if i == settings.plot_current:
+                settings.plot_dirty[i] = False
+                plot.plot()
+            else:
+                settings.plot_dirty[i] = True
 
     def save_plot(self):
         qgis_log('Saving plot', logging.DEBUG)

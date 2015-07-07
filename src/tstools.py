@@ -90,8 +90,19 @@ class TSTools(QtCore.QObject):
 
         for plot in plots.plots:
             self.plots.append(plot(self.iface))
+            settings.plot_dirty.append(False)
 
         self.plot_tabs = QtGui.QTabWidget(self.plot_dock)
+
+        @QtCore.pyqtSlot(int)
+        def tab_changed(idx):
+            """ Updates current tab index & re-plots if needed """
+            settings.plot_current = idx
+            if settings.plot_dirty[idx]:
+                self.plots[idx].plot()
+                settings.plot_dirty[idx] = False
+        self.plot_tabs.currentChanged.connect(tab_changed)
+
         for plot in self.plots:
             self.plot_tabs.addTab(plot, plot.__str__())
 
