@@ -15,6 +15,7 @@ from osgeo import gdal, gdal_array
 from . import ts_utils
 from .reader import read_pixel_GDAL
 from .timeseries import AbstractTimeSeriesDriver, Series
+from ..logger import qgis_log
 from ..utils import geo_utils
 
 logger = logging.getLogger('tstools')
@@ -39,16 +40,21 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
     _stack_pattern = 'L*stack'
     _date_index = [9, 16]
     _date_format = '%Y%j'
+    _cache_folder = 'cache'
     _mask_band = 8
 
     config = ['_stack_pattern',
               '_date_index',
               '_date_format',
+              '_cache_folder',
               '_mask_band']
     config_names = ['Stack pattern',
                     'Index of date in ID',
                     'Date format',
+                    'Cache folder',
                     'Mask band']
+
+    _read_cache, _write_cache = False, False
 
     _px, _py = 0, 0
 
@@ -59,6 +65,8 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
             'description': 'Stacked Timeseries',
             'symbology_hint_indices': [4, 3, 2]
         })]
+
+        self._check_cache()
 
         for series in self.series:
             self._init_images(series)
@@ -107,20 +115,46 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
                          '(px/py: {px}/{py})'.format(px=self._px, py=self._py))
             raise IndexError('Coordinate specified is outside of dataset')
 
-        i = 0
-        n_images = sum([s._n_images for s in self.series])
-        for series in self.series:
-            for i_img in range(series._n_images):
-                series._scratch_data[:, i_img] = read_pixel_GDAL(
-                    series.images['path'], self._px, self._py, i_img)
-                i += 1
-                yield float(i) / n_images * 100.0
+        # Read in -- first try from cache
+        got_cache = False
+        filename = os.path.join(
+            self.location, self._cache_folder,
+            ts_utils.cache_pixel_name(self._px, self._py, self.series))
 
-        # Copy from scratch variable if it completes
-        np.copyto(series.data, series._scratch_data)
+        if self._read_cache and os.path.isfile(filename):
+            logger.debug('Trying to read from cache')
+            try:
+                dat = ts_utils.read_cache_pixel(filename, self.series)
+            except:
+                logger.info('Could not read from cache file: {e}'.format(
+                    e='asdf'))
+                raise
+            else:
+                logger.debug('Read from cache')
+                for s, d in zip(self.series, dat):
+                    s.data = d
+                got_cache = True
+                yield 100.0
+
+        if not got_cache:
+            i = 0
+            n_images = sum([s._n_images for s in self.series])
+            for series in self.series:
+                for i_img in range(series._n_images):
+                    series._scratch_data[:, i_img] = read_pixel_GDAL(
+                        series.images['path'], self._px, self._py, i_img)
+                    i += 1
+                    yield float(i) / n_images * 100.0
+
+                # Copy from scratch variable if it completes
+                np.copyto(series.data, series._scratch_data)
 
         # Update mask
         self.update_mask()
+
+        # TODO: write to cache
+        if self._write_cache and not got_cache:
+            self._write_to_cache(filename)
 
     def fetch_results(self):
         """ Read or calculate results for current pixel """
@@ -258,3 +292,40 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
         self._spatialref = ds.GetProjection()
 
         ds = None
+
+    def _check_cache(self):
+        """ Check for read/write from/to cache folder
+        """
+        self.cache_folder = os.path.join(self.location, self._cache_folder)
+        if (os.path.exists(self.cache_folder) and
+                os.path.isdir(self.cache_folder)):
+            if os.access(self.cache_folder, os.R_OK):
+                self._read_cache = True
+
+            if os.access(self.cache_folder, os.W_OK):
+                self._write_cache = True
+        else:
+            try:
+                os.mkdir(self.cache_folder)
+            except:
+                pass
+            else:
+                self._read_cache, self._write_cache = True, True
+
+        logger.debug('Cache read/write: {r}/{w}'.format(
+            r=self._read_cache, w=self._write_cache))
+
+    def _write_to_cache(self, filename):
+        """ TOOD
+        """
+        try:
+            ts_utils.write_cache_pixel(filename, self.series)
+        except Exception as e:
+            # TODO
+            qgis_log('Could not cache pixel to {f}: {e}'.format(
+                f=filename, e=e.message), level=logging.ERROR)
+
+    def _read_from_cache(self):
+        """ TODO
+        """
+        pass

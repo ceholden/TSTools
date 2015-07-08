@@ -4,6 +4,8 @@ import fnmatch
 import logging
 import os
 
+import numpy as np
+
 logger = logging.getLogger('tstools')
 
 
@@ -37,6 +39,82 @@ def check_cache(cache_folder):
             write_cache = True
 
     return (read_cache, write_cache)
+
+
+def cache_pixel_name(x, y, series, affix=''):
+    """ Return a filename for a pixel cache file
+
+    Args:
+      x (int): column of pixel
+      y (int): row of pixel
+      series (list): list of Series within timeseries driver to save
+      affix (str, optional): affix to pixel cache filename
+
+    Returns:
+      str: cache filename
+
+    """
+    f = 'x{x}y{y}'.format(x=x, y=y)
+    for i, s in enumerate(series):
+        b, n = s.data.shape[0], s.data.shape[1]
+        f = '_'.join([f, 'i{i}n{n}b{b}'.format(i=i, n=n, b=b)])
+
+    return f + '.npz'
+
+
+def write_cache_pixel(filename, series):
+    """ Save series data to NumPy zipped array of series data and image names
+
+    Args:
+      filename (str): filename of cache file
+      series (list): list of Series within timeseries driver to save
+
+    Raises:
+      IOError: raise IOError if it cannot write to cache
+
+    """
+    out = {}
+    for i, s in enumerate(series):
+        out['data_{i}'.format(i=i)] = s.data
+        out['image_{i}'.format(i=i)] = s.images
+
+    np.savez(filename, **out)
+
+
+def read_cache_pixel(filename, series):
+    """ Returns data read in from cache file if passes validation
+
+    Args:
+      filename (str): filename of cache file
+      series (list): list of Series within timeseries driver to read
+
+    Returns:
+      list: list of 2D np.ndarray for each series
+
+    Raises:
+      IOError: raise IOError if cache file cannot correctly be read from disk
+      IndexError: raise IndexError if cached data does not match dimensions
+        or images used in timeseries series
+
+    """
+    z = np.load(filename)
+    _img_keys = [k for k in z.files if 'image' in k]
+    if not _img_keys:
+        raise IndexError('Cache file is not in the correct format')
+
+    data = []
+    for i, s in enumerate(series):
+        found = False
+        for k in _img_keys:
+            if np.all(np.equal(z[k]['date'], s.images['date'])):
+                _dat_key = 'data_{i}'.format(i=k.split('_')[-1])
+                data.append(z[_dat_key])
+                found = True
+        if not found:
+            raise IndexError('Could not find cache data for series {s}'.format(
+                s=s.description))
+
+    return data
 
 
 def find_files(location, pattern, ignore_dirs=[], maxdepth=float('inf')):
