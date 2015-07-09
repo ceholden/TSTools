@@ -241,6 +241,9 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
         # Find images
         images = ts_utils.find_files(self.location, self._stack_pattern,
                                      ignore_dirs=ignore_dirs)
+        if not images:
+            raise Exception('Could not find any files for "{s}" series'.format(
+                s=series.description))
 
         # Extract attributes
         _images = np.empty(len(images), dtype=series.images.dtype)
@@ -267,12 +270,18 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
         self._geotransform = None
         self._spatialref = None
 
+        ds = None
         for fname in series.images['path']:
             try:
                 ds = gdal.Open(fname, gdal.GA_ReadOnly)
             except:
                 pass
-            break
+            else:
+                break
+        if ds is None:
+            raise Exception(
+                'Could not initialize attributes for {s} series'.format(
+                    s=series.description))
 
         self._x_size = ds.RasterXSize
         self._y_size = ds.RasterYSize
