@@ -609,7 +609,7 @@ class Controller(QtCore.QObject):
     def _init_plots(self):
         """ Initialize plot data """
         # Disconnect any existing signals
-        for pe in zip(self.plot_events):
+        for pe in self.plot_events:
             pe.disconnect()
             pe.deleteLater()
             pe = None
