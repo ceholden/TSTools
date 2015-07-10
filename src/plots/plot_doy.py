@@ -100,7 +100,7 @@ class DOYPlot(base_plot.BasePlot):
             self.axis_1.scatter(doy[year_in], y[year_in],
                                 cmap=self.cmap, c=year[year_in],
                                 norm=self.norm,
-                                marker='o', edgecolors='none', s=25,
+                                marker=marker, edgecolors='none', s=35,
                                 picker=settings.plot['picker_tol'])
 
         # TODO: prediction & breaks
