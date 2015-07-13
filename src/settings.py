@@ -80,6 +80,7 @@ symbol_control = True
 symbol = []
 # Defaults for `symbol`
 default_symbol = {
+    'type': 'RGB',
     # RGB color options
     'band_red': 5,
     'band_green': 4,

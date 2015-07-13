@@ -178,8 +178,7 @@ class Controller(QtCore.QObject):
             self.update_plot)
         self.controls.plot_save_requested.connect(
             self.save_plot)
-        self.controls.image_table_row_clicked.connect(
-            partial(self._add_remove_image, settings.series_index_table))
+        self.controls.image_table_row_clicked.connect(self._add_remove_image)
         self.controls.symbology_applied.connect(
             lambda: actions.apply_symbology())
 
@@ -563,13 +562,23 @@ class Controller(QtCore.QObject):
             # Custom symbology, if exists
             if hasattr(series, 'symbology_hint_indices'):
                 i = series.symbology_hint_indices
-                if isinstance(i, (tuple, list)) and len(i) == 3:
-                    logger.debug('Applying RGB symbology hint')
-                    symbol.update({
-                        'band_red': i[0],
-                        'band_green': i[1],
-                        'band_blue': i[2]
-                    })
+                if isinstance(i, (tuple, list)):
+                    if len(i) == 3:
+                        logger.debug('Applying RGB symbology hint')
+                        symbol.update({
+                            'type': 'RGB',
+                            'band_red': i[0],
+                            'band_green': i[1],
+                            'band_blue': i[2]
+                        })
+                    elif len(i) == 1:
+                        logger.debug('Applying GREY symbology hint')
+                        symbol.update({
+                            'type': 'GREY',
+                            'band_red': i[0],
+                            'band_green': i[0],
+                            'band_blue': i[0]
+                        })
                 else:
                     logger.warning(
                         'Symbology RGB band hint improperly described')

@@ -46,39 +46,52 @@ def apply_symbology(rlayers=None):
             continue
 
         # Apply symbology
+        symbol_type = settings.symbol[i_series]['type']
         r_band = settings.symbol[i_series]['band_red']
         g_band = settings.symbol[i_series]['band_green']
         b_band = settings.symbol[i_series]['band_blue']
 
         # Contrast enhancements
-        r_ce = qgis.core.QgsContrastEnhancement(
-            rlayer.dataProvider().dataType(r_band + 1))
-        r_ce.setMinimumValue(settings.symbol[i_series]['min'][r_band])
-        r_ce.setMaximumValue(settings.symbol[i_series]['max'][r_band])
-        r_ce.setContrastEnhancementAlgorithm(
-            settings.symbol[i_series]['contrast'])
+        if symbol_type.upper() == 'RGB':
+            r_ce = qgis.core.QgsContrastEnhancement(
+                rlayer.dataProvider().dataType(r_band + 1))
+            r_ce.setMinimumValue(settings.symbol[i_series]['min'][r_band])
+            r_ce.setMaximumValue(settings.symbol[i_series]['max'][r_band])
+            r_ce.setContrastEnhancementAlgorithm(
+                settings.symbol[i_series]['contrast'])
 
-        g_ce = qgis.core.QgsContrastEnhancement(
-            rlayer.dataProvider().dataType(g_band + 1))
-        g_ce.setMinimumValue(settings.symbol[i_series]['min'][g_band])
-        g_ce.setMaximumValue(settings.symbol[i_series]['max'][g_band])
-        g_ce.setContrastEnhancementAlgorithm(
-            settings.symbol[i_series]['contrast'])
+            g_ce = qgis.core.QgsContrastEnhancement(
+                rlayer.dataProvider().dataType(g_band + 1))
+            g_ce.setMinimumValue(settings.symbol[i_series]['min'][g_band])
+            g_ce.setMaximumValue(settings.symbol[i_series]['max'][g_band])
+            g_ce.setContrastEnhancementAlgorithm(
+                settings.symbol[i_series]['contrast'])
 
-        b_ce = qgis.core.QgsContrastEnhancement(
-            rlayer.dataProvider().dataType(b_band + 1))
-        b_ce.setMinimumValue(settings.symbol[i_series]['min'][b_band])
-        b_ce.setMaximumValue(settings.symbol[i_series]['max'][b_band])
-        b_ce.setContrastEnhancementAlgorithm(
-            settings.symbol[i_series]['contrast'])
+            b_ce = qgis.core.QgsContrastEnhancement(
+                rlayer.dataProvider().dataType(b_band + 1))
+            b_ce.setMinimumValue(settings.symbol[i_series]['min'][b_band])
+            b_ce.setMaximumValue(settings.symbol[i_series]['max'][b_band])
+            b_ce.setContrastEnhancementAlgorithm(
+                settings.symbol[i_series]['contrast'])
 
-        # Setup renderer
-        renderer = qgis.core.QgsMultiBandColorRenderer(
-            rlayer.dataProvider(),
-            r_band + 1, g_band + 1, b_band + 1)
-        renderer.setRedContrastEnhancement(r_ce)
-        renderer.setGreenContrastEnhancement(g_ce)
-        renderer.setBlueContrastEnhancement(b_ce)
+            # Setup renderer
+            renderer = qgis.core.QgsMultiBandColorRenderer(
+                rlayer.dataProvider(),
+                r_band + 1, g_band + 1, b_band + 1)
+            renderer.setRedContrastEnhancement(r_ce)
+            renderer.setGreenContrastEnhancement(g_ce)
+            renderer.setBlueContrastEnhancement(b_ce)
+        elif symbol_type.upper() == 'GREY' or symbol_type.upper() == 'GRAY':
+            g_ce = qgis.core.QgsContrastEnhancement(
+                rlayer.dataProvider().dataType(r_band + 1))
+            g_ce.setMinimumValue(settings.symbol[i_series]['min'][r_band])
+            g_ce.setMaximumValue(settings.symbol[i_series]['max'][r_band])
+            g_ce.setContrastEnhancementAlgorithm(
+                settings.symbol[i_series]['contrast'])
+
+            renderer = qgis.core.QgsSingleBandGrayRenderer(
+                rlayer.dataProvider(), r_band + 1)
+            renderer.setContrastEnhancement(g_ce)
 
         # Apply, refresh, and update symbology if needed
         rlayer.setRenderer(renderer)
