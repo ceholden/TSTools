@@ -283,9 +283,12 @@ class SymbologyControl(QtGui.QDialog, Ui_Plot_Symbology):
 # UTILITY
     def _update_metadata(self):
         for i, series in enumerate(tsm.ts.series):
-            for j, band in enumerate(series.band_names):
+            selected_lead_band = self.list_bands[i].currentIndex().row()
+            selected_bands = [item.row() for item in
+                              self.list_bands[i].selectedIndexes()]
+            md = self.combox_metadata[i][selected_lead_band].currentText()
+            for j in selected_bands:
                 idx = ravel_series_band(i, j)
-                md = self.combox_metadata[i][j].currentText()
 
                 if md == 'Default':
                     # Default -- just on index
