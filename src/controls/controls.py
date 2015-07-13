@@ -34,7 +34,7 @@ class ControlPanel(QtGui.QWidget, Ui_Controls):
 
     plot_options_changed = QtCore.pyqtSignal()
     plot_save_requested = QtCore.pyqtSignal()
-    image_table_row_clicked = QtCore.pyqtSignal(int)
+    image_table_row_clicked = QtCore.pyqtSignal(int, int)
     symbology_applied = QtCore.pyqtSignal()
 
     def __init__(self, iface):
@@ -343,6 +343,13 @@ class ControlPanel(QtGui.QWidget, Ui_Controls):
         self.combox_table_series.addItems([series.description for
                                            series in tsm.ts.series])
 
+        @QtCore.pyqtSlot(int)
+        def _table_series_changed(self, idx):
+            settings.series_index_table = idx
+            self.stacked_table.setCurrentIndex(idx)
+        self.combox_table_series.currentIndexChanged.connect(
+            partial(_table_series_changed, self))
+
         # Clear stacked widget
         for i in range(self.stacked_table.count()):
             self.stacked_table.removeWidget(self.stacked_table.widget(i))
@@ -410,7 +417,8 @@ class ControlPanel(QtGui.QWidget, Ui_Controls):
             def _image_table_clicked(self, item):
                 if item.column() == 0:
                     logger.info('Clicked row: {r}'.format(r=item.row()))
-                    self.image_table_row_clicked.emit(item.row())
+                    self.image_table_row_clicked.emit(
+                        settings.series_index_table, item.row())
             table.itemClicked.connect(
                 partial(_image_table_clicked, self))
 
@@ -432,6 +440,13 @@ class ControlPanel(QtGui.QWidget, Ui_Controls):
         self.combox_symbology_series.clear()
         self.combox_symbology_series.addItems([series.description for
                                                series in tsm.ts.series])
+
+        @QtCore.pyqtSlot(int)
+        def _symbology_series_changed(self, idx):
+            settings.series_index_table = idx
+            self.stacked_symbology.setCurrentIndex(idx)
+        self.combox_symbology_series.currentIndexChanged.connect(
+            partial(_symbology_series_changed, self))
 
         # Add symbology widgets for each Series
         for i, series in enumerate(tsm.ts.series):
