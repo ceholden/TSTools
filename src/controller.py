@@ -661,9 +661,9 @@ class Controller(QtCore.QObject):
         if not self.initialized:
             return
         qgis.core.QgsMapLayerRegistry.instance()\
-            .layersAdded.disconnect()
+            .layersAdded.disconnect(self._map_layers_added)
         qgis.core.QgsMapLayerRegistry.instance()\
-            .layersWillBeRemoved.disconnect()
+            .layersWillBeRemoved.disconnect(self._map_layers_removed)
 
         # Disconnect plot mouse event signals
         for pe in self.plot_events:
