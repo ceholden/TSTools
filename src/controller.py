@@ -46,7 +46,6 @@ class Worker(QtCore.QObject):
         try:
             for percent in ts.fetch_data(pos[0], pos[1], crs_wkt):
                 self.update.emit(percent)
-            tsm.ts.fetch_results()
         except Exception as e:
             self.errored.emit(e.message)
         else:
@@ -269,8 +268,9 @@ class Controller(QtCore.QObject):
 
     @QtCore.pyqtSlot()
     def plot_request_finish(self):
-        logger.info('Quitting QThread (id: {i})'.format(
-            i=hex(self.work_thread.currentThreadId())))
+        # Get results in this thread since it's so prone to error
+        tsm.ts.fetch_results()
+        # Clear GUI messages
         logger.info('Plot request finished')
         qgis.utils.iface.messageBar().clearWidgets()
 
