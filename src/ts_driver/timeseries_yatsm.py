@@ -15,7 +15,6 @@ logger = logging.getLogger('tstools')
 
 
 class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
-
     """ Timeseries driver for YATSM algorithm
     """
     description = 'YATSM Timeseries'
@@ -29,7 +28,7 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
     _cache_folder = 'cache'
     _results_folder = 'YATSM'
     _results_pattern = 'yatsm_r*'
-    _mask_band = 8
+    _mask_band = [8]
     _min_values = [0]
     _max_values = [10000]
     _metadata_file_pattern = 'L*MTL.txt'
@@ -231,9 +230,9 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
         self.Y = self.series[0].data
 
         # Mask out masked values
-        clear = np.logical_and.reduce([self.Y[self._mask_band - 1, :] != mv
+        clear = np.logical_and.reduce([self.Y[self._mask_band[0] - 1, :] != mv
                                        for mv in self.mask_values])
-        valid = get_valid_mask(self.Y[:self._mask_band - 1, :],
+        valid = get_valid_mask(self.Y[:self._mask_band[0] - 1, :],
                                self._min_values,
                                self._max_values)
         clear *= valid

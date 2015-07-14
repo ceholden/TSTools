@@ -41,7 +41,7 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
     _date_index = [9, 16]
     _date_format = '%Y%j'
     _cache_folder = 'cache'
-    _mask_band = 8
+    _mask_band = [8]
 
     config = ['_stack_pattern',
               '_date_index',
@@ -142,7 +142,7 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
             for series in self.series:
                 for i_img in range(series._n_images):
                     series._scratch_data[:, i_img] = read_pixel_GDAL(
-                        series.images['path'], self._px, self._py, i_img)
+                        series.images['path'][i_img], self._px, self._py)
                     i += 1
                     yield float(i) / n_images * 100.0
 
@@ -170,8 +170,11 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
         if mask_values is not None:
             self.mask_values = np.asarray(mask_values).copy()
 
-        for series in self.series:
-            series.mask = np.in1d(series.data[self._mask_band - 1, :],
+
+        for mask_band, series in zip(self._mask_band, self.series):
+            if not mask_band:
+                continue
+            series.mask = np.in1d(series.data[mask_band - 1, :],
                                   self.mask_values, invert=True)
 
     def get_data(self, series, band, mask=True, indices=None):
