@@ -154,6 +154,8 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
                         invert=True).astype(np.uint8)
 
     def get_prediction(self, series, band):
+        if series > 0:
+            return
         if self.yatsm_model is None:
             return
         # Setup output
