@@ -137,6 +137,8 @@ class Controller(QtCore.QObject):
 
     fetch_data = QtCore.pyqtSignal(object, object, str)
 
+    initialized = False
+
     def __init__(self, controls, plots, parent=None):
         super(Controller, self).__init__()
         self.controls = controls
@@ -157,6 +159,7 @@ class Controller(QtCore.QObject):
             qgis_log('Loaded timeseries: {d}'.format(d=tsm.ts.description))
             self.config_closed()
             self._ts_init()
+            self.initialized = True
 
     def _ts_init(self):
         """ Initialize control and plot views with data from timeseries driver
@@ -174,10 +177,8 @@ class Controller(QtCore.QObject):
 
         # Setup controls
         self.controls.init_ts()
-        self.controls.plot_options_changed.connect(
-            self.update_plot)
-        self.controls.plot_save_requested.connect(
-            self.save_plot)
+        self.controls.plot_options_changed.connect(self.update_plot)
+        self.controls.plot_save_requested.connect(self.save_plot)
         self.controls.image_table_row_clicked.connect(self._add_remove_image)
         self.controls.symbology_applied.connect(
             lambda: actions.apply_symbology())
@@ -657,18 +658,24 @@ class Controller(QtCore.QObject):
 
 # DISCONNECT
     def disconnect(self):
+        if not self.initialized:
+            return
         qgis.core.QgsMapLayerRegistry.instance()\
             .layersAdded.disconnect()
         qgis.core.QgsMapLayerRegistry.instance()\
             .layersWillBeRemoved.disconnect()
 
         # Disconnect plot mouse event signals
-        for pe in zip(self.plot_events):
+        for pe in self.plot_events:
             pe.disconnect()
             pe.deleteLater()
             pe = None
 
         # Controls
-        self.controls.plot_options_changed.disconnect()
-        self.controls.plot_save_requested.disconnect()
-        self.controls.image_table_row_clicked.disconnect()
+        self.controls.plot_options_changed.disconnect(self.update_plot)
+        self.controls.plot_save_requested.disconnect(self.save_plot)
+        self.controls.image_table_row_clicked.disconnect(
+            self._add_remove_image)
+        self.controls.symbology_applied.disconnect()
+
+        self.initialzed = False

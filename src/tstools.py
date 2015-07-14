@@ -88,6 +88,7 @@ class TSTools(QtCore.QObject):
                                            self.iface.mainWindow())
         self.plot_dock.setObjectName('TSTools Plots')
 
+        settings.plot_dirty = []
         for plot in plots.plots:
             self.plots.append(plot(self.iface))
             settings.plot_dirty.append(False)
@@ -136,7 +137,15 @@ class TSTools(QtCore.QObject):
 
     def unload(self):
         """ Shutdown and disconnect """
+        # Disconnect
+        self.controller.disconnect()
+        tsm.ts = None
         # Remove toolbar icons
         self.iface.removeToolBarIcon(self.action)
         self.iface.removeToolBarIcon(self.action_cfg)
         self.canvas.setMapTool(self.previous_tool)
+        # Remove docks
+        self.iface.removeDockWidget(self.plot_dock)
+        self.iface.removeDockWidget(self.control_dock)
+        self.plot_dock.deleteLater()
+        self.control_dock.deleteLater()
