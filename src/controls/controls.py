@@ -12,7 +12,6 @@ from ..ui_controls import Ui_Controls
 
 from .raster_symbology import RasterSymbologyControl
 from .plot_symbology import SymbologyControl
-from .plot_save import SavePlotDialog
 from ..utils.custom_form import CustomForm
 
 from .. import settings
@@ -319,20 +318,6 @@ class ControlPanel(QtGui.QWidget, Ui_Controls):
         self.symbology_controls.plot_symbology_applied.connect(
             lambda: self.plot_options_changed.emit())
 
-        # Plot save
-        def _close_save_plot(self):
-            self.save_plot_dialog.save_plot_requested.disconnect()
-            self.save_plot_dialog.save_plot_closed.disconnect()
-            self.save_plot_dialog.close()
-
-        self.save_plot_dialog = SavePlotDialog(self)
-        self.save_plot_dialog.save_plot_requested.connect(
-            lambda: self.plot_save_requested.emit())
-        self.save_plot_dialog.save_plot_closed.connect(
-            partial(_close_save_plot, self))
-        self.but_plot_save.clicked.connect(
-            lambda: self.save_plot_dialog.exec_())
-
 # IMAGE TABLE
     def _init_table(self):
         logger.debug('Initializing images tables')
@@ -517,11 +502,6 @@ class ControlPanel(QtGui.QWidget, Ui_Controls):
         self.symbology_controls.disconnect()
         self.symbology_controls.deleteLater()
         self.symbology_controls = None
-
-        self.but_plot_save.disconnect()
-        self.save_plot_dialog.disconnect()
-        self.save_plot_dialog.deleteLater()
-        self.save_plot_dialog = None
 
         # Table
         for table in self.image_tables:

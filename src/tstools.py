@@ -10,6 +10,11 @@ import os
 from PyQt4 import QtCore
 from PyQt4 import QtGui
 
+import matplotlib
+matplotlib.use('Qt4Agg')
+from matplotlib.backends.backend_qt4 import \
+    NavigationToolbar2QT as NavigationToolbar
+
 import qgis.gui
 
 # Initialize Qt resources from file resources.py -- ignore unused warning
@@ -105,7 +110,21 @@ class TSTools(QtCore.QObject):
         self.plot_tabs.currentChanged.connect(tab_changed)
 
         for plot in self.plots:
-            self.plot_tabs.addTab(plot, plot.__str__())
+            widget = QtGui.QWidget()
+            layout = QtGui.QHBoxLayout()
+            nav = NavigationToolbar(plot, widget, coordinates=False)
+            nav.setOrientation(QtCore.Qt.Vertical)
+
+            nav.setSizePolicy(QtGui.QSizePolicy.Fixed,
+                              QtGui.QSizePolicy.Fixed)
+            plot.setSizePolicy(QtGui.QSizePolicy.Preferred,
+                               QtGui.QSizePolicy.Preferred)
+
+            layout.addWidget(nav)
+            layout.addWidget(plot)
+
+            widget.setLayout(layout)
+            self.plot_tabs.addTab(widget, plot.__str__())
 
         self.plot_dock.setWidget(self.plot_tabs)
         self.iface.addDockWidget(QtCore.Qt.BottomDockWidgetArea,
