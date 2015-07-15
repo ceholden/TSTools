@@ -51,13 +51,14 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
         'Results pattern',
         'Mask band',
         'Min data values', 'Max data values',
-        'Metadata file pattern']
+        'Metadata file pattern',
+        'LTM phenology']
 
     # Driver controls
     _calculate_live = True
     _consecutive = 5
     _min_obs = 16
-    _threshold = 3.0
+    _threshold = 4.0
     _enable_min_rmse = True
     _min_rmse = 100
     _design = '1 + x + harm(x, 1)'
