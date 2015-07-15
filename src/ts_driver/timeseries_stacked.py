@@ -63,7 +63,8 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
 
         self.series = [Series({
             'description': 'Stacked Timeseries',
-            'symbology_hint_indices': [4, 3, 2]
+            'symbology_hint_indices': [4, 3, 2],
+            'symbology_hint_minmax': [[0, 4000], [0, 5000], [0, 3000]]
         })]
 
         self._check_cache()
