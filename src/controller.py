@@ -586,7 +586,7 @@ class Controller(QtCore.QObject):
 
             if hasattr(series, 'symbology_hint_minmax'):
                 i = series.symbology_hint_minmax
-                if isinstance(i, (tuple, list)) and len(i) == 2:
+                if isinstance(i, (tuple, list)):
                     # One min/max or a set of them
                     if isinstance(i[1], (int, float)) and \
                             isinstance(i[0], (int, float)):
@@ -597,13 +597,13 @@ class Controller(QtCore.QObject):
                             'max': np.ones(n_bands, dtype=np.int32) * i[1],
                         })
                     # Min/max for each band
-                    elif isinstance(i[0], np.ndarray) and \
-                            isinstance(i[1], np.ndarray):
+                    elif isinstance(i[0], (list, np.ndarray)) and \
+                            isinstance(i[1], (list, np.ndarray)):
                         logger.debug(
                             'Applying specified min/max symbology hint')
                         symbol.update({
-                            'min': i[0],
-                            'max': i[1]
+                            'min': np.asarray(i[0]),
+                            'max': np.asarray(i[1])
                         })
                     else:
                         logger.warning(
