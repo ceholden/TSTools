@@ -32,6 +32,7 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
     _min_values = [0]
     _max_values = [10000]
     _metadata_file_pattern = 'L*MTL.txt'
+    _calc_pheno = False
 
     config = ['_stack_pattern',
               '_date_index',
@@ -41,7 +42,8 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
               '_results_pattern',
               '_mask_band',
               '_min_values', '_max_values',
-              '_metadata_file_pattern']
+              '_metadata_file_pattern',
+              '_calc_pheno']
     config_names = [
         'Stack pattern',
         'Date index',
@@ -108,6 +110,8 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
     def __init__(self, location, config=None):
         super(YATSMTimeSeries, self).__init__(location, config=config)
 
+        # Check for YATSM imports
+        self._check_yatsm()
         # Find extra metadata
         self._init_metadata()
 
@@ -116,7 +120,6 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
         self.X = None
         self.Y = None
         self.coef_name = 'coef'
-        self._check_yatsm()
 
         # Setup min/max values
         if len(self._min_values) == 1:
@@ -153,6 +156,24 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
             self.series[0].multitemp_screened = \
                 np.in1d(self.X[:, 1], self.yatsm_model.X[:, 1],
                         invert=True).astype(np.uint8)
+            if self._calc_pheno:
+                for rec in self.yatsm_model.record:
+                    # Find dates in record
+                    idx = np.where(
+                        (self.series[0].images['ordinal'] >= rec['start']) &
+                        (self.series[0].images['ordinal'] <= rec['end']))[0]
+                    # Put observations into SPR/SUM/AUT
+                    _spr = np.where(self.series[0].images['doy'][idx] <=
+                                    rec['spring_doy'])[0]
+                    _sum = np.where((self.series[0].images['doy'][idx] >
+                                     rec['spring_doy']) &
+                                    (self.series[0].images['doy'][idx] <
+                                     rec['autumn_doy']))[0]
+                    _aut = np.where(self.series[0].images['doy'][idx] >=
+                                    rec['autumn_doy'])[0]
+                    self.series[0].pheno[idx[_spr]] = 'SPR'
+                    self.series[0].pheno[idx[_sum]] = 'SUM'
+                    self.series[0].pheno[idx[_aut]] = 'AUT'
 
     def get_prediction(self, series, band):
         if series > 0:
@@ -275,8 +296,14 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
 
         if self._robust_results:
             self.coef_name = 'robust_coef'
+            self.yatsm_model.record = self.yatsm_model.robust_record
         else:
             self.coef_name = 'coef'
+
+        if self._calc_pheno:
+            # TODO: parameterize band indices & scale factor
+            ltm = pheno.LongTermMeanPhenology(self.yatsm_model)
+            self.yatsm_model.record = ltm.fit()
 
         # Restore log level
         logger.setLevel(log_level)
@@ -330,6 +357,15 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
                 self.series[0].cloud_cover[i] = parse_landsat_MTL(
                     mtl_file, 'CLOUD_COVER')
 
+        if self._calc_pheno:
+            self.series[0].metadata.append('pheno')
+            self.series[0].metadata_names.append('Phenology')
+            self.series[0].metadata_table.append(False)
+            # Initialize almost all as summer (SUM); first two as SPR/AUT
+            self.series[0].pheno = np.repeat('SUM', self.series[0]._n_images)
+            self.series[0].pheno[0] = 'SPR'
+            self.series[0].pheno[1] = 'AUT'
+
     def _check_yatsm(self):
         """ Check if YATSM is available
         """
@@ -344,3 +380,12 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
             raise ImportError('Could not import YATSM')
         else:
             self.has_results = True
+
+        if self._calc_pheno:
+            try:
+                global pheno
+                import yatsm.phenology as pheno
+            except:
+                msg = ('Could not import YATSM phenology module. '
+                       'Make sure you have R and rpy2 installed.')
+                raise ImportError(msg)
