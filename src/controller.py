@@ -597,8 +597,9 @@ class Controller(QtCore.QObject):
                             'max': np.ones(n_bands, dtype=np.int32) * i[1],
                         })
                     # Min/max for each band
-                    elif isinstance(i[0], (list, np.ndarray)) and \
-                            isinstance(i[1], (list, np.ndarray)):
+                    elif (isinstance(i[0], (list, np.ndarray)) and
+                            isinstance(i[1], (list, np.ndarray)) and
+                            len(i[0]) == n_bands and len(i[1]) == n_bands):
                         logger.debug(
                             'Applying specified min/max symbology hint')
                         symbol.update({
