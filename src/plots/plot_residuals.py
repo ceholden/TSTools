@@ -49,6 +49,13 @@ class ResidualPlot(base_plot.BasePlot):
 
         """
         logger.debug('Plotting Residual plot series')
+        # Get residuals and concatenate across timeseries segments
+        residuals = tsm.ts.get_residuals(series, band)
+        if residuals is None:
+            return
+        resid_dates = np.concatenate(residuals[0])
+        resid_values = np.concatenate(residuals[1])
+
         # Iterate over symbology descriptions
         for index, marker, color in zip(settings.plot_symbol[idx]['indices'],
                                         settings.plot_symbol[idx]['markers'],
@@ -58,29 +65,35 @@ class ResidualPlot(base_plot.BasePlot):
             X, y = tsm.ts.get_data(series, band,
                                    mask=settings.plot['mask'],
                                    indices=index)
-            date, yhat = tsm.ts.get_prediction(series, band,
-                                               dates=X['ordinal'])
-            if yhat is None:
-                return
+            if y.size == 0:
+                continue
 
-            for _date, _yhat in zip(date, yhat):
-                idx = np.in1d(X['date'], _date)
+            color = [c / 255.0 for c in color]
 
-                resid = _yhat - y[idx]
+            # Find residuals inside this symbology description
+            idx = np.in1d(resid_dates, X['date'])
+            if idx.size == 0:
+                continue
 
-                color = [c / 255.0 for c in color]
-                axis.plot(_date, resid,
-                          marker=marker, color=color, markeredgecolor=color,
-                          ls='',
-                          picker=settings.plot['picker_tol'])
+            axis.plot(resid_dates[idx], resid_values[idx],
+                      marker=marker, color=color, markeredgecolor=color,
+                      ls='', picker=settings.plot['picker_tol'])
+
+        if settings.plot['break']:
+            breaks = tsm.ts.get_breaks(series, band)
+            if breaks is not None:
+                bx = breaks[0]
+                for _bx in bx:
+                    idx = np.where(resid_dates == _bx)[0][0]
+                    axis.plot(_bx, resid_values[idx], 'ro',
+                              mec='r', mfc='none', ms=10, mew=5)
+
+        # Reset color cycle for later
+        axis.set_color_cycle(None)
 
     def plot(self):
         """ Plot residuals
         """
-        # from PyQt4 import QtCore
-        # QtCore.pyqtRemoveInputHook()
-        # from IPython.core.debugger import Pdb
-        # Pdb().set_trace()
         logger.debug('Plotting Residual plot')
         # Clear before plotting again
         self.axis_1.clear()
@@ -89,15 +102,14 @@ class ResidualPlot(base_plot.BasePlot):
         if tsm.ts:
             self.axis_1.set_title(tsm.ts.pixel_pos)
         self.axis_1.set_xlabel('Date')
-        self.axis_1.set_ylabel('Residuals')
+        self.axis_1.set_ylabel(r'Residuals ($\hat{y} - y$)')
 
         self.axis_1.set_xlim(dt.date(settings.plot['x_min'], 01, 01),
                              dt.date(settings.plot['x_max'], 01, 01))
 
-        self.axis_1.set_ylim(settings.plot['y_min'][0],
-                             settings.plot['y_max'][0])
-        self.axis_2.set_ylim(settings.plot['y_min'][1],
-                             settings.plot['y_max'][1])
+        # Add 0 line
+        self.axis_1.axhline(y=0, xmin=0, xmax=1, c='k')
+        self.axis_2.axhline(y=0, xmin=0, xmax=1, c='k')
 
         # Plot -- axis 1
         if not tsm.ts or not tsm.ts.has_results:
