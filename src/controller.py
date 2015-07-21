@@ -66,7 +66,7 @@ class PlotHandler(QtCore.QObject):
     """
     picked = QtCore.pyqtSignal(set)
 
-    def __init__(self, canvas, tolerance=25):
+    def __init__(self, canvas, tolerance=2):
         super(PlotHandler, self).__init__()
         self.canvas = canvas
         self.tolerance = tolerance
@@ -86,9 +86,8 @@ class PlotHandler(QtCore.QObject):
             if not np.any(_plotted):
                 continue
 
-            # Find X/Y data values clicked
-            inv = ax.transData.inverted()
-            xdat, ydat = inv.transform(np.array((x, y)).reshape(1, 2)).ravel()
+            # Setup transform for going from data to plot coordinates
+            trans = ax.transData
 
             # Check bands that are plotted on current axis
             on = np.where(_plotted)[0]
@@ -96,16 +95,27 @@ class PlotHandler(QtCore.QObject):
             on_band = settings.plot_band_indices[on]
 
             for i, j in zip(on_series, on_band):
-                _X, _y = tsm.ts.get_data(i, j, mask=False)
                 # Switch based on plot type
-                if isinstance(event.canvas, (plots.TSPlot,
-                                             plots.ResidualPlot)):
+                if isinstance(event.canvas, plots.TSPlot):
+                    _X, _y = tsm.ts.get_data(i, j, mask=False)
                     _x = _X['ordinal']
+                elif isinstance(event.canvas, plots.ResidualPlot):
+                    residuals = tsm.ts.get_residuals(i, j)
+                    if residuals is None:
+                        return
+                    _x = np.array([dt.toordinal(_d) for _d in
+                                   np.concatenate(residuals[0])])
+                    _y = np.concatenate(residuals[1])
                 elif isinstance(event.canvas, plots.DOYPlot):
+                    _X, _y = tsm.ts.get_data(i, j, mask=False)
                     _x = _X['doy']
 
-                delta_x = np.abs(_x - xdat)
-                delta_y = np.abs(_y - ydat)
+                # Transform data into plot coordinates
+                trans_coords = trans.transform(np.vstack((_x, _y)).T)
+                _x, _y = trans_coords[:, 0], trans_coords[:, 1]
+
+                delta_x = np.abs(_x - x)
+                delta_y = np.abs(_y - y)
 
                 delta = np.linalg.norm(np.vstack((delta_x, delta_y)), axis=0)
 
@@ -634,7 +644,8 @@ class Controller(QtCore.QObject):
         # Connect plot signals for adding images
         self.plot_events = []
         for plot in self.plots:
-            handler = PlotHandler(plot.fig.canvas)
+            handler = PlotHandler(plot.fig.canvas,
+                                  tolerance=settings.plot['picker_tol'])
             handler.picked.connect(self._plot_add_layer)
             self.plot_events.append(handler)
 
