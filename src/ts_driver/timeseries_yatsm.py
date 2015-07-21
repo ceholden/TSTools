@@ -215,8 +215,9 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
                     i_step = 1
                 # Date range to predict
                 if dates is not None:
+                    end = max(rec['break'], rec['end'])
                     _mx = dates[np.where((dates >= rec['start']) &
-                                         (dates <= rec['end']))[0]]
+                                         (dates <= end))[0]]
                 else:
                     _mx = np.arange(rec['start'], rec['end'], i_step)
                 # Coefficients to use for prediction
