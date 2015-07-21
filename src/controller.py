@@ -544,8 +544,10 @@ class Controller(QtCore.QObject):
         settings.plot['x_max'] = max([series.images['date'].max()
                                       for series in tsm.ts.series]).year
 
-        # Default mask values
+        # Default mask values and fit/break on/off
         settings.plot['mask_val'] = tsm.ts.mask_values.copy()
+        settings.plot['fit'] = True if tsm.ts.has_results else False
+        settings.plot['break'] = True if tsm.ts.has_results else False
 
     def _init_raster_symbology(self):
         """ Initialize image symbology
