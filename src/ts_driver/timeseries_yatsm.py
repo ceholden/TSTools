@@ -10,6 +10,7 @@ import patsy
 from . import timeseries_stacked
 from .timeseries import Series
 from .ts_utils import find_files, parse_landsat_MTL
+from .. import settings
 
 logger = logging.getLogger('tstools')
 
@@ -175,7 +176,20 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
                     self.series[0].pheno[idx[_sum]] = 'SUM'
                     self.series[0].pheno[idx[_aut]] = 'AUT'
 
-    def get_prediction(self, series, band):
+    def get_prediction(self, series, band, dates=None):
+        """ Return prediction for a given band
+
+        Args:
+          series (int): index of Series used for prediction
+          band (int): index of band to return
+          dates (iterable): list or np.ndarray of ordinal dates to predict; if
+            None, predicts for every date within timeseries (default: None)
+
+        Returns:
+          iterable: sequence of tuples (1D NumPy arrays, x and y) containing
+            predictions
+
+        """
         if series > 0:
             return
         if self.yatsm_model is None:
@@ -200,7 +214,11 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
                 else:
                     i_step = 1
                 # Date range to predict
-                _mx = np.arange(rec['start'], rec['end'], i_step)
+                if dates is not None:
+                    _mx = dates[np.where((dates >= rec['start']) &
+                                         (dates <= rec['end']))[0]]
+                else:
+                    _mx = np.arange(rec['start'], rec['end'], i_step)
                 # Coefficients to use for prediction
                 _coef = rec[self.coef_name][coef_columns, band]
                 # Setup design matrix
@@ -216,6 +234,17 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
         return mx, my
 
     def get_breaks(self, series, band):
+        """ Return break points for a given band
+
+        Args:
+          series (int): index of Series for prediction
+          band (int): index of band to return
+
+        Returns:
+          iterable: sequence of tuples (1D NumPy arrays, x and y) containing
+            break points
+
+        """
         if self.yatsm_model is None:
             return
         # Setup output
@@ -236,6 +265,35 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
                         logger.warning('Could not determine breakpoint')
 
         return bx, by
+
+    def get_residuals(self, series, band):
+        """ Return model residuals (y - predicted yhat) for a given band
+
+        Args:
+          series (int): index of Series for residuals
+          band (int): index of band to return
+
+        Returns:
+          iterable: sequence of tuples (1D NumPy arrays, x and y) containing
+            residual dates and values
+
+        """
+        if self.yatsm_model is None:
+            return
+
+        rx, ry = [], []
+
+        X, y = self.get_data(series, band, mask=settings.plot['mask'])
+        date, yhat = self.get_prediction(series, band, dates=X['ordinal'])
+
+        for _date, _yhat in zip(date, yhat):
+            idx = np.in1d(X['date'], _date)
+            resid = _yhat - y[idx]
+
+            rx.append(_date)
+            ry.append(resid)
+
+        return rx, ry
 
 # RESULTS HELPER METHODS
     def _fetch_results_live(self):

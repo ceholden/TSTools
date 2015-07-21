@@ -171,7 +171,6 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
         if mask_values is not None:
             self.mask_values = np.asarray(mask_values).copy()
 
-
         for mask_band, series in zip(self._mask_band, self.series):
             if not mask_band:
                 continue
@@ -219,6 +218,9 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
         pass
 
     def get_breaks(self, series, band):
+        pass
+
+    def get_residuals(self, series, band):
         pass
 
     def get_geometry(self):

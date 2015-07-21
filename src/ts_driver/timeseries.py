@@ -44,6 +44,7 @@ class AbstractTimeSeriesDriver(object):
       get_data: return data (x, y) for a specified band
       get_prediction: return prediction for a specified band
       get_breaks: return timeseries break points for a specified band
+      get_residuals: return model residuals for a specific band
       get_geometry: return Well Known Text (Wkt) of geometry and projection
         of query specified by X/Y coordinate
 
@@ -151,12 +152,14 @@ class AbstractTimeSeriesDriver(object):
         pass
 
     @abc.abstractmethod
-    def get_prediction(self, series, band):
+    def get_prediction(self, series, band, dates=None):
         """ Return prediction for a given band
 
         Args:
           series (int): index of Series used for prediction
           band (int): index of band to return
+          dates (iterable): list or np.ndarray of dates to predict; if None,
+            predicts for every date within timeseries (default: None)
 
         Returns:
           iterable: sequence of tuples (1D NumPy arrays, x and y) containing
@@ -176,6 +179,21 @@ class AbstractTimeSeriesDriver(object):
         Returns:
           iterable: sequence of tuples (1D NumPy arrays, x and y) containing
             break points
+
+        """
+        pass
+
+    @abc.abstractmethod
+    def get_residuals(self, series, band):
+        """ Return model residuals (y - predicted yhat) for a given band
+
+        Args:
+          series (int): index of Series for residuals
+          band (int): index of band to return
+
+        Returns:
+          iterable: sequence of tuples (1D NumPy arrays, x and y) containing
+            residual dates and values
 
         """
         pass
