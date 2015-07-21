@@ -98,7 +98,8 @@ class PlotHandler(QtCore.QObject):
             for i, j in zip(on_series, on_band):
                 _X, _y = tsm.ts.get_data(i, j, mask=False)
                 # Switch based on plot type
-                if isinstance(event.canvas, plots.TSPlot):
+                if isinstance(event.canvas, (plots.TSPlot,
+                                             plots.ResidualPlot)):
                     _x = _X['ordinal']
                 elif isinstance(event.canvas, plots.DOYPlot):
                     _x = _X['doy']
