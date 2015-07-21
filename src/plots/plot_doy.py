@@ -28,8 +28,6 @@ class DOYPlot(base_plot.BasePlot):
 
     def __init__(self, parent=None):
         super(DOYPlot, self).__init__()
-        # Pixel location
-        self.title = ''
 
         # Colormap -- try to load from environment
         cmap = os.environ.get('TSTOOLS_DOY_CMAP', 'perceptual_rainbow_16')

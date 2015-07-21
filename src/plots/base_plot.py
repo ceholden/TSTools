@@ -17,6 +17,9 @@ class BasePlot(FigureCanvas):
         return "Base plot"
 
     def __init__(self):
+        # Location of pixel plotted
+        self.title = ''
+
         # matplotlib
         style = settings.plot.get('style')
         if style:

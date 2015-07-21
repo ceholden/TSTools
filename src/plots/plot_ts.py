@@ -16,14 +16,14 @@ logger = logging.getLogger('tstools')
 
 
 class TSPlot(base_plot.BasePlot):
+    """ Plot timeseries data Y ~ date
+    """
 
     def __str__(self):
         return "Timeseries Plot"
 
     def __init__(self, parent=None):
         super(TSPlot, self).__init__()
-        # Location of pixel plotted
-        self.title = ''
 
         # Add second axis
         self.axis_2 = self.axis_1.twinx()
