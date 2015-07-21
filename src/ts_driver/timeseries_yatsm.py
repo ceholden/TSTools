@@ -312,11 +312,11 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
         self.Y = self.series[0].data
 
         # Mask out masked values
-        clear = np.logical_and.reduce([self.Y[self._mask_band[0] - 1, :] != mv
-                                       for mv in self.mask_values])
+        clear = np.in1d(self.Y[self._mask_band[0] - 1, :],
+                        self.mask_values, invert=True)
         valid = get_valid_mask(self.Y[:self._mask_band[0] - 1, :],
                                self._min_values,
-                               self._max_values)
+                               self._max_values).astype(np.bool)
         clear *= valid
 
         # Setup parameters
