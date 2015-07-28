@@ -106,7 +106,7 @@ def read_cache_pixel(filename, series):
     for i, s in enumerate(series):
         found = False
         for k in _img_keys:
-            if np.all(np.equal(z[k]['date'], s.images['date'])):
+            if np.array_equal(z[k]['date'], s.images['date']):
                 _dat_key = 'data_{i}'.format(i=k.split('_')[-1])
                 data.append(z[_dat_key])
                 found = True
