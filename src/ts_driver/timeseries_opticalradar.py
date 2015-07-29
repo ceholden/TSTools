@@ -87,6 +87,38 @@ class YATSMLandsatPALSARTS(timeseries_yatsm.YATSMTimeSeries):
 
         self._find_radar()
 
+    def fetch_data(self, mx, my, crs_wkt):
+        """ Read data for a given x, y coordinate in a given CRS
+
+        Args:
+          mx (float): map X location
+          my (float): map Y location
+          crs_wkt (str): Well Known Text (Wkt) Coordinate reference system
+            string describing (x, y)
+
+        Yields:
+          float: current retrieval progress (0 to 1)
+
+        Raises:
+          IndexError: raise IndexError if map coordinates are outside of
+            dataset
+
+        """
+        for progress in super(YATSMLandsatPALSARTS, self).fetch_data(
+                mx, my, crs_wkt):
+            yield progress
+
+        # Convert RADAR DNs to dB: dB = ( DN - 1 ) * 0.15 - 31.0
+        for series in self.series[1:]:
+            if series.data is None:
+                continue
+            logger.debug('Rescaling {s} to dB'.format(s=series.description))
+            logger.debug(series.data.shape)
+            series.data[0, :] = (series.data[0, :] - 1) * 0.15 - 31.0
+            if series.data.shape[0] > 1:
+                series.data[1, :] = (series.data[1, :] - 1) * 0.15 - 31.0
+                series.data[2, :] = series.data[0, :] / series.data[1, :]
+
     def _find_radar(self):
         """ Find RADAR images and initialize series
         """
@@ -156,8 +188,8 @@ class YATSMLandsatPALSARTS(timeseries_yatsm.YATSMTimeSeries):
         for series in self.series[1:]:
             series.data = np.zeros(
                 (series._n_band, series._n_images),
-                dtype=np.int16)
+                dtype=np.float32)
             series._scratch_data = np.zeros(
                 (series._n_band, series._n_images),
-                dtype=np.int16)
+                dtype=np.float32)
             series.mask = np.ones(series._n_images, dtype=np.bool)
