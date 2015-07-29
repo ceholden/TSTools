@@ -95,7 +95,6 @@ class TSPlot(base_plot.BasePlot):
         self.axis_1.clear()
         self.axis_2.clear()
 
-        # TODO: put axis_2 y-ticks on same grid as axis_1
 
         # Setup axes
         if tsm.ts:
@@ -110,6 +109,12 @@ class TSPlot(base_plot.BasePlot):
                              settings.plot['y_max'][0])
         self.axis_2.set_ylim(settings.plot['y_min'][1],
                              settings.plot['y_max'][1])
+
+        # Put axis_2 y-ticks on same grid as axis_1
+        self.axis_1.set_yticks(np.linspace(self.axis_1.get_ybound()[0],
+                                           self.axis_1.get_ybound()[1], 6))
+        self.axis_2.set_yticks(np.linspace(self.axis_2.get_ybound()[0],
+                                           self.axis_2.get_ybound()[1], 6))
 
         # Plot -- axis 1
         added = np.where(settings.plot['y_axis_1_band'])[0]
