@@ -18,7 +18,7 @@ logger = logging.getLogger('tstools')
 class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
     """ Timeseries driver for YATSM algorithm
     """
-    description = 'YATSM Timeseries'
+    description = 'YATSM CCDCesque Timeseries'
     location = None
     mask_values = np.array([2, 3, 4, 255])
 
@@ -300,7 +300,7 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
     def _fetch_results_live(self):
         """ Run YATSM and get results """
         logger.debug('Calculating YATSM results on the fly')
-        # Setup design matrix
+        # Setup design matrix, Y, and dates
         self.X = patsy.dmatrix(self._design,
                                {
                                    'x': self.series[0].images['ordinal'],
@@ -308,56 +308,58 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
                                    'pr': self.series[0].pathrow
                                })
         self._design_info = self.X.design_info
-
-        # Setup Y
         self.Y = self.series[0].data
+        self.dates = np.asarray(self.series[0].images['ordinal'])
+
+        mask = self.Y[self._mask_band[0] - 1, :]
+        Y_data = np.delete(self.Y, self._mask_band[0] - 1, axis=0)
 
         # Mask out masked values
-        clear = np.in1d(self.Y[self._mask_band[0] - 1, :],
-                        self.mask_values, invert=True)
-        valid = get_valid_mask(self.Y[:self._mask_band[0] - 1, :],
+        clear = np.in1d(mask, self.mask_values, invert=True)
+        valid = get_valid_mask(Y_data,
                                self._min_values,
                                self._max_values).astype(np.bool)
         clear *= valid
+        # Setup Y
 
         # Setup parameters
         kwargs = dict(
+            test_indices=self._test_indices,
             consecutive=self._consecutive,
             threshold=self._threshold,
             min_obs=self._min_obs,
             min_rmse=None if self._enable_min_rmse else self._min_rmse,
-            test_indices=self._test_indices,
             screening_crit=self._screen_crit,
             remove_noise=self._remove_noise,
             dynamic_rmse=self._dynamic_rmse,
-            design_info=self._design_info,
-            logger=logger
         )
 
-        if self._reverse:
-            self.yatsm_model = YATSM(np.flipud(self.X[clear, :]),
-                                     np.fliplr(self.Y[:-1, clear]),
-                                     **kwargs)
-        else:
-            self.yatsm_model = YATSM(self.X[clear, :],
-                                     self.Y[:-1, clear],
-                                     **kwargs)
-
+        self.yatsm_model = CCDCesque(**kwargs)
         # Don't want to have DEBUG logging when we run YATSM
         log_level = logger.level
         logger.setLevel(logging.INFO)
 
-        self.yatsm_model.run()
+        if self._reverse:
+            self.yatsm_model.fit(
+                np.flipud(self.X[clear, :]),
+                np.fliplr(Y_data[:, clear]),
+                np.fliplr(self.dates[clear]))
+        else:
+            self.yatsm_model.fit(
+                self.X[clear, :],
+                Y_data[:, clear],
+                self.dates[clear])
 
         if self._commit_test:
-            self.yatsm_model.record = self.yatsm_model.commission_test(
-                self._commit_alpha)
+            self.yatsm_model.record = postprocess.commission_test(
+                self.yatsm_model, self._commit_alpha)
 
-        if self._robust_results:
-            self.coef_name = 'robust_coef'
-            self.yatsm_model.record = self.yatsm_model.robust_record
-        else:
-            self.coef_name = 'coef'
+        # if self._robust_results:
+        #     self.coef_name = 'robust_coef'
+        #     self.yatsm_model.record = postprocess.refit_record(
+        #         self.yatsm_model, 'robust'
+        # else:
+        #     self.coef_name = 'coef'
 
         if self._calc_pheno:
             # TODO: parameterize band indices & scale factor
@@ -429,14 +431,21 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
         """ Check if YATSM is available
         """
         try:
-            global YATSM
+            global CCDCesque, postprocess
             global harm
             global get_valid_mask
-            from yatsm.yatsm import YATSM
+            from yatsm.algorithms import CCDCesque, postprocess
             from yatsm._cyprep import get_valid_mask
             from yatsm.regression.transforms import harm
+        except ImportError as e:
+            from PyQt4 import QtCore
+            QtCore.pyqtRemoveInputHook()
+            from IPython.core.debugger import Pdb; Pdb().set_trace()
+            raise ImportError('Could not import YATSM because it could not '
+                              'import a dependency (%s)' % e.message)
         except:
-            raise ImportError('Could not import YATSM')
+            raise ImportError('Could not import YATSM for an unknown reason '
+                              '(%s)' % e.message)
         else:
             self.has_results = True
 
