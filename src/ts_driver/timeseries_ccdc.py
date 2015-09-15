@@ -1,0 +1,180 @@
+""" A basic timeseries driver for reading CCDC results
+"""
+import datetime as dt
+import logging
+import os
+
+import numpy as np
+import scipy.io as spio
+
+from . import timeseries_stacked
+from .timeseries import Series
+from .ts_utils import find_files
+from .. import settings
+
+logger = logging.getLogger('tstools')
+
+
+class CCDCTimeSeries(timeseries_stacked.StackedTimeSeries):
+    """ Reader for CCDC pre-calculated results for a 'stacked' timeseries
+    """
+
+    description = 'CCDC Results Reader'
+    has_results = True
+
+    ccdc_results = None
+
+    # Driver configuration
+    _results_folder = 'TSFitMap'
+
+    config = ['_stack_pattern',
+              '_date_index',
+              '_date_format',
+              '_cache_folder',
+              '_mask_band',
+              '_results_folder']
+    config_names = ['Stack pattern',
+                    'Index of date in ID',
+                    'Date format',
+                    'Cache folder',
+                    'Mask band',
+                    'Results folder']
+
+    def fetch_results(self):
+        """ Read results for current pixel
+        """
+        path = os.path.join(self.location, self._results_folder)
+        row = self._py + 1
+
+        result = find_files(path, 'record_change%s.mat' % row)
+        if not result:
+            logger.error('Could not find result for row %s' % row)
+            return
+
+        ccdc_results = spio.loadmat(result[0], squeeze_me=True)['rec_cg']
+        pos = (self._py * self._x_size) + self._px + 1
+
+        pos_search = np.where(ccdc_results['pos'] == pos)[0]
+
+        if pos_search.size == 0:
+            logger.error('Could not find result for row %s col %s' %
+                         (row, self._px + 1))
+            return
+        self.ccdc_results = ccdc_results[pos_search]
+
+    def get_prediction(self, series, band, dates=None):
+        """ Return prediction for a given band
+
+        Args:
+          series (int): index of Series used for prediction
+          band (int): index of band to return
+          dates (iterable): list or np.ndarray of ordinal dates to predict; if
+            None, predicts for every date within timeseries (default: None)
+
+        Returns:
+          iterable: sequence of tuples (1D NumPy arrays, x and y) containing
+            predictions
+
+        """
+        if series > 0 or self.ccdc_results is None:
+            return
+
+        def make_X(x):
+            w = 2 * np.pi / 365.25
+            return np.vstack((np.ones_like(x),
+                              x,
+                              np.cos(w * x), np.sin(w * x),
+                              np.cos(2 * w * x), np.sin(2 * w * x),
+                              np.cos(3 * w * x), np.sin(3 * w * x)))
+
+        mx, my = [], []
+        if len(self.ccdc_results) > 0:
+            for rec in self.ccdc_results:
+                if rec['t_end'] < rec['t_start']:
+                    i_step = -1
+                else:
+                    i_step = 1
+
+                if dates is not None:
+                    end = max(rec['t_break'], rec['t_end'])
+                    _mx = dates[np.where((dates >= rec['t_start']) &
+                                         (dates <= end))[0]]
+                else:
+                    _mx = np.arange(rec['t_start'], rec['t_end'], i_step)
+
+                # Coefficients used for prediction
+                _coef = rec['coefs'][:, band]
+                _mX = make_X(_mx)
+
+                _my = np.dot(_coef, _mX[:_coef.size, :])
+                # Transform ordinal back to datetime for plotting
+                _mx = np.array([dt.datetime.fromordinal(int(_x)) -
+                                dt.timedelta(days=366) for _x in _mx])
+
+                mx.append(_mx)
+                my.append(_my)
+
+        return mx, my
+
+    def get_breaks(self, series, band):
+        """ Return break points for a given band
+
+        Args:
+          series (int): index of Series for prediction
+          band (int): index of band to return
+
+        Returns:
+          iterable: sequence of tuples (1D NumPy arrays, x and y) containing
+            break points
+
+        """
+        if self.ccdc_results is None:
+            return
+        # Setup output
+        bx = []
+        by = []
+
+        if len(self.ccdc_results) > 0:
+            for rec in self.ccdc_results:
+                if rec['t_break'] != 0:
+                    _bx = (dt.datetime.fromordinal(int(rec['t_break'])) -
+                           dt.timedelta(days=366))
+                    index = np.where(self.series[series].images['date']
+                                     == _bx)[0]
+                    if (index.size > 0 and
+                            index[0] < self.series[series].data.shape[1]):
+                        bx.append(_bx)
+                        by.append(self.series[series].data[band, index[0]])
+                    else:
+                        logger.warning('Could not determine breakpoint')
+
+        return bx, by
+
+    def get_residuals(self, series, band):
+        """ Return model residuals (y - predicted yhat) for a given band
+
+        Args:
+          series (int): index of Series for residuals
+          band (int): index of band to return
+
+        Returns:
+          iterable: sequence of tuples (1D NumPy arrays, x and y) containing
+            residual dates and values
+
+        """
+        if self.ccdc_results is None:
+            return
+
+        rx, ry = [], []
+
+        X, y = self.get_data(series, band, mask=settings.plot['mask'])
+        date, yhat = self.get_prediction(series, band, dates=X['ordinal'])
+
+        for _date, _yhat in zip(date, yhat):
+            idx = np.in1d(X['date'], _date)
+            resid = _yhat - y[idx]
+
+            rx.append(_date)
+            ry.append(resid)
+
+        return rx, ry
