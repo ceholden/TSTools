@@ -297,6 +297,10 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
         return rx, ry
 
 # RESULTS HELPER METHODS
+    def _fetch_results_saved(self):
+        """ Read YATSM results and return """
+        raise NotImplementedError('No saved results reading just yet...')
+
     def _fetch_results_live(self):
         """ Run YATSM and get results """
         logger.debug('Calculating YATSM results on the fly')
@@ -438,9 +442,6 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
             from yatsm._cyprep import get_valid_mask
             from yatsm.regression.transforms import harm
         except ImportError as e:
-            from PyQt4 import QtCore
-            QtCore.pyqtRemoveInputHook()
-            from IPython.core.debugger import Pdb; Pdb().set_trace()
             raise ImportError('Could not import YATSM because it could not '
                               'import a dependency (%s)' % e.message)
         except:
