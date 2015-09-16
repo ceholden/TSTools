@@ -162,9 +162,8 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
                     i += s.data.shape[1]
                     yield float(i) / n_images * 100.0
             else:
-                logger.info('No cache file here %s or here %s' % (pixel_fn, line_fn))
-                from PyQt4 import QtCore; QtCore.pyqtRemoveInputHook()
-                from IPython.core.debugger import Pdb; Pdb().set_trace()
+                logger.info('No cache file here:\n%s\n%s' %
+                            (pixel_fn, line_fn))
 
             if not got_cache:
                 for i_img in range(s._n_images):
