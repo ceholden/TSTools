@@ -6,6 +6,11 @@ import os
 
 import numpy as np
 
+try:
+    from os import scandir, walk
+except ImportError:
+    from scandir import scandir, walk
+
 logger = logging.getLogger('tstools')
 
 
@@ -41,44 +46,37 @@ def check_cache(cache_folder):
     return (read_cache, write_cache)
 
 
-def cache_pixel_name(x, y, series, affix=''):
+def name_cache_pixel(x, y, shape, prefix='', suffix=''):
     """ Return a filename for a pixel cache file
 
     Args:
       x (int): column of pixel
       y (int): row of pixel
-      series (list): list of Series within timeseries driver to save
-      affix (str, optional): affix to pixel cache filename
+      shape (tuple): shape of Y data to save
+      prefix (str, optional): prefix to pixel cache filename
+      suffix (str, optional): suffix to pixel cache filename
 
     Returns:
       str: cache filename
 
     """
-    f = 'x{x}y{y}'.format(x=x, y=y)
-    for i, s in enumerate(series):
-        b, n = s.data.shape[0], s.data.shape[1]
-        f = '_'.join([f, 'i{i}n{n}b{b}'.format(i=i, n=n, b=b)])
+    f = 'x%s_y%s_n%s_b%s' % (x, y, shape[1], shape[0])
 
-    return f + '.npz'
+    return prefix + f + suffix + '.npz'
 
 
 def write_cache_pixel(filename, series):
-    """ Save series data to NumPy zipped array of series data and image names
+    """ Save one series data to NumPy zipped array
 
     Args:
       filename (str): filename of cache file
-      series (list): list of Series within timeseries driver to save
+      series (Series): Series within timeseries driver to save
 
     Raises:
       IOError: raise IOError if it cannot write to cache
 
     """
-    out = {}
-    for i, s in enumerate(series):
-        out['data_{i}'.format(i=i)] = s.data
-        out['image_{i}'.format(i=i)] = s.images
-
-    np.savez(filename, **out)
+    np.savez(filename, {'Y': series.data, 'image_IDs': series.images['id']})
 
 
 def read_cache_pixel(filename, series):
@@ -86,10 +84,10 @@ def read_cache_pixel(filename, series):
 
     Args:
       filename (str): filename of cache file
-      series (list): list of Series within timeseries driver to read
+      series (Series): Series within timeseries driver to read
 
     Returns:
-      list: list of 2D np.ndarray for each series
+      np.ndarray: 2D np.ndarray of 'Y' data for series
 
     Raises:
       IOError: raise IOError if cache file cannot correctly be read from disk
@@ -98,23 +96,59 @@ def read_cache_pixel(filename, series):
 
     """
     z = np.load(filename)
-    _img_keys = [k for k in z.files if 'image' in k]
-    if not _img_keys:
+    if 'Y' not in z.files or 'image_IDs' not in z.files:
         raise IndexError('Cache file is not in the correct format')
 
-    data = []
-    for i, s in enumerate(series):
-        found = False
-        for k in _img_keys:
-            if np.array_equal(z[k]['date'], s.images['date']):
-                _dat_key = 'data_{i}'.format(i=k.split('_')[-1])
-                data.append(z[_dat_key])
-                found = True
-        if not found:
-            raise IndexError('Could not find cache data for series {s}'.format(
-                s=s.description))
+    if np.array_equal(z['image_IDs'], series.images['id']):
+        return z['Y']
+    else:
+        raise IndexError('Could not find cache data for series %s. image_IDs '
+                         'are not the same' % series.description)
 
-    return data
+
+def name_cache_line(y, shape, prefix='', suffix=''):
+    """ Return a filename for a line cache file
+
+    Args:
+      y (int): row of pixel
+      shape (tuple): shape of Y data to save
+      prefix (str, optional): prefix to pixel cache filename
+      suffix (str, optional): suffix to pixel cache filename
+
+    Returns:
+      str: cache filename
+
+    """
+    f = 'r%s_n%s_b%s' % (y, shape[1], shape[0])
+
+    return prefix + f + suffix + '.npz'
+
+
+def read_cache_line(filename, series):
+    """ Returns data read in from cache file if passes validation
+
+    Args:
+      filename (str): filename of cache file
+      series (Series): Series within timeseries driver to read
+
+    Returns:
+      np.ndarray: 3D np.ndarray of 'Y' data for series
+
+    Raises:
+      IOError: raise IOError if cache file cannot correctly be read from disk
+      IndexError: raise IndexError if cached data does not match dimensions
+        or images used in timeseries series
+
+    """
+    z = np.load(filename)
+    if 'Y' not in z.files or 'image_IDs' not in z.files:
+        raise IndexError('Cache file is not in the correct format')
+
+    if np.array_equal(z['image_IDs'], series.images['id']):
+        return z['Y']
+    else:
+        raise IndexError('Could not find cache data for series %s. image_IDs '
+                         'are not the same' % series.description)
 
 
 def find_files(location, pattern, ignore_dirs=[], maxdepth=float('inf')):
@@ -138,7 +172,7 @@ def find_files(location, pattern, ignore_dirs=[], maxdepth=float('inf')):
     location = os.path.normpath(location)
     num_sep = location.count(os.path.sep) - 1
 
-    for root, dirs, files in os.walk(location, followlinks=True):
+    for root, dirs, files in walk(location, followlinks=True):
         if ignore_dirs:
             dirs[:] = [d for d in dirs if d not in ignore_dirs]
 

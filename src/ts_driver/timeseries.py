@@ -238,6 +238,9 @@ class Series(object):
       metadata_names (iterable): list of names of variables used for plot and
         image table metadata
 
+      cache_prefix (str): cache filename prefix
+      cache_suffix (str): cache filename suffix
+
     """
     description = 'Stacked TimeSeries'
     images = np.empty(0,
@@ -259,6 +262,9 @@ class Series(object):
     metadata = []
     metadata_table = []
     metadata_names = []
+
+    cache_prefix = ''
+    cache_suffix = ''
 
     def __init__(self, config=None):
         if config:
