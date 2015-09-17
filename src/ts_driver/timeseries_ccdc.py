@@ -15,6 +15,18 @@ from .. import settings
 logger = logging.getLogger('tstools')
 
 
+def ml2ordinal(d):
+    """ Return ordinal date of MATLAB datenum
+
+    Args:
+        d (int): MATLAB date
+
+    Return:
+        int: ordinal date
+    """
+    return (dt.datetime.fromordinal(d) - dt.timedelta(days=366)).toordinal()
+
+
 class CCDCTimeSeries(timeseries_stacked.StackedTimeSeries):
     """ Reader for CCDC pre-calculated results for a 'stacked' timeseries
     """
@@ -95,12 +107,13 @@ class CCDCTimeSeries(timeseries_stacked.StackedTimeSeries):
                 else:
                     i_step = 1
 
+                start = ml2ordinal(rec['t_start'])
                 if dates is not None:
-                    end = max(rec['t_break'], rec['t_end'])
-                    _mx = dates[np.where((dates >= rec['t_start']) &
-                                         (dates <= end))[0]]
+                    end = ml2ordinal(max(rec['t_break'], rec['t_end']))
+                    _mx = dates[np.where((dates >= start) & (dates <= end))[0]]
                 else:
-                    _mx = np.arange(rec['t_start'], rec['t_end'], i_step)
+                    end = ml2ordinal(rec['t_end'])
+                    _mx = np.arange(start, end, i_step)
 
                 # Coefficients used for prediction
                 _coef = rec['coefs'][:, band]
@@ -108,8 +121,8 @@ class CCDCTimeSeries(timeseries_stacked.StackedTimeSeries):
 
                 _my = np.dot(_coef, _mX[:_coef.size, :])
                 # Transform ordinal back to datetime for plotting
-                _mx = np.array([dt.datetime.fromordinal(int(_x)) -
-                                dt.timedelta(days=366) for _x in _mx])
+                _mx = np.array([dt.datetime.fromordinal(int(_x))
+                                for _x in _mx])
 
                 mx.append(_mx)
                 my.append(_my)
@@ -130,19 +143,20 @@ class CCDCTimeSeries(timeseries_stacked.StackedTimeSeries):
         """
         if self.ccdc_results is None:
             return
+
         # Setup output
         bx = []
         by = []
 
+        n_obs = self.series[series].data.shape[1]
+
         if len(self.ccdc_results) > 0:
             for rec in self.ccdc_results:
                 if rec['t_break'] != 0:
-                    _bx = (dt.datetime.fromordinal(int(rec['t_break'])) -
-                           dt.timedelta(days=366))
+                    _bx = dt.datetime.fromordinal(ml2ordinal(rec['t_break']))
                     index = np.where(self.series[series].images['date']
                                      == _bx)[0]
-                    if (index.size > 0 and
-                            index[0] < self.series[series].data.shape[1]):
+                    if (index.size > 0 and index[0] < n_obs):
                         bx.append(_bx)
                         by.append(self.series[series].data[band, index[0]])
                     else:
@@ -172,6 +186,9 @@ class CCDCTimeSeries(timeseries_stacked.StackedTimeSeries):
 
         for _date, _yhat in zip(date, yhat):
             idx = np.in1d(X['date'], _date)
+            if idx.size == 0:
+                logger.warning('Could not plot residuals for a model')
+                continue
             resid = _yhat - y[idx]
 
             rx.append(_date)
