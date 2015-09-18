@@ -189,7 +189,7 @@ class CCDCTimeSeries(timeseries_stacked.StackedTimeSeries):
             if idx.size == 0:
                 logger.warning('Could not plot residuals for a model')
                 continue
-            resid = _yhat - y[idx]
+            resid = y[idx] - _yhat
 
             rx.append(_date)
             ry.append(resid)

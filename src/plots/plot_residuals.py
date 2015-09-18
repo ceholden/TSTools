@@ -102,7 +102,7 @@ class ResidualPlot(base_plot.BasePlot):
         if tsm.ts:
             self.axis_1.set_title(tsm.ts.pixel_pos)
         self.axis_1.set_xlabel('Date')
-        self.axis_1.set_ylabel(r'Residuals ($\hat{y} - y$)')
+        self.axis_1.set_ylabel(r'Residuals ($y - \hat{y}$)')
 
         self.axis_1.set_xlim(dt.date(settings.plot['x_min'], 01, 01),
                              dt.date(settings.plot['x_max'], 01, 01))

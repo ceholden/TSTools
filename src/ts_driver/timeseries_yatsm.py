@@ -289,7 +289,7 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
 
         for _date, _yhat in zip(date, yhat):
             idx = np.in1d(X['date'], _date)
-            resid = _yhat - y[idx]
+            resid = y[idx] - _yhat
 
             rx.append(_date)
             ry.append(resid)
