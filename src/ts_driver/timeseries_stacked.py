@@ -135,35 +135,35 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
                                             suffix=s.cache_suffix)
             line_fn = os.path.join(self.location, self._cache_folder, line)
 
+            # First try pixel cache
             if self._read_cache and os.path.isfile(pixel_fn):
                 logger.debug('Trying to read pixel from cache')
                 try:
                     dat = ts_utils.read_cache_pixel(pixel_fn, s)
-                except:
-                    logger.info('Could not read from cache file %s' % pixel_fn)
-                    raise
+                except Exception as e:
+                    logger.warning('Could not read from cache file %s: %s' %
+                                   (pixel_fn, e.message))
                 else:
                     logger.debug('Read pixel from cache')
                     s.data = dat
                     got_cache = True
                     i += s.data.shape[1]
                     yield float(i) / n_images * 100.0
-            elif self._read_cache and os.path.isfile(line_fn):
+
+            # If pixel cache fails, try line
+            if self._read_cache and os.path.isfile(line_fn) and not got_cache:
                 logger.debug('Trying to read line from cache')
                 try:
                     dat = ts_utils.read_cache_line(line_fn, s)
-                except:
-                    logger.info('Could not read from cache file %s' % line_fn)
-                    raise
+                except Exception as e:
+                    logger.warning('Could not read from cache file %s: %s' %
+                                   (line_fn, e.message))
                 else:
                     logger.debug('Read line from cache')
                     s.data = dat[..., self._px]
                     got_cache = True
                     i += s.data.shape[1]
                     yield float(i) / n_images * 100.0
-            else:
-                logger.info('No cache file here:\n%s\n%s' %
-                            (pixel_fn, line_fn))
 
             if not got_cache:
                 for i_img in range(s._n_images):
@@ -363,8 +363,3 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
             # TODO
             qgis_log('Could not cache pixel to {f}: {e}'.format(
                 f=filename, e=e.message), level=logging.ERROR)
-
-    def _read_from_cache(self):
-        """ TODO
-        """
-        pass
