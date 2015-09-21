@@ -76,7 +76,10 @@ def write_cache_pixel(filename, series):
       IOError: raise IOError if it cannot write to cache
 
     """
-    np.savez(filename, {'Y': series.data, 'image_IDs': series.images['id']})
+    logger.debug('Caching pixel to %s' % filename)
+    np.savez(filename,
+             **{'Y': series.data,
+                'image_IDs': series.images['id']})
 
 
 def read_cache_pixel(filename, series):
