@@ -47,6 +47,8 @@ class AbstractTimeSeriesDriver(object):
       get_residuals: return model residuals for a specific band
       get_geometry: return Well Known Text (Wkt) of geometry and projection
         of query specified by X/Y coordinate
+      get_plot: plot some driver specific information given an axis and an
+        axis description (TSPlot, DOYPlot, etc. class names)
 
     Extra Methods:
       set_custom_controls(values): setter for custom control variables defined
@@ -208,6 +210,24 @@ class AbstractTimeSeriesDriver(object):
 
         """
         pass
+
+    def get_plot(self, series, band, axis, desc):
+        """ Plot some information on an axis for a plot of some description
+
+        Args:
+          series (int): index of Series for residuals
+          band (int): index of band to return
+          axis (matplotlib.axes._subplots.Axes): a matplotlib axis to plot on
+          desc (str): description of plot, usually a plot class from
+            `tstools.plots`
+
+        Returns:
+          iterable: list of artists to include in legend
+
+        """
+        # Do nothing by default, but don't require subclass to implement method
+        return None
+
 
 
 class Series(object):

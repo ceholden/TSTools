@@ -49,8 +49,11 @@ class TSManager(object):
             if modname != __name__.split('.')[-1]:
                 logger.debug('Loading {m}'.format(m=modname))
 
-                importlib.import_module('.'.join(__name__.split('.')[:-1]) +
-                                        '.' + modname)
+                try:
+                    importlib.import_module(
+                        '.'.join(__name__.split('.')[:-1]) + '.' + modname)
+                except Exception as e:
+                    logger.error('Cannot import %s: %s' % (modname, e.message))
 
         self.ts_drivers = timeseries.AbstractTimeSeriesDriver.__subclasses__()
         for tsd in self.ts_drivers:

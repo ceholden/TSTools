@@ -88,6 +88,14 @@ class ResidualPlot(base_plot.BasePlot):
                     axis.plot(_bx, resid_values[idx], 'ro',
                               mec='r', mfc='none', ms=10, mew=5)
 
+        if settings.plot['custom']:
+            try:
+                tsm.ts.get_plot(series, band, axis, self.__class__.__name__)
+            except Exception as e:
+                logger.error('Could not plot TS driver customized plot info: '
+                             '%s' % e.message)
+
+
         # Reset color cycle for later
         axis.set_color_cycle(None)
 

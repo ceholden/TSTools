@@ -102,6 +102,16 @@ class DOYPlot(base_plot.BasePlot):
                                 picker=settings.plot['picker_tol'])
 
         # TODO: prediction & breaks
+        if settings.plot['custom']:
+            try:
+                artists = tsm.ts.get_plot(series, band, self.axis_1,
+                                          self.__class__.__name__)
+                if artists:
+                    leg = self.axis_1.legend(handles=artists)
+                    leg.draggable(state=True)
+            except Exception as e:
+                logger.error('Could not plot TS driver customized plot info: '
+                             '%s' % e.message)
 
     def plot(self):
         logger.debug('Plotting DOY plot')

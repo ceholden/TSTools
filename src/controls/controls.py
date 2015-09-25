@@ -212,6 +212,8 @@ class ControlPanel(QtGui.QWidget, Ui_Controls):
             qgis_log('Cannot parse mask values provided.')
             self.edit_maskvalues.setText(
                 ', '.join([str(v) for v in settings.plot['mask_val']]))
+        settings.plot['custom'] = (True if self.cbox_custom.isChecked()
+                                   else False)
 
         # Emit signal to trigger plot updates/etc
         if emit:
@@ -307,6 +309,10 @@ class ControlPanel(QtGui.QWidget, Ui_Controls):
             self.cbox_modelfit.setEnabled(False)
             self.cbox_breakpoint.setChecked(False)
             self.cbox_breakpoint.setEnabled(False)
+
+        self.cbox_custom.setEnabled(True)
+        self.cbox_custom.setChecked(settings.plot['custom'])
+        self.cbox_custom.stateChanged.connect(self.plot_option_changed)
 
         # Symbology
         if hasattr(self, 'symbology_controls'):
@@ -497,6 +503,7 @@ class ControlPanel(QtGui.QWidget, Ui_Controls):
         self.edit_maskvalues.disconnect()
         self.cbox_modelfit.disconnect()
         self.cbox_breakpoint.disconnect()
+        self.cbox_custom.disconnect()
 
         self.but_symbology.disconnect()
         self.symbology_controls.disconnect()

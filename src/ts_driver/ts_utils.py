@@ -7,9 +7,9 @@ import os
 import numpy as np
 
 try:
-    from os import scandir, walk
+    from scandir import walk
 except ImportError:
-    from scandir import scandir, walk
+    from os import walk
 
 logger = logging.getLogger('tstools')
 

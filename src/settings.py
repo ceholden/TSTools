@@ -53,6 +53,8 @@ plot = {
     'break': True,
     # Mask values
     'mask_val': None,
+    # Allow custom text/lines/etc from timeseries driver
+    'custom': True,
     # Tolerance for clicking data points
     'picker_tol': 2
 }

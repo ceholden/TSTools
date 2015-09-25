@@ -1,10 +1,12 @@
 """ A basic timeseries driver for running YATSM on stacked timeseries
 """
 from datetime import datetime as dt
+import itertools
 import logging
 import re
 
 import numpy as np
+import palettable
 import patsy
 
 from . import timeseries_stacked
@@ -220,6 +222,9 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
                                          (dates <= end))[0]]
                 else:
                     _mx = np.arange(rec['start'], rec['end'], i_step)
+
+                if _mx.size == 0:
+                    continue
                 # Coefficients to use for prediction
                 _coef = rec[self.coef_name][coef_columns, band]
                 # Setup design matrix
@@ -295,6 +300,49 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
             ry.append(resid)
 
         return rx, ry
+
+    def get_plot(self, series, band, axis, desc):
+        """ Plot some information on an axis for a plot of some description
+
+        Args:
+          series (int): index of Series for residuals
+          band (int): index of band to return
+          axis (matplotlib.axes._subplots.Axes): a matplotlib axis to plot on
+          desc (str): description of plot, usually a plot class from
+            `tstools.plots`
+
+        Returns:
+          iterable: list of artists to include in legend
+
+        """
+        artists = []
+        if desc == 'TSPlot':
+            for rec in self.yatsm_model.record:
+                _x = (rec['start'] + rec['end']) / 2.0
+                _x, _y = self.get_prediction(series, band,
+                                             dates=np.array([_x]))
+                _x = _x[0][0]
+                _y = _y[0][0] + 250
+                axis.text(_x, _y, 'RMSE: %.3f' % rec['rmse'][band],
+                          fontsize=18,
+                          horizontalalignment='center')
+        elif desc == 'DOYPlot':
+            names = self.yatsm_model.record.dtype.names
+            if self._calc_pheno and all([r in names for r in
+                                         ('spring_doy', 'autumn_doy')]):
+                colors = palettable.colorbrewer.get_map('Dark2', 'Qualitative',
+                                                        8).colors
+                color_cycle = itertools.cycle(colors)
+                for i, rec in enumerate(self.yatsm_model.record):
+                    col = [c / 255.0 for c in color_cycle.next()]
+                    artists.append(
+                        axis.axvline(rec['spring_doy'], label='Model %i' % i,
+                                     c=col)
+                    )
+                    axis.axvline(rec['autumn_doy'], label='Model %i' % i,
+                                 c=col)
+
+        return artists
 
 # RESULTS HELPER METHODS
     def _fetch_results_saved(self):
