@@ -5,9 +5,8 @@ of a timeseries driver for auto-detection and use within the TSTools plugin.
 """
 import abc
 
-import numpy as np
-
 from . import ts_utils
+from .series import Series
 
 
 class AbstractTimeSeriesDriver(object):
@@ -227,65 +226,3 @@ class AbstractTimeSeriesDriver(object):
         """
         # Do nothing by default, but don't require subclass to implement method
         return None
-
-
-
-class Series(object):
-    """ A container class for timeseries driven by a TimeSeries driver
-
-    Note:
-      You can set class attributes using an optionally supplied configuration
-        dictionary when instantiating the class.
-
-    Attributes:
-      description (str): description of timeseries series
-      images (np.ndarray): NumPy structured array containing attributes for all
-        timeseries images. Structured array columns must include
-        "filename" (str), "path" (str), "id" (str), "date" (dt.Date), and
-        "ordinal" (int).
-      band_names (iterable): list of names describing each band
-
-      symbology_hint_indices (tuple): three band indices (RGB) used for default
-        symbology
-      symbology_hint_minmax (iterable): one or more pairs of integers used as
-        the minimum and maximum scaling for default image symbology
-
-      metadata (iterable): list of variables used for plot and image table
-        metadata
-      metadata_table (iterable): list of True/False for each metadata variable
-        indicating suitability of variable within images table on "Controls"
-        tab
-      metadata_names (iterable): list of names of variables used for plot and
-        image table metadata
-
-      cache_prefix (str): cache filename prefix
-      cache_suffix (str): cache filename suffix
-
-    """
-    description = 'Stacked TimeSeries'
-    images = np.empty(0,
-                      dtype=[('filename', object),
-                             ('path', object),
-                             ('id', object),
-                             ('date', object),
-                             ('ordinal', 'u4'),
-                             ('doy', 'u2')])
-    band_names = []
-
-    # Basic symbology hints by default
-    symbology_hint_indices = [3, 2, 1]
-    # Specify two numbers (int or float) for one min/max for all bands
-    # OR specify np.ndarray for each band in dataset for min and max
-    #     e.g. symbology_hint_minmax = [np.zeros(8), np.ones(8) * 10000]
-    symbology_hint_minmax = [0, 10000]
-
-    metadata = []
-    metadata_table = []
-    metadata_names = []
-
-    cache_prefix = ''
-    cache_suffix = ''
-
-    def __init__(self, config=None):
-        if config:
-            self.__dict__.update(config)

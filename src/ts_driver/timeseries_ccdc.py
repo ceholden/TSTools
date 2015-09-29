@@ -56,7 +56,7 @@ class CCDCTimeSeries(timeseries_stacked.StackedTimeSeries):
         """ Read results for current pixel
         """
         path = os.path.join(self.location, self._results_folder)
-        row = self._py + 1
+        row = self.series[0].py + 1
 
         result = find_files(path, 'record_change%s.mat' % row)
         if not result:
@@ -64,13 +64,13 @@ class CCDCTimeSeries(timeseries_stacked.StackedTimeSeries):
             return
 
         ccdc_results = spio.loadmat(result[0], squeeze_me=True)['rec_cg']
-        pos = (self._py * self._x_size) + self._px + 1
+        pos = self.series[0].py * self.series[0].width + self.series[0].px + 1
 
         pos_search = np.where(ccdc_results['pos'] == pos)[0]
 
         if pos_search.size == 0:
             logger.error('Could not find result for row %s col %s' %
-                         (row, self._px + 1))
+                         (row, self.series[0].px + 1))
             return
         self.ccdc_results = ccdc_results[pos_search]
 

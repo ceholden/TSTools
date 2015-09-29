@@ -1,21 +1,13 @@
 """ Timeseries driver for a simple 'stacked' timeseries dataset
 """
-try:
-    range = xrange
-except:
-    pass
-
-from datetime import datetime as dt
 import logging
 import os
 
 import numpy as np
-from osgeo import gdal, gdal_array
 
 from . import ts_utils
-from .reader import read_pixel_GDAL
-from .timeseries import AbstractTimeSeriesDriver, Series
-from ..logger import qgis_log
+from .series import Series
+from .timeseries import AbstractTimeSeriesDriver
 from ..utils import geo_utils
 
 logger = logging.getLogger('tstools')
@@ -56,37 +48,32 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
 
     _read_cache, _write_cache = False, False
 
-    _px, _py = 0, 0
-
     def __init__(self, location, config=None):
         super(StackedTimeSeries, self).__init__(location, config=config)
 
-        self.series = [Series({
-            'description': 'Stacked Timeseries',
-            'symbology_hint_indices': [4, 3, 2],
-            'symbology_hint_minmax': [[0, 4000], [0, 5000], [0, 3000]],
-            'cache_prefix': 'yatsm_',
-            'cache_suffix': '.npy'
-        })]
+        # Find images and init Series
+        ignore_dirs = []
+        if hasattr(self, '_cache_folder'):
+            ignore_dirs.append(self._cache_folder)
+        if hasattr(self, '_results_folder'):
+            ignore_dirs.append(self._results_folder)
+        images = ts_utils.find_files(self.location, self._stack_pattern,
+                                     ignore_dirs=ignore_dirs)
 
+        self.series = [
+            Series(images, {
+                'description': 'Stacked Timeseries',
+                'symbology_hint_indices': [4, 3, 2],
+                'symbology_hint_minmax': [[0, 4000], [0, 5000], [0, 3000]],
+                'cache_prefix': 'yatsm_',
+                'cache_suffix': '.npy'
+            })
+        ]
         self._check_cache()
-
-        for series in self.series:
-            self._init_images(series)
-            self._init_attributes(series)
-
-            series.data = np.zeros((series._n_band, series._n_images),
-                                   dtype=series._dtype)
-            series._scratch_data = np.zeros_like(series.data)
-            series.mask = np.ones(series._n_images, dtype=np.bool)
 
     @property
     def pixel_pos(self):
         return self._pixel_pos
-
-    def _update_pixel_pos(self):
-        self._pixel_pos = 'Row {py}/Column {px}'.format(py=self._py,
-                                                        px=self._px)
 
     def fetch_data(self, mx, my, crs_wkt):
         """ Read data for a given x, y coordinate in a given CRS
@@ -105,78 +92,25 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
             dataset
 
         """
-        # Convert coordinate reference system
-        mx, my = geo_utils.reproject_point(mx, my, crs_wkt, self._spatialref)
+        cache_folder = os.path.join(self.location, self._cache_folder)
 
-        # Convert map coordinates into image
-        self._px, self._py = geo_utils.point2pixel(mx, my, self._geotransform)
-        self._update_pixel_pos()
-
-        if (self._px < 0 or self._py < 0 or
-                self._px > self._x_size or self._py > self._y_size):
-            logger.error('Coordinate specified is outside of dataset '
-                         '(px/py: {px}/{py})'.format(px=self._px, py=self._py))
-            raise IndexError('Coordinate specified is outside of dataset')
-
-        # Read in -- first try from cache
-        n_images = sum([s._n_images for s in self.series])
         i = 0
-        for s in self.series:
-            got_cache = False
-            pixel = ts_utils.name_cache_pixel(self._px, self._py,
-                                              s.data.shape,
-                                              prefix=s.cache_prefix,
-                                              suffix=s.cache_suffix)
-            pixel_fn = os.path.join(self.location, self._cache_folder, pixel)
+        n = sum([len(series.images) for series in self.series])
 
-            line = ts_utils.name_cache_line(self._py,
-                                            s.data.shape,
-                                            prefix=s.cache_prefix,
-                                            suffix=s.cache_suffix)
-            line_fn = os.path.join(self.location, self._cache_folder, line)
+        pos = []
+        for i, series in enumerate(self.series):
+            _mx, _my = geo_utils.reproject_point(mx, my, crs_wkt, series.crs)
+            _px, _py = geo_utils.point2pixel(_mx, _my, series.gt)
+            pos.append('Series %i - %i/%i' % (i + 1, _py, _px))
 
-            # First try pixel cache
-            if self._read_cache and os.path.isfile(pixel_fn):
-                logger.debug('Trying to read pixel from cache')
-                try:
-                    dat = ts_utils.read_cache_pixel(pixel_fn, s)
-                except Exception as e:
-                    logger.warning('Could not read from cache file %s: %s' %
-                                   (pixel_fn, e.message))
-                else:
-                    logger.debug('Read pixel from cache')
-                    s.data = dat
-                    got_cache = True
-                    i += s.data.shape[1]
-                    yield float(i) / n_images * 100.0
+            for _i in series.fetch_data(mx, my, crs_wkt,
+                                        cache_folder=cache_folder,
+                                        read_cache=self._read_cache,
+                                        write_cache=self._write_cache):
+                i += _i
+                yield i / float(n) * 100.0
 
-            # If pixel cache fails, try line
-            if self._read_cache and os.path.isfile(line_fn) and not got_cache:
-                logger.debug('Trying to read line from cache')
-                try:
-                    dat = ts_utils.read_cache_line(line_fn, s)
-                except Exception as e:
-                    logger.warning('Could not read from cache file %s: %s' %
-                                   (line_fn, e.message))
-                else:
-                    logger.debug('Read line from cache')
-                    s.data = dat[..., self._px]
-                    got_cache = True
-                    i += s.data.shape[1]
-                    yield float(i) / n_images * 100.0
-
-            if not got_cache:
-                for i_img in range(s._n_images):
-                    s._scratch_data[:, i_img] = read_pixel_GDAL(
-                        s.images['path'][i_img], self._px, self._py)
-                    i += 1
-                    yield float(i) / n_images * 100.0
-
-                    # Copy from scratch variable if it completes
-                    np.copyto(s.data, s._scratch_data)
-
-            if self._write_cache and not got_cache:
-                self._write_to_cache(pixel_fn, s)
+        self._pixel_pos = 'Row/Column: ' + '; '.join(pos)
 
         # Update mask
         self.update_mask()
@@ -255,82 +189,19 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
             Well Known Text (Wkt)
 
         """
-        geom = geo_utils.pixel_geometry(self._geotransform, self._px, self._py)
+        geom_wkts, crss = [], []
+        for series in self.series:
+            _geom_wkt, _crs = series.get_geometry()
+            geom_wkts.append(_geom_wkt)
+            crss.append(_crs)
 
-        return geom.ExportToWkt(), self._spatialref
+        if len(geom_wkts) > 1:
+            geom, crs = geo_utils.merge_geometries(geom_wkts, crss)
+            geom = geom.ExportToWkt()
+        else:
+            geom, crs = geom_wkts[0], crss[0]
 
-    def _init_images(self, series):
-        """ Sets up `self.images` by finding and describing imagery """
-        # Ignore results folder and cache, if we have it
-        ignore_dirs = []
-        if hasattr(self, '_cache_folder'):
-            ignore_dirs.append(getattr(self, '_cache_folder'))
-        if hasattr(self, '_results_folder'):
-            ignore_dirs.append(getattr(self, '_results_folder'))
-
-        # Find images
-        images = ts_utils.find_files(self.location, self._stack_pattern,
-                                     ignore_dirs=ignore_dirs)
-        if not images:
-            raise Exception('Could not find any files for "{s}" series'.format(
-                s=series.description))
-
-        # Extract attributes
-        _images = np.empty(len(images), dtype=series.images.dtype)
-        series._n_images = len(images)
-
-        for i, img in enumerate(images):
-            _images[i]['filename'] = os.path.basename(img)
-            _images[i]['path'] = img
-            _images[i]['id'] = os.path.basename(os.path.dirname(img))
-            _images[i]['date'] = dt.strptime(
-                _images[i]['id'][self._date_index[0]:self._date_index[1]],
-                self._date_format)
-            _images[i]['ordinal'] = dt.toordinal(_images[i]['date'])
-            _images[i]['doy'] = int(_images[i]['date'].strftime('%j'))
-
-        # Sort by date
-        sort_idx = np.argsort(_images['ordinal'])
-        _images = _images[sort_idx]
-
-        series.images = _images.copy()
-
-    def _init_attributes(self, series):
-        # Determine geotransform and projection
-        self._geotransform = None
-        self._spatialref = None
-
-        ds = None
-        for fname in series.images['path']:
-            try:
-                ds = gdal.Open(fname, gdal.GA_ReadOnly)
-            except:
-                pass
-            else:
-                break
-        if ds is None:
-            raise Exception(
-                'Could not initialize attributes for {s} series'.format(
-                    s=series.description))
-
-        self._x_size = ds.RasterXSize
-        self._y_size = ds.RasterYSize
-        series._n_band = ds.RasterCount
-        series._dtype = gdal_array.GDALTypeCodeToNumericTypeCode(
-            ds.GetRasterBand(1).DataType)
-
-        _band_names = []
-        for i_b in range(ds.RasterCount):
-            name = ds.GetRasterBand(i_b + 1).GetDescription()
-            if not name:
-                name = 'Band {b}'.format(b=i_b + 1)
-            _band_names.append(name)
-        series.band_names = list(_band_names)
-
-        self._geotransform = ds.GetGeoTransform()
-        self._spatialref = ds.GetProjection()
-
-        ds = None
+        return geom, crs
 
     def _check_cache(self):
         """ Check for read/write from/to cache folder
@@ -353,13 +224,3 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
 
         logger.debug('Cache read/write: {r}/{w}'.format(
             r=self._read_cache, w=self._write_cache))
-
-    def _write_to_cache(self, filename, series):
-        """ TOOD
-        """
-        try:
-            ts_utils.write_cache_pixel(filename, series)
-        except Exception as e:
-            # TODO
-            qgis_log('Could not cache pixel to {f}: {e}'.format(
-                f=filename, e=e.message), level=logging.ERROR)
