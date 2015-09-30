@@ -162,7 +162,7 @@ class Series(object):
                                (line_fn, e.message))
             else:
                 logger.debug('Read line from cache')
-                s.data = dat[..., self.px]
+                self.data = dat[..., self.px]
                 got_cache = True
                 i += self.data.shape[1]
                 yield float(i)
