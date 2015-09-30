@@ -286,11 +286,13 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
         """
         if self.yatsm_model is None:
             return
-
         rx, ry = [], []
 
         X, y = self.get_data(series, band, mask=settings.plot['mask'])
-        date, yhat = self.get_prediction(series, band, dates=X['ordinal'])
+        predict = self.get_prediction(series, band, dates=X['ordinal'])
+        if predict is None:
+            return
+        date, yhat = predict
 
         for _date, _yhat in zip(date, yhat):
             idx = np.in1d(X['date'], _date)
