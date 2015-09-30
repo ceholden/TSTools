@@ -39,6 +39,9 @@ class YATSMMetTimeSeries(YATSMTimeSeries):
 
         min_max_symbology = {
             'ppt': [0, 300],
+            'tmin': [-30, 35],
+            'tmean': [-30, 35],
+            'tmax': [-30, 35]
         }
 
         for met_type in self._met_types:
