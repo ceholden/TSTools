@@ -134,6 +134,9 @@ class CustomForm(QtGui.QWidget):
                         value = np.array([str2list(field.text(), int)])
                     elif isinstance(default[0][0], float):
                         value = np.array([str2list(field.text(), float)])
+                # list of str
+                elif isinstance(default[0], str):
+                    value = str2list(field.text(), str)
                 # turn 1d np.array back into np.array
                 if isinstance(default, np.ndarray) and len(default.shape) == 1:
                     value = np.array(value)
