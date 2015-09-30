@@ -61,13 +61,16 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
                                      ignore_dirs=ignore_dirs)
 
         self.series = [
-            Series(images, {
-                'description': 'Stacked Timeseries',
-                'symbology_hint_indices': [4, 3, 2],
-                'symbology_hint_minmax': [[0, 4000], [0, 5000], [0, 3000]],
-                'cache_prefix': 'yatsm_',
-                'cache_suffix': '.npy'
-            })
+            Series(
+                images,
+                self._date_index, self._date_format,
+                {
+                    'description': 'Stacked Timeseries',
+                    'symbology_hint_indices': [4, 3, 2],
+                    'symbology_hint_minmax': [[0, 4000], [0, 5000], [0, 3000]],
+                    'cache_prefix': 'yatsm_',
+                    'cache_suffix': '.npy'
+                })
         ]
         self._check_cache()
 

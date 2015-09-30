@@ -21,6 +21,12 @@ class Series(object):
       You can set class attributes using an optionally supplied configuration
         dictionary when instantiating the class.
 
+    Args:
+      filenames (list): filenames for images to be included in the Series
+      date_index (tuple): start and end index of an image filename or ID
+        that contains the image's date
+      date_format (str): format of date in an image's filename or ID
+
     Attributes:
       description (str): description of timeseries series
       images (np.ndarray): NumPy structured array containing attributes for all
@@ -77,8 +83,9 @@ class Series(object):
 
     px, py = 0, 0
 
-    def __init__(self, images, config=None):
-        self._init_images(images)
+    def __init__(self, filenames, date_index=(9, 16), date_format='%Y%j',
+                 config=None):
+        self._init_images(filenames, date_index, date_format)
         self.data = np.zeros((self.count, self.n), dtype=self.dtype)
         self._scratch_data = np.zeros_like(self.data)
         self.mask = np.ones(self.n, dtype=np.bool)
@@ -210,8 +217,9 @@ class Series(object):
                 except:
                     raise Exception(
                         'Could not parse date from ID or filename '
-                        '(date index=%s:%s, format=%s)' %
-                        (date_index[0], date_index[1], date_format)
+                        '(date index=%s:%s, format=%s)\n%s\n%s' %
+                        (date_index[0], date_index[1], date_format,
+                         _images[i]['id'], _images[i]['filename'])
                     )
             _images[i]['date'] = date
             _images[i]['ordinal'] = dt.toordinal(_images[i]['date'])
