@@ -80,7 +80,7 @@ def pixel_geometry(gt, px, py):
     return geom
 
 
-def merge_geometries(geom_wkts, crs):
+def merge_geometries(geom_wkts, crs_wkts):
     """ Combine geometries into a wkbMultiPolygon
 
     Note that if geometries are in differnet CRS, geometries will be
@@ -88,19 +88,25 @@ def merge_geometries(geom_wkts, crs):
 
     Args:
       geom_wkts (list): list of geometries as WKT
-      crs (list): list of coordinate reference systems
+      crs_wkts (list): list of coordinate reference systems as WKT
 
     Returns:
-      ogr.Geometry: multipolygon geometry
+      tuple: multipolygon ogr.Geometry and geometry CRS as WKT
 
     """
-    geom = ogr.Geometry(ogr.wkbMultiPolygon)
+    crs = []
+    for wkt in crs_wkts:
+        _crs = osr.SpatialReference()
+        _crs.ImportFromWkt(wkt)
+        crs.append(_crs)
 
+    geom = ogr.Geometry(ogr.wkbMultiPolygon)
     for i, (_geom_wkt, _crs) in enumerate(zip(geom_wkts, crs)):
         _geom = ogr.CreateGeometryFromWkt(_geom_wkt)
         if i != 0:
             coord_transform = osr.CoordinateTransformation(_crs, crs[0])
-            _geom = _geom.Transform(coord_transform)
+            _geom.Transform(coord_transform)
         geom.AddGeometry(_geom)
 
-    return geom, crs[0]
+    crs_wkt = crs[0].ExportToWkt()
+    return geom, crs_wkt
