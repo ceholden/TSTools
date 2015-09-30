@@ -101,10 +101,10 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
         n = sum([len(series.images) for series in self.series])
 
         pos = []
-        for i, series in enumerate(self.series):
+        for j, series in enumerate(self.series):
             _mx, _my = geo_utils.reproject_point(mx, my, crs_wkt, series.crs)
             _px, _py = geo_utils.point2pixel(_mx, _my, series.gt)
-            pos.append('Series %i - %i/%i' % (i + 1, _py, _px))
+            pos.append('Series %i - %i/%i' % (j + 1, _py, _px))
 
             for _i in series.fetch_data(mx, my, crs_wkt,
                                         cache_folder=cache_folder,
