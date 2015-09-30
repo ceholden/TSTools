@@ -575,7 +575,8 @@ class Controller(QtCore.QObject):
 
             # Custom symbology, if exists
             if hasattr(series, 'symbology_hint_indices'):
-                i = series.symbology_hint_indices
+                i = [min(n_bands - 1, _i) for _i in
+                     series.symbology_hint_indices]
                 if isinstance(i, (tuple, list)):
                     if len(i) == 3:
                         logger.debug('Applying RGB symbology hint')
