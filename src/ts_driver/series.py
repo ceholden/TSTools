@@ -198,9 +198,15 @@ class Series(object):
         return geom.ExportToWkt(), self.crs
 
     def _init_images(self, images, date_index=[9, 16], date_format='%Y%j'):
+        n = len(images)
+        if n == 0:
+            raise Exception('Cannot initialize a Series of 0 images')
+        else:
+            self.n = n
+            logger.debug('Trying to initialize a Series of %i images' % self.n)
+
         # Extract images information
-        _images = np.empty(len(images), dtype=self.images.dtype)
-        self.n = len(images)
+        _images = np.empty(self.n, dtype=self.images.dtype)
 
         for i, img in enumerate(images):
             _images[i]['filename'] = os.path.basename(img)
@@ -242,7 +248,8 @@ class Series(object):
             else:
                 break
         if ds is None:
-            raise Exception('Could not initialize attributes for %s series' %
+            raise Exception('Could not initialize attributes for %s series: '
+                            'could not open any images in Series with GDAL' %
                             self.description)
 
         self.band_names = []
