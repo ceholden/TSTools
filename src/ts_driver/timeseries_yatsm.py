@@ -126,9 +126,9 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
 
         # Setup min/max values
         if len(self._min_values) == 1:
-            self._min_values = self._min_values * (self.series[0]._n_band - 1)
+            self._min_values = self._min_values * (self.series[0].count - 1)
         if len(self._max_values) == 1:
-            self._max_values = self._max_values * (self.series[0]._n_band - 1)
+            self._max_values = self._max_values * (self.series[0].count - 1)
         self._min_values = np.asarray(self._min_values)
         self._max_values = np.asarray(self._max_values)
 
@@ -456,7 +456,7 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
             n in self.series[0].images['filename']])
         # Multitemporal noise screening - init to 0 (not screened)
         #   Will update this during model fitting
-        self.series[0].multitemp_screened = np.ones(self.series[0]._n_images)
+        self.series[0].multitemp_screened = np.ones(self.series[0].n)
         # Make an entry 0 so we get this in the unique values
         self.series[0].multitemp_screened[0] = 0
 
@@ -465,7 +465,7 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
             self.series[0].metadata.append('cloud_cover')
             self.series[0].metadata_names.append('Cloud cover')
             self.series[0].metadata_table.append(True)
-            self.series[0].cloud_cover = np.zeros(self.series[0]._n_images)
+            self.series[0].cloud_cover = np.zeros(self.series[0].n)
             for i, mtl_file in enumerate(self.mtl_files):
                 self.series[0].cloud_cover[i] = parse_landsat_MTL(
                     mtl_file, 'CLOUD_COVER')
@@ -475,7 +475,7 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
             self.series[0].metadata_names.append('Phenology')
             self.series[0].metadata_table.append(False)
             # Initialize almost all as summer (SUM); first two as SPR/AUT
-            self.series[0].pheno = np.repeat('SUM', self.series[0]._n_images)
+            self.series[0].pheno = np.repeat('SUM', self.series[0].n)
             self.series[0].pheno[0] = 'SPR'
             self.series[0].pheno[1] = 'AUT'
 
