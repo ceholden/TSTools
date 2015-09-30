@@ -49,6 +49,8 @@ class YATSMMetTimeSeries(YATSMTimeSeries):
                 {
                     'description': met_type,
                     'symbology_hint_indices': [0],
+                    'cache_prefix': 'met_%s_' % met_type,
+                    'cache_suffix': '.npy'
                 }
             )
             if met_type in min_max_symbology:
