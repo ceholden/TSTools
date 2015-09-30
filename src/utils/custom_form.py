@@ -18,7 +18,7 @@ def list_repr(l):
         if len(l.shape) > 1:
             l = l[0]
 
-    return ', '.join(map(repr, l))
+    return ', '.join(map(str, l))
 
 
 def str2list(s, dtype):
