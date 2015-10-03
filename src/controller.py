@@ -40,8 +40,8 @@ class Worker(QtCore.QObject):
 
     @QtCore.pyqtSlot(object, object, str)
     def fetch(self, ts, pos, crs_wkt):
-        logger.info('Fetching from QThread (id: {i})'.format(
-            i=hex(self.thread().currentThreadId())))
+        logger.info('Fetching from QThread (id: %s)' %
+                    hex(self.thread().currentThreadId()))
         # Fetch data
         try:
             for percent in ts.fetch_data(pos[0], pos[1], crs_wkt):
@@ -280,22 +280,28 @@ class Controller(QtCore.QObject):
     @QtCore.pyqtSlot()
     def plot_request_finish(self):
         # Get results in this thread since it's so prone to error
-        tsm.ts.fetch_results()
-        # Clear GUI messages
-        logger.info('Plot request finished')
-        qgis.utils.iface.messageBar().clearWidgets()
+        try:
+            tsm.ts.fetch_results()
+        except Exception as e:
+            logger.error('Could not fetch results: %s' % e.message)
+            raise
+        finally:
+            # Stop 'working'
+            self.working = False
+            self.work_thread.quit()
 
-        self.working = False
-        self.work_thread.quit()
+            # Clear GUI messages
+            logger.info('Plot request finished')
+            qgis.utils.iface.messageBar().clearWidgets()
 
-        # Update controls
-        self.controls.plot_option_changed(emit=False)
+            # Update controls
+            self.controls.plot_option_changed(emit=False)
 
-        # Update plots
-        self.update_plot()
+            # Update plots
+            self.update_plot()
 
-        # Add geometry from clicked point
-        self.plot_request_geometry()
+            # Add geometry from clicked point
+            self.plot_request_geometry()
 
     @QtCore.pyqtSlot(str)
     def plot_request_error(self, txt):
@@ -308,7 +314,6 @@ class Controller(QtCore.QObject):
     @QtCore.pyqtSlot()
     def plot_request_cancel(self):
         self.plot_request_finish()
-        pass
 
     def plot_request_geometry(self):
         """ Add polygon of geometry from clicked X/Y coordinate """
