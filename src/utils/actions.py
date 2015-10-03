@@ -128,6 +128,10 @@ def calculate_scale(axis):
         _band = settings.plot_band_indices[_added]
 
         _data = tsm.ts.get_data(_series, _band, mask=True)[1]  # get Y values
+        if len(_data) == 0:
+            logger.warning('Cannot autoscale axis %i: plotted bands contain '
+                           'no unmasked data' % axis)
+            return
         _data_min = np.percentile(_data, 2) - 500
         _data_max = np.percentile(_data, 98) + 500
 
