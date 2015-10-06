@@ -8,6 +8,8 @@ import re
 import numpy as np
 import palettable
 import patsy
+import sklearn
+import sklearn.externals.joblib as jl
 
 from . import timeseries_stacked
 from .timeseries import Series
@@ -76,6 +78,9 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
     _commit_test = False
     _commit_alpha = 0.01
 
+    # Requires YATSM>=v0.5.0
+    _regression_type = 'sklearn_Lasso20'
+
     controls_title = 'YATSM Algorithm Options'
     controls = [
         '_calculate_live',
@@ -90,6 +95,7 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
         '_screen_crit',
         '_remove_noise',
         '_reverse',
+        '_regression_type',
         '_robust_results',
         '_commit_test',
         '_commit_alpha']
@@ -106,6 +112,7 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
         'Screening critical value',
         'Remove noise',
         'Run in reverse',
+        'Regression type',
         'Robust results',
         'Commission test',
         'Commission test alpha']
@@ -377,6 +384,24 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
         # Setup Y
 
         # Setup parameters
+        lm = sklearn.linear_model.Lasso(alpha=20)
+        reg = self._regression_type
+        print(self._regression_type)
+        if hasattr(yatsm.regression, 'packaged'):
+            if reg in yatsm.regression.packaged.packaged_regressions:
+                reg_fn = yatsm.regression.packaged.find_packaged_regressor(reg)
+                try:
+                    lm = jl.load(reg_fn)
+                except:
+                    logger.error('Cannot load regressor: %s' % reg)
+                else:
+                    logger.debug('Loaded regressor %s from %s' % (reg, reg_fn))
+            else:
+                logger.error('Cannot use unknown regression %s' % reg)
+        else:
+            logger.warning('Using failsafe Lasso(lambda=20) from scikit-learn. '
+                           'Upgrade to yatsm>=0.5.1 to access more regressors.')
+
         kwargs = dict(
             test_indices=self._test_indices,
             consecutive=self._consecutive,
@@ -388,7 +413,7 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
             dynamic_rmse=self._dynamic_rmse,
         )
 
-        self.yatsm_model = CCDCesque(**kwargs)
+        self.yatsm_model = CCDCesque(lm=lm, **kwargs)
         # Don't want to have DEBUG logging when we run YATSM
         log_level = logger.level
         logger.setLevel(logging.INFO)
@@ -485,9 +510,11 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
         """ Check if YATSM is available
         """
         try:
+            global yatsm
             global CCDCesque, postprocess
             global harm
             global get_valid_mask
+            import yatsm
             from yatsm.algorithms import CCDCesque, postprocess
             from yatsm._cyprep import get_valid_mask
             from yatsm.regression.transforms import harm
