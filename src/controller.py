@@ -252,7 +252,7 @@ class Controller(QtCore.QObject):
                 except Exception as e:
                     logger.warning(
                         'Could not use custom controls for timeseries')
-                    qgis_log(e.msg, level=logging.WARNING)
+                    qgis_log(e.message, level=logging.WARNING)
                     self.controls.custom_form.reset()
                     return
 
