@@ -315,7 +315,7 @@ class ControlPanel(QtGui.QWidget, Ui_Controls):
         self.cbox_custom.stateChanged.connect(self.plot_option_changed)
 
         # Symbology
-        if hasattr(self, 'symbology_controls'):
+        if getattr(self, 'symbology_controls', None):
             self.symbology_controls.disconnect()
             self.symbology_controls = None
         self.symbology_controls = SymbologyControl(self)
@@ -488,37 +488,37 @@ class ControlPanel(QtGui.QWidget, Ui_Controls):
     def disconnect(self):
         """ Disconnect all signals
         """
-        self.cbox_plotlayer.disconnect()
+        # self.cbox_plotlayer.disconnect()
         # Plot options
-        self.combox_band.disconnect()
-        self.rad_axis_1.disconnect()
-        self.rad_axis_2.disconnect()
-        self.cbox_yscale_auto.disconnect()
-        self.edit_ymin.disconnect()
-        self.edit_ymax.disconnect()
-        self.scroll_xmin.disconnect()
-        self.scroll_xmax.disconnect()
-        self.cbox_xscale_fix.disconnect()
-        self.cbox_fmask.disconnect()
-        self.edit_maskvalues.disconnect()
-        self.cbox_modelfit.disconnect()
-        self.cbox_breakpoint.disconnect()
-        self.cbox_custom.disconnect()
+        self.combox_band.view().pressed.disconnect()
+        self.rad_axis_1.toggled.disconnect()
+        self.rad_axis_2.toggled.disconnect()
+        self.cbox_yscale_auto.stateChanged.disconnect()
+        self.edit_ymin.editingFinished.disconnect()
+        self.edit_ymax.editingFinished.disconnect()
+        self.scroll_xmin.valueChanged.disconnect()
+        self.scroll_xmax.valueChanged.disconnect()
+        self.cbox_xscale_fix.stateChanged.disconnect()
+        self.cbox_fmask.stateChanged.disconnect()
+        self.edit_maskvalues.editingFinished.disconnect()
+        self.cbox_modelfit.stateChanged.disconnect()
+        self.cbox_breakpoint.stateChanged.disconnect()
+        self.cbox_custom.stateChanged.disconnect()
 
-        self.but_symbology.disconnect()
+        self.but_symbology.clicked.disconnect()
         self.symbology_controls.disconnect()
         self.symbology_controls.deleteLater()
         self.symbology_controls = None
 
         # Table
         for table in self.image_tables:
-            table.disconnect()
+            table.itemClicked.disconnect()
 
         # Symbology
-        self.cbox_symbolcontrol.disconnect()
+        self.cbox_symbolcontrol.stateChanged.disconnect()
         for symbology in self.symbologies:
             symbology.disconnect()
-        self.but_symbol_apply.disconnect()
+        self.but_symbol_apply.clicked.disconnect()
 
         # Custom options -- remove them
         self.custom_form = getattr(self, 'custom_form', None)

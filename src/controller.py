@@ -167,6 +167,7 @@ class Controller(QtCore.QObject):
             raise  # TODO: REMOVE EXCEPTION
         else:
             qgis_log('Loaded timeseries: {d}'.format(d=tsm.ts.description))
+            self.disconnect()
             self.config_closed()
             self._ts_init()
             self.initialized = True
@@ -680,6 +681,7 @@ class Controller(QtCore.QObject):
 
 # DISCONNECT
     def disconnect(self):
+        logger.info('Disconnecting controller')
         if not self.initialized:
             return
         qgis.core.QgsMapLayerRegistry.instance()\
@@ -694,6 +696,7 @@ class Controller(QtCore.QObject):
             pe = None
 
         # Controls
+        self.controls.disconnect()
         self.controls.plot_options_changed.disconnect(self.update_plot)
         self.controls.plot_save_requested.disconnect(self.save_plot)
         self.controls.image_table_row_clicked.disconnect(

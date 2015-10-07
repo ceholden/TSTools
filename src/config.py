@@ -109,7 +109,6 @@ class Config(QtGui.QDialog, Ui_Config):
 
     @QtCore.pyqtSlot()
     def accept_config(self):
-        print 'Okay pressed!'
         self.location = str(self.edit_location.text())
 
         self.model_index = self.combox_ts_model.currentIndex()

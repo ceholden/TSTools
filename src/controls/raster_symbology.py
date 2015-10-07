@@ -93,16 +93,16 @@ class RasterSymbologyControl(QtGui.QWidget, Ui_Raster_Symbology):
         self.edit_bluemax.setText(str(settings.symbol[self.index]['max'][blu]))
 
     def disconnect(self):
-        self.combox_red.disconnect()
-        self.combox_green.disconnect()
-        self.combox_blue.disconnect()
+        self.combox_red.currentIndexChanged.disconnect()
+        self.combox_green.currentIndexChanged.disconnect()
+        self.combox_blue.currentIndexChanged.disconnect()
 
-        self.edit_redmin.disconnect()
-        self.edit_redmax.disconnect()
-        self.edit_greenmin.disconnect()
-        self.edit_greenmax.disconnect()
-        self.edit_bluemin.disconnect()
-        self.edit_bluemax.disconnect()
+        self.edit_redmin.editingFinished.disconnect()
+        self.edit_redmax.editingFinished.disconnect()
+        self.edit_greenmin.editingFinished.disconnect()
+        self.edit_greenmax.editingFinished.disconnect()
+        self.edit_bluemin.editingFinished.disconnect()
+        self.edit_bluemax.editingFinished.disconnect()
 
     @QtCore.pyqtSlot()
     def _set_symbol_band(self, color, index):
