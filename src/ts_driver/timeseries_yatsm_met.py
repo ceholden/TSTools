@@ -51,7 +51,7 @@ class YATSMMetTimeSeries(YATSMTimeSeries):
                 self._met_pattern)
 
             # Get date index from file
-            img = os.path.basename(images[0])
+            img = os.path.splitext(os.path.basename(images[0]))[0]
             d = img.split(self._met_date_sep)[self._met_date_sepno]
             try:
                 dt.datetime.strptime(d, self._met_date_format)
