@@ -684,10 +684,16 @@ class Controller(QtCore.QObject):
         logger.info('Disconnecting controller')
         if not self.initialized:
             return
-        qgis.core.QgsMapLayerRegistry.instance()\
-            .layersAdded.disconnect(self._map_layers_added)
-        qgis.core.QgsMapLayerRegistry.instance()\
-            .layersWillBeRemoved.disconnect(self._map_layers_removed)
+
+        # Swallow error:
+        #   layer registry can be deleted before this runs when closing QGIS
+        try:
+            qgis.core.QgsMapLayerRegistry.instance()\
+                .layersAdded.disconnect(self._map_layers_added)
+            qgis.core.QgsMapLayerRegistry.instance()\
+                .layersWillBeRemoved.disconnect(self._map_layers_removed)
+        except:
+            pass
 
         # Disconnect plot mouse event signals
         for pe in self.plot_events:
