@@ -65,7 +65,7 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
                 images,
                 self._date_index, self._date_format,
                 {
-                    'description': 'Stacked Timeseries',
+                    'description': 'Stacked TS',
                     'symbology_hint_indices': [4, 3, 2],
                     'symbology_hint_minmax': [[0, 4000], [0, 5000], [0, 3000]],
                     'cache_prefix': 'yatsm_',
@@ -100,11 +100,13 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
         i = 0
         n = sum([len(series.images) for series in self.series])
 
-        pos = []
+        descs, rowcol = [], []
         for j, series in enumerate(self.series):
             _mx, _my = geo_utils.reproject_point(mx, my, crs_wkt, series.crs)
             _px, _py = geo_utils.point2pixel(_mx, _my, series.gt)
-            pos.append('Series %i - %i/%i' % (j + 1, _py, _px))
+
+            descs.append(series.description)
+            rowcol.append('%i/%i' % (_px, _py))
 
             for _i in series.fetch_data(mx, my, crs_wkt,
                                         cache_folder=cache_folder,
@@ -113,7 +115,16 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
                 i += _i
                 yield i / float(n) * 100.0
 
-        self._pixel_pos = 'Row/Column: ' + '; '.join(pos)
+        # Collapse pixel position if same row/column
+        pos = []
+        for u_rowcol in set(rowcol):
+            entry = []
+            for _desc, _rowcol in zip(descs, rowcol):
+                if _rowcol == u_rowcol:
+                    entry.append(_desc)
+            pos.append('/'.join(entry) + ' - ' + u_rowcol)
+
+        self._pixel_pos = 'Row/Col: ' + '; '.join(pos)
 
         # Update mask
         self.update_mask()
