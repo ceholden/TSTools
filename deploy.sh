@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd $(dirname $0)/tstools/
+
 if [ ! -d i18n ]; then
 	mkdir i18n
 fi

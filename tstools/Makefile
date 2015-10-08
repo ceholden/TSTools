@@ -18,17 +18,13 @@
 # ***************************************************************************/
 
 # INSTALL LOCATION
-# HOST=$(shell hostname)
-# ifeq ($(HOST),geo)
-# LOC=/project/earth/packages/CCDCTools_beta
-# else ifeq ($(HOST),scc1)
-# LOC=/project/earth/packages/CCDCTools_beta
-# else
 LOC=$(HOME)/.qgis2/python/plugins
-# endif
 
 # CONFIGURATION
 PLUGIN_UPLOAD = $(CURDIR)/plugin_upload.py
+
+# LICENSE
+LICENSE = $(CURDIR)/../LICENSE.txt
 
 # Makefile for a PyQGIS plugin
 # translation
@@ -48,16 +44,6 @@ UI_FILES = $(shell find ui/ -name 'ui*.ui' | sed 's|\.ui|\.py|g')
 RESOURCE_FILES = resources_rc.py
 
 HELP = help/build/html
-
-# Find ancillary data
-ANC =
-ifneq ($(wildcard src/yatsm/yatsm),)
-ANC += src/yatsm/yatsm
-endif
-
-ifneq ($(wildcard src/CCDC),)
-ANC += src/CCDC
-endif
 
 default: compile
 
@@ -83,10 +69,7 @@ deploy: compile doc transcompile
 	cp -vRf $(EXTRAS) $(LOC)/$(PLUGINNAME)
 	cp -vfr i18n $(LOC)/$(PLUGINNAME)
 	cp -vfr $(HELP) $(LOC)/$(PLUGINNAME)/help
-    ifdef ANC
-		echo "Copying Ancillary files: $(ANC)"
-		cp -vfr $(ANC) $(LOC)/$(PLUGINNAME)
-    endif
+	cp -vf $(LICENSE) $(LOC)/$(PLUGINNAME)
 
 # The dclean target removes compiled python files from plugin directory
 # also delets any .svn entry
@@ -101,8 +84,8 @@ derase:
 # The zip target deploys the plugin and creates a zip file with the deployed
 # content. You can then upload the zip file on http://plugins.qgis.org
 zip: deploy dclean
-	rm -f $(PLUGINNAME).zip
-	cd $(LOC); zip -9r $(CURDIR)/$(PLUGINNAME).zip $(PLUGINNAME)
+	rm -f ../$(PLUGINNAME).zip
+	cd $(LOC); zip -9r $(CURDIR)/../$(PLUGINNAME).zip $(PLUGINNAME)
 
 # Create a zip package of the plugin named $(PLUGINNAME).zip.
 # This requires use of git (your plugin development directory must be a

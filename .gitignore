@@ -5,7 +5,7 @@
 
 # Compiled PyQt stuff
 resources_rc.py
-ui/*.py
+ui*.py
 
 # C extensions
 *.so
