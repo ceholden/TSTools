@@ -541,7 +541,8 @@ class Controller(QtCore.QObject):
         for i, series in enumerate(tsm.ts.series):
             settings.plot_series.extend([i] * len(series.band_names))
             settings.plot_band_indices.extend(range(len(series.band_names)))
-            settings.plot_bands.extend(['Series %i - %s' % (i + 1, name) for
+            settings.plot_bands.extend(['%s - %s' %
+                                        (series.description, name) for
                                         name in series.band_names])
         settings.plot_series = np.asarray(settings.plot_series)
         settings.plot_band_indices = np.asarray(settings.plot_band_indices)
