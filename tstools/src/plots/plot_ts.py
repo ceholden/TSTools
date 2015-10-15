@@ -118,10 +118,11 @@ class TSPlot(base_plot.BasePlot):
                              settings.plot['y_max'][1])
 
         # Put axis_2 y-ticks on same grid as axis_1
-        self.axis_1.set_yticks(np.linspace(self.axis_1.get_ybound()[0],
-                                           self.axis_1.get_ybound()[1], 6))
-        self.axis_2.set_yticks(np.linspace(self.axis_2.get_ybound()[0],
-                                           self.axis_2.get_ybound()[1], 6))
+        # self.axis_1.set_yticks(np.linspace(self.axis_1.get_ybound()[0],
+        #                                    self.axis_1.get_ybound()[1], 6))
+        # self.axis_2.set_yticks(np.linspace(self.axis_2.get_ybound()[0],
+        #                                    self.axis_2.get_ybound()[1], 6))
+        self.axis_2.grid('off')
 
         # Plot -- axis 1
         added = np.where(settings.plot['y_axis_1_band'])[0]
