@@ -11,7 +11,11 @@ import matplotlib as mpl
 import matplotlib.cm
 import mpl_toolkits.axes_grid1 as mpl_grid
 import numpy as np
-import palettable
+try:
+    import palettable
+    HAS_PALETTABLE = True
+except:
+    HAS_PALETTABLE = False
 
 from . import base_plot
 from ..logger import qgis_log
@@ -31,13 +35,19 @@ class DOYPlot(base_plot.BasePlot):
 
         # Colormap -- try to load from environment
         cmap = os.environ.get('TSTOOLS_DOY_CMAP', 'perceptual_rainbow_16')
-        if hasattr(palettable.colorbrewer, cmap):
-            self.cmap = getattr(palettable.colorbrewer, cmap).mpl_colormap
-        elif hasattr(palettable.cubehelix, cmap):
-            self.cmap = getattr(palettable.cubehelix, cmap).mpl_colormap
+        if HAS_PALETTABLE:
+            if hasattr(palettable.colorbrewer, cmap):
+                self.cmap = getattr(palettable.colorbrewer, cmap).mpl_colormap
+            elif hasattr(palettable.cubehelix, cmap):
+                self.cmap = getattr(palettable.cubehelix, cmap).mpl_colormap
+            else:
+                logger.error('Cannot find colormap %s for DOY plot colormap. '
+                             'Using cubehelix from matplotlib as backup.'
+                             % cmap)
+                self.cmap = mpl.cm.cubehelix
         else:
-            logger.error(
-                'Cannot find colormap {c}. Using backup'.format(c=cmap))
+            logger.warning('`palettable` is not installed. Using cubehelix '
+                           'from matplotlib as backup for DOY plot colormap')
             self.cmap = mpl.cm.cubehelix
 
         self.reset()
@@ -150,18 +160,6 @@ class DOYPlot(base_plot.BasePlot):
         self.fig.canvas.draw()
         logger.debug('Done plotting DOY plot')
 
-    #     # Only put colorbar if we have data
-    #     if tsm.ts is not None:
-    #         # Setup layout to add space
-    #         # http://matplotlib.org/mpl_toolkits/axes_grid/users/overview.html#axesdivider
-    #         divider = mpl_grid.make_axes_locatable(self.axes)
-    #         cax = divider.append_axes('right', size='5%', pad=0.05)
-    #         # Reset colorbar so it doesn't overwrite itself...
-    #         if self.cbar is not None:
-    #             self.fig.delaxes(self.fig.axes[1])
-    #             self.fig.subplots_adjust(right=0.90)
-    #         self.cbar = self.fig.colorbar(sp, cax=cax)
-
     #     if settings.plot['fit'] is True:
     #         med_year = []
     #         fit_plt = []
@@ -198,10 +196,5 @@ class DOYPlot(base_plot.BasePlot):
     #             self.axes.legend(fit_plt,
     #                              ['Fit {n}: {y}'.format(n=n + 1, y=y)
     #                               for n, y in enumerate(med_year)])
-
-    #     # Redraw
-    #     self.fig.tight_layout()
-    #     self.fig.canvas.draw()
-
     def disconnect(self):
         pass

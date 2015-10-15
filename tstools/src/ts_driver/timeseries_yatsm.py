@@ -5,8 +5,8 @@ import itertools
 import logging
 import re
 
+import matplotlib as mpl
 import numpy as np
-import palettable
 import patsy
 import sklearn
 import sklearn.externals.joblib as jl
@@ -339,17 +339,17 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
             names = self.yatsm_model.record.dtype.names
             if self._calc_pheno and all([r in names for r in
                                          ('spring_doy', 'autumn_doy')]):
-                colors = palettable.colorbrewer.get_map('Dark2', 'Qualitative',
-                                                        8).colors
+                colors = mpl.cm.Set1(np.linspace(0, 1, 9))[:, :-1]
+
                 color_cycle = itertools.cycle(colors)
                 for i, rec in enumerate(self.yatsm_model.record):
-                    col = [c / 255.0 for c in color_cycle.next()]
+                    col = [c for c in color_cycle.next()]
                     artists.append(
                         axis.axvline(rec['spring_doy'], label='Model %i' % i,
-                                     c=col)
+                                     c=col, lw=2)
                     )
                     axis.axvline(rec['autumn_doy'], label='Model %i' % i,
-                                 c=col)
+                                 c=col, lw=2)
 
         return artists
 

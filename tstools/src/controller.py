@@ -6,9 +6,13 @@ from functools import partial
 import itertools
 import logging
 
-import palettable
 import matplotlib as mpl
 import numpy as np
+try:
+    import palettable
+    HAS_PALETTABLE = True
+except:
+    HAS_PALETTABLE = False
 
 from PyQt4 import QtCore, QtGui
 
@@ -507,13 +511,16 @@ class Controller(QtCore.QObject):
     def _init_plot_symbology(self):
         logger.debug('Initialize plot symbology')
         # Setup colors to cycle
-        if hasattr(palettable, 'wesanderson'):
-            # Zissou and Darjeeling combined for 9 colors
-            colors = (palettable.wesanderson.get_map('Zissou').colors +
-                      palettable.wesanderson.get_map('Darjeeling1').colors)
+        if HAS_PALETTABLE:
+            if hasattr(palettable, 'wesanderson'):
+                # Zissou and Darjeeling combined for 9 colors
+                colors = (palettable.wesanderson.get_map('Zissou').colors +
+                          palettable.wesanderson.get_map('Darjeeling1').colors)
+            else:
+                colors = palettable.colorbrewer.get_map(
+                    'Set1', 'Qualitative', 9).colors
         else:
-            colors = palettable.colorbrewer.get_map(
-                'Dark2', 'Qualitative', 8).colors
+            colors = mpl.cm.Set1(np.linspace(0, 1, 9), bytes=True)[:, :-1]
 
         # Initialize plot symbology for each series in timeseries
         settings.plot_symbol = []
