@@ -203,9 +203,10 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
             return
         if self.yatsm_model is None or len(self.yatsm_model.record) == 0:
             return
-        if band >= self.yatsm_model.record[self.coef_name].shape[1]:
+        if band >= self.yatsm_model.record[self.coef_name].shape[2]:
             logger.debug('Not results for band %i' % band)
             return
+
         # Setup output
         mx = []
         my = []

@@ -92,7 +92,8 @@ class CCDCTimeSeries(timeseries_stacked.StackedTimeSeries):
             return
         if self.ccdc_results is None or len(self.ccdc_results) == 0:
             return
-        if band >= self.ccdc_results['coefs'].shape[1]:
+
+        if band >= self.ccdc_results['coefs'][0].shape[1]:
             logger.debug('Not results for band %i' % band)
             return
 
