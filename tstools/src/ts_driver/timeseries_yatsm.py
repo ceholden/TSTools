@@ -201,7 +201,10 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
         """
         if series > 0:
             return
-        if self.yatsm_model is None:
+        if self.yatsm_model is None or len(self.yatsm_model.record) == 0:
+            return
+        if band >= self.yatsm_model.record[self.coef_name].shape[1]:
+            logger.debug('Not results for band %i' % band)
             return
         # Setup output
         mx = []
@@ -215,34 +218,33 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
                 coef_columns.append(v)
         coef_columns = np.asarray(coef_columns)
 
-        if len(self.yatsm_model.record) > 0:
-            for rec in self.yatsm_model.record:
-                # Check for reverse
-                if rec['end'] < rec['start']:
-                    i_step = -1
-                else:
-                    i_step = 1
-                # Date range to predict
-                if dates is not None:
-                    end = max(rec['break'], rec['end'])
-                    _mx = dates[np.where((dates >= rec['start']) &
-                                         (dates <= end))[0]]
-                else:
-                    _mx = np.arange(rec['start'], rec['end'], i_step)
+        for rec in self.yatsm_model.record:
+            # Check for reverse
+            if rec['end'] < rec['start']:
+                i_step = -1
+            else:
+                i_step = 1
+            # Date range to predict
+            if dates is not None:
+                end = max(rec['break'], rec['end'])
+                _mx = dates[np.where((dates >= rec['start']) &
+                                     (dates <= end))[0]]
+            else:
+                _mx = np.arange(rec['start'], rec['end'], i_step)
 
-                if _mx.size == 0:
-                    continue
-                # Coefficients to use for prediction
-                _coef = rec[self.coef_name][coef_columns, band]
-                # Setup design matrix
-                _mX = patsy.dmatrix(design, {'x': _mx}).T
-                # Predict
-                _my = np.dot(_coef, _mX)
-                # Transform ordinal back to datetime for plotting
-                _mx = np.array([dt.fromordinal(int(_x)) for _x in _mx])
+            if _mx.size == 0:
+                continue
+            # Coefficients to use for prediction
+            _coef = rec[self.coef_name][coef_columns, band]
+            # Setup design matrix
+            _mX = patsy.dmatrix(design, {'x': _mx}).T
+            # Predict
+            _my = np.dot(_coef, _mX)
+            # Transform ordinal back to datetime for plotting
+            _mx = np.array([dt.fromordinal(int(_x)) for _x in _mx])
 
-                mx.append(_mx)
-                my.append(_my)
+            mx.append(_mx)
+            my.append(_my)
 
         return mx, my
 

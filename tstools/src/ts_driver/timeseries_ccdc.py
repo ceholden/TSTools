@@ -88,7 +88,12 @@ class CCDCTimeSeries(timeseries_stacked.StackedTimeSeries):
             predictions
 
         """
-        if series > 0 or self.ccdc_results is None:
+        if series > 0:
+            return
+        if self.ccdc_results is None or len(self.ccdc_results) == 0:
+            return
+        if band >= self.ccdc_results['coefs'].shape[1]:
+            logger.debug('Not results for band %i' % band)
             return
 
         def make_X(x):
@@ -100,32 +105,31 @@ class CCDCTimeSeries(timeseries_stacked.StackedTimeSeries):
                               np.cos(3 * w * x), np.sin(3 * w * x)))
 
         mx, my = [], []
-        if len(self.ccdc_results) > 0:
-            for rec in self.ccdc_results:
-                if rec['t_end'] < rec['t_start']:
-                    i_step = -1
-                else:
-                    i_step = 1
+        for rec in self.ccdc_results:
+            if rec['t_end'] < rec['t_start']:
+                i_step = -1
+            else:
+                i_step = 1
 
-                start = ml2ordinal(rec['t_start'])
-                if dates is not None:
-                    end = ml2ordinal(max(rec['t_break'], rec['t_end']))
-                    _mx = dates[np.where((dates >= start) & (dates <= end))[0]]
-                else:
-                    end = ml2ordinal(rec['t_end'])
-                    _mx = np.arange(start, end, i_step)
+            start = ml2ordinal(rec['t_start'])
+            if dates is not None:
+                end = ml2ordinal(max(rec['t_break'], rec['t_end']))
+                _mx = dates[np.where((dates >= start) & (dates <= end))[0]]
+            else:
+                end = ml2ordinal(rec['t_end'])
+                _mx = np.arange(start, end, i_step)
 
-                # Coefficients used for prediction
-                _coef = rec['coefs'][:, band]
-                _mX = make_X(_mx)
+            # Coefficients used for prediction
+            _coef = rec['coefs'][:, band]
+            _mX = make_X(_mx)
 
-                _my = np.dot(_coef, _mX[:_coef.size, :])
-                # Transform ordinal back to datetime for plotting
-                _mx = np.array([dt.datetime.fromordinal(int(_x))
-                                for _x in _mx])
+            _my = np.dot(_coef, _mX[:_coef.size, :])
+            # Transform ordinal back to datetime for plotting
+            _mx = np.array([dt.datetime.fromordinal(int(_x))
+                            for _x in _mx])
 
-                mx.append(_mx)
-                my.append(_my)
+            mx.append(_mx)
+            my.append(_my)
 
         return mx, my
 
