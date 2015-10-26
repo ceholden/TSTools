@@ -106,7 +106,7 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
             _px, _py = geo_utils.point2pixel(_mx, _my, series.gt)
 
             descs.append(series.description)
-            rowcol.append('%i/%i' % (_px, _py))
+            rowcol.append('%i/%i' % (_py, _px))
 
             for _i in series.fetch_data(mx, my, crs_wkt,
                                         cache_folder=cache_folder,
