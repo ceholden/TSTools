@@ -86,7 +86,7 @@ class Series(object):
     def __init__(self, filenames, date_index=(9, 16), date_format='%Y%j',
                  config=None):
         self._init_images(filenames, date_index, date_format)
-        self.data = np.zeros((self.count, self.n), dtype=self.dtype)
+        self.data = np.zeros((self.count, self.n), dtype=np.float)
         self._scratch_data = np.zeros_like(self.data)
         self.mask = np.ones(self.n, dtype=np.bool)
 
