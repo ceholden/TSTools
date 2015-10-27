@@ -76,12 +76,14 @@ class YATSMLandsatPALSARTS(YATSMTimeSeries):
         for series in self.series[1:]:
             if series.data is None:
                 continue
-            logger.debug('Rescaling {s} to dB'.format(s=series.description))
+            logger.debug('Rescaling %s to dB' % (series.description, ))
             logger.debug(series.data.shape)
             series.data[0, :] = (series.data[0, :] - 1) * 0.15 - 31.0
             if series.data.shape[0] > 1:
                 series.data[1, :] = (series.data[1, :] - 1) * 0.15 - 31.0
                 series.data[2, :] = series.data[0, :] / series.data[1, :]
+            logger.debug('Rescaled. Data min/max: {0}/{1}'.format(
+                         series.data.min(axis=1), series.data.max(axis=1)))
 
     def _find_radar(self):
         """ Find RADAR images and initialize series
