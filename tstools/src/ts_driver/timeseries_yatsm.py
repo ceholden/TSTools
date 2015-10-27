@@ -372,7 +372,7 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
                                    'pr': self.series[0].pathrow
                                })
         self._design_info = self.X.design_info
-        self.Y = self.series[0].data
+        self.Y = self.series[0].data.astype(np.int16)
         self.dates = np.asarray(self.series[0].images['ordinal'])
 
         mask = self.Y[self._mask_band[0] - 1, :]
