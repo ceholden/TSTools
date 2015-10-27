@@ -191,8 +191,14 @@ class ControlPanel(QtGui.QWidget, Ui_Controls):
             # Re-calculate scale, but don't update texts
             actions.calculate_scale(axis_2)
 
-        settings.plot['y_min'][axis] = str2num(self.edit_ymin.text())
-        settings.plot['y_max'][axis] = str2num(self.edit_ymax.text())
+        try:
+            _min = str2num(self.edit_ymin.text())
+            _max = str2num(self.edit_ymax.text())
+        except Exception as e:
+            qgis_log('Cannot parse Y-axis min/max: %s' % e.message)
+        else:
+            settings.plot['y_min'][axis] = _min
+            settings.plot['y_max'][axis] = _max
 
         # Enable/disable Y-axis min/max editing
         self.edit_ymin.setEnabled(not settings.plot['y_axis_scale_auto'][axis])
