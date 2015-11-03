@@ -20,12 +20,12 @@ import qgis.gui
 # Initialize Qt resources from file resources.py -- ignore unused warning
 import resources_rc
 
-from .ts_driver.ts_manager import tsm
 from . import controller
-from .controls import controls
 from . import plots
 from . import settings
+from .controls import controls
 from .logger import qgis_log
+from .ts_driver.ts_manager import tsm
 
 logger = logging.getLogger('tstools')
 

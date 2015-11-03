@@ -8,7 +8,7 @@ import logging
 import os
 import pkgutil
 
-logger = logging.getLogger('tstools')
+from ..logger import logger
 
 
 class TSManager(object):
