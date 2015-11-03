@@ -669,12 +669,16 @@ class Controller(QtCore.QObject):
         # Update mask if needed
         if not np.array_equal(tsm.ts.mask_values, settings.plot['mask_val']):
             tsm.ts.update_mask(settings.plot['mask_val'])
-            # Re-calculate scale
-            # TODO: already do this in controls but not before we update mask
-            if settings.plot['y_axis_scale_auto'][0]:
-                actions.calculate_scale(0)
-            if settings.plot['y_axis_scale_auto'][1]:
-                actions.calculate_scale(1)
+
+        # Re-calculate scale
+        if settings.plot['y_axis_scale_auto'][0]:
+            actions.calculate_scale(0)
+        if settings.plot['y_axis_scale_auto'][1]:
+            actions.calculate_scale(1)
+
+        # Update controls
+        if any(settings.plot['y_axis_scale_auto']):
+            self.controls.autoscale_applied()
 
         # Update plots -- only visible
         for i, plot in enumerate(self.plots):
