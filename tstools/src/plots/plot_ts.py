@@ -102,15 +102,14 @@ class TSPlot(base_plot.BasePlot):
         self.axis_1.clear()
         self.axis_2.clear()
 
-
         # Setup axes
         if tsm.ts:
             self.axis_1.set_title(tsm.ts.pixel_pos)
         self.axis_1.set_xlabel('Date')
         self.axis_1.set_ylabel('Value')  # TODO
 
-        self.axis_1.set_xlim(dt.date(settings.plot['x_min'], 01, 01),
-                             dt.date(settings.plot['x_max'], 01, 01))
+        self.axis_1.set_xlim(dt.date(settings.plot['x_min'], 1, 1),
+                             dt.date(settings.plot['x_max'], 1, 1))
 
         self.axis_1.set_ylim(settings.plot['y_min'][0],
                              settings.plot['y_max'][0])
