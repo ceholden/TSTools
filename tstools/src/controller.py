@@ -193,7 +193,6 @@ class Controller(QtCore.QObject):
         # Setup controls
         self.controls.init_ts()
         self.controls.plot_options_changed.connect(self.update_plot)
-        self.controls.plot_save_requested.connect(self.save_plot)
         self.controls.image_table_row_clicked.connect(self._add_remove_image)
         self.controls.symbology_applied.connect(
             lambda: actions.apply_symbology())
@@ -298,9 +297,6 @@ class Controller(QtCore.QObject):
             # Clear GUI messages
             logger.info('Plot request finished')
             qgis.utils.iface.messageBar().clearWidgets()
-
-            # Update controls
-            self.controls.plot_option_changed(emit=False)
 
             # Update plots
             self.update_plot()
@@ -688,9 +684,6 @@ class Controller(QtCore.QObject):
             else:
                 settings.plot_dirty[i] = True
 
-    def save_plot(self):
-        qgis_log('Saving plot', logging.DEBUG)
-
 # DISCONNECT
     def disconnect(self):
         logger.info('Disconnecting controller')
@@ -716,7 +709,6 @@ class Controller(QtCore.QObject):
         # Controls
         self.controls.disconnect()
         self.controls.plot_options_changed.disconnect(self.update_plot)
-        self.controls.plot_save_requested.disconnect(self.save_plot)
         self.controls.image_table_row_clicked.disconnect(
             self._add_remove_image)
         self.controls.symbology_applied.disconnect()
