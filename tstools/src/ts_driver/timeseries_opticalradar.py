@@ -18,7 +18,7 @@ class YATSMLandsatPALSARTS(YATSMTimeSeries):
 
     """ Timeseries driver for Timeseries of Landsat/PALSAR timeseries
     """
-    description = 'Landsat/PALSAR YATSM'
+    description = 'YATSM Landsat/PALSAR'
     location = None
     mask_values = np.array([2, 3, 4, 255])
 
