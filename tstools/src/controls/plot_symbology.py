@@ -206,7 +206,10 @@ class SymbologyControl(QtGui.QDialog, Ui_Plot_Symbology):
     def _change_series(self, index):
         """ Change bands, metadata, and symbology based on series """
         logger.debug('Series selected {s}'.format(s=index))
+        # Switch band stack to series' bands
         self.stack_band.setCurrentIndex(index)
+        # Switch metadata stack to series' selected bands' metadata
+        self._change_band(index)
 
     @QtCore.pyqtSlot(int, int)
     def _change_band(self, idx):
