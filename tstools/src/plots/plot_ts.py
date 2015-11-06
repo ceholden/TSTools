@@ -45,10 +45,10 @@ class TSPlot(base_plot.BasePlot):
         """ Plot a timeseries from a timeseries ts_driver
 
         Args:
-          axis (mpl.axes.Axes): axis to plot
-          idx (int): index of all available plotting bands
-          series (int): index of series within timeseries driver
-          band (int): index of band within series within timeseries driver
+            axis (mpl.axes.Axes): axis to plot
+            idx (int): index of all available plotting bands
+            series (int): index of series within timeseries driver
+            band (int): index of band within series within timeseries driver
 
         """
         logger.debug('Plotting TS plot series')

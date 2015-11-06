@@ -80,9 +80,9 @@ class DOYPlot(base_plot.BasePlot):
         """ Plot a timeseries from a timeseries ts_driver
 
         Args:
-          idx (int): index of all available plotting bands
-          series (int): index of series within timeseries driver
-          band (int): index of band within series within timeseries driver
+            idx (int): index of all available plotting bands
+            series (int): index of series within timeseries driver
+            band (int): index of band within series within timeseries driver
 
         """
         logger.debug('Plotting DOY plot series')

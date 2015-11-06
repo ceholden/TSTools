@@ -10,12 +10,13 @@ def point2pixel(x, y, gt):
       Does not handle images that aren't north up (gt[2] or gt[4] are nonzero)
 
     Args:
-      x (float): X coordinate (e.g., longitude)
-      y (float): Y coordinate (e.g., latitude)
-      gt (iterable): geotransform containing 6 coefficients of affine transform
+        x (float): X coordinate (e.g., longitude)
+        y (float): Y coordinate (e.g., latitude)
+        gt (iterable): geotransform containing 6 coefficients of affine
+            transform
 
     Returns:
-      tuple (int, int): column and row pixel coordinates for given x/y
+        tuple (int, int): column and row pixel coordinates for given x/y
 
     """
     px = int((x - gt[0]) / gt[1])
@@ -28,13 +29,14 @@ def reproject_point(x, y, from_crs_wkt, to_crs_wkt):
     """ Reproject a point to another coordinate reference system
 
     Args:
-      x (float or int): X coordinate in `from_crs_wkt` reference system
-      y (float or int): Y coordinate in `from_crs_wkt` reference system
-      from_crs_wkt (str): input Coordinate Reference System as Well-Known-Text
-      to_crs_wkt (str): output Coordinate Reference System as Well-Known-Text
+        x (float or int): X coordinate in `from_crs_wkt` reference system
+        y (float or int): Y coordinate in `from_crs_wkt` reference system
+        from_crs_wkt (str): input Coordinate Reference System as
+            Well-Known-Text
+        to_crs_wkt (str): output Coordinate Reference System as Well-Known-Text
 
     Returns:
-      tuple: reprojected (x, y) coordinates
+        tuple: reprojected (x, y) coordinates
 
     """
     point = ogr.Geometry(ogr.wkbPoint)
@@ -55,12 +57,12 @@ def pixel_geometry(gt, px, py):
     """ Return an instance of ogr.Geometry for a pixel at given X/Y coordinate
 
     Args:
-      gt (list): geotransform of raster
-      px (int): X (column) pixel coordinate
-      py (int): Y (row) pixel coordinate
+        gt (list): geotransform of raster
+        px (int): X (column) pixel coordinate
+        py (int): Y (row) pixel coordinate
 
     Returns:
-      ogr.Geometry: OGR geometry of pixel at px/py
+        ogr.Geometry: OGR geometry of pixel at px/py
 
     """
     ulx = (gt[0] + px * gt[1] + py * gt[2])
@@ -87,11 +89,11 @@ def merge_geometries(geom_wkts, crs_wkts):
     reprojected to the CRS of the first geometry.
 
     Args:
-      geom_wkts (list): list of geometries as WKT
-      crs_wkts (list): list of coordinate reference systems as WKT
+        geom_wkts (list): list of geometries as WKT
+        crs_wkts (list): list of coordinate reference systems as WKT
 
     Returns:
-      tuple: multipolygon ogr.Geometry and geometry CRS as WKT
+        tuple: multipolygon ogr.Geometry and geometry CRS as WKT
 
     """
     crs = []

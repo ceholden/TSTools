@@ -17,9 +17,9 @@ def apply_symbology(rlayers=None):
     """ Apply raster symbology to all raster layers in timeseries
 
     Args:
-      rlayers (list or QgsRasterLayer, optional): list of QgsRasterLayer, or
-        a single QgsRasterLayer. If None, apply symbology to all tracked
-        raster layers
+        rlayers (list or QgsRasterLayer, optional): list of QgsRasterLayer, or
+            a single QgsRasterLayer. If None, apply symbology to all tracked
+            raster layers
 
     """
     if not settings.symbol_control:
@@ -105,7 +105,7 @@ def calculate_scale(axis):
     """ Calculate sane min and max values for plot
 
     Args:
-      axis (int): axis to scale (either 0 or 1)
+        axis (int): axis to scale (either 0 or 1)
 
     """
     # What data are added?
