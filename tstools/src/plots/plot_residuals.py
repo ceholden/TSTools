@@ -95,10 +95,6 @@ class ResidualPlot(base_plot.BasePlot):
                 logger.error('Could not plot TS driver customized plot info: '
                              '%s' % e.message)
 
-
-        # Reset color cycle for later
-        axis.set_color_cycle(None)
-
     def plot(self):
         """ Plot residuals
         """
