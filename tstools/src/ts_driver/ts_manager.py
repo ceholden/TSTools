@@ -47,8 +47,6 @@ class TSManager(object):
         logger.debug('Module name: {n}'.format(n=__name__))
         for loader, modname, ispkg in pkgutil.iter_modules(self.plugin_dir):
             if modname != __name__.split('.')[-1]:
-                logger.debug('Loading {m}'.format(m=modname))
-
                 try:
                     importlib.import_module(
                         '.'.join(__name__.split('.')[:-1]) + '.' + modname)
