@@ -69,7 +69,7 @@ class TSManager(object):
         for sub_subclass in sub_subclasses:
             if sub_subclass not in self.ts_drivers:
                 self.ts_drivers.append(sub_subclass)
-                logger.debug('Found driver: {tsd}'.format(tsd=sub_subclass))
+                logger.info('Found driver: {tsd}'.format(tsd=sub_subclass))
             self.recursive_find_subclass(sub_subclass)
 
 
