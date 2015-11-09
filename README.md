@@ -41,6 +41,7 @@ To enable the plugin, continue following the [instructions for enabling the plug
 
 ### Enable
 Once TSTools is installed, follow these steps to enable it:
+
 1. Launch QGIS and open the Plugin Manage dialog (Plugins menu -> Manage and Install Plugins)
 2. Check the box next to "TSTools" to enable the plugin
 
