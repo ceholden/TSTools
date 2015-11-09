@@ -10,7 +10,7 @@
 name=TSTools
 qgisMinimumVersion=2.0
 description=Plugin for visualization and analysis of remote sensing time series
-version=0.99
+version=1.0.0
 author=Chris Holden
 email=ceholden@gmail.com
 
