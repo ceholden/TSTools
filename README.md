@@ -56,20 +56,32 @@ The virtual machine has been exported to a [VirtualBox appliance](http://www.vir
 Please see the included README for further instructions. A md5sum of the virtual disk appliance is provided for confirming the file transfer integrity.
 
 ## Requirements
-### Main dependencies:
 
-    Python>=2.7.5
-    Matplotlib>=1.4.0
-    Numpy>=1.8.0
+As this is a QGIS plugin, QGIS, GDAL, and Python 2.7+ are, of course, required. Most, if not all, installations of QGIS also provide a copy of `numpy` and `matplotlib` so most users should be able to use TSTools "out of the box".
+
+### Python dependencies:
+
+    matplotlib>=1.4.0
+    numpy>=1.8.0
     GDAL>=1.10.0
-    palettable>=2.1.1
-    
-### Additional dependencies:
 
-- For reading Continuous Change Detection and Classification (CCDC) results:
-    + `scipy>=0.12.0`
-- For live plotting with YATSM (including CCDC-esque clone):
-    + see [https://github.com/ceholden/yatsm](https://github.com/ceholden/yatsm)
+### Optional dependencies:
+
+The following are additional, optional dependencies:
+
+    palettable>=2.1.1
+    scandir
+
+The `palettable` package provides better colormap support for the plots and `scandir` speeds up the process of the plugin finding timeseries data spread across many files and directories.
+
+### Timeseries driver dependencies:
+
+* `CCDC Results Reader`
+    - For reading Continuous Change Detection and Classification (CCDC) results:
+        + `scipy>=0.12.0`
+* `YATSM CCDCesuqe Timeseries`, and other `YATSM *` drivers
+    - For live plotting with YATSM (including CCDC-esque clone), you need to install the `YATSM` package. See instructions at the following repository location:
+        + [https://github.com/ceholden/yatsm](https://github.com/ceholden/yatsm)
 
 ### Developer dependencies:
-To help develop this plugin, you will need QGIS, Python, and the Qt developer tools for Python (for building). The Qt dependencies are available on Ubuntu in the "pyqt4-dev-tools" package.
+To help develop this plugin, you will need QGIS, Python, and the Qt developer tools for Python (for building). The Qt dependencies are available on Ubuntu in the `pyqt4-dev-tools` package.
