@@ -19,7 +19,7 @@ One of the easiest ways to install TSTools is to manually copy a "compiled" copy
 In most cases, the QGIS Python plugins folder will be located in your home directory within the ".qgis2/python/plugins" folder. Any plugins you have installed previously will be located here. For more information, see this excellent answer on [Stack Exchange](http://gis.stackexchange.com/questions/26979/how-to-install-a-qgis-plugin-when-offline).
 
 1. Install QGIS and the required Python libraries (see requirements section below)
-2. Download the file "tstools.zip" from this repository on Github.
+2. Download the file "tstools.zip" from a [release of TSTools on Github](https://github.com/ceholden/TSTools/releases).
 3. Unzip the ZIP file to find the "tstools" folder.
 4. Copy this "tstools" folder into your QGIS Python plugins directory (see above for where this is located)
 
