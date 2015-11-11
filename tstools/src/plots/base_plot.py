@@ -24,8 +24,10 @@ class BasePlot(FigureCanvas):
         style = settings.plot.get('style')
         if style:
             if style == 'xkcd':
+                import matplotlib.pyplot
                 mpl.pyplot.xkcd()
             else:
+                import matplotlib.style
                 mpl.style.use(style)
         self.fig = mpl.figure.Figure()
         self.axes = []
