@@ -102,7 +102,7 @@ class DOYPlot(base_plot.BasePlot):
 
             # Check for year range
             year_in = np.where((year >= settings.plot['x_min']) &
-                               (year < settings.plot['x_max']))[0]
+                               (year <= settings.plot['x_max']))[0]
 
             # Plot
             self.axis_1.scatter(doy[year_in], y[year_in],

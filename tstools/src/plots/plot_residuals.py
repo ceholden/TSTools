@@ -108,8 +108,8 @@ class ResidualPlot(base_plot.BasePlot):
         self.axis_1.set_xlabel('Date')
         self.axis_1.set_ylabel(r'Residuals ($y - \hat{y}$)')
 
-        self.axis_1.set_xlim(dt.date(settings.plot['x_min'], 01, 01),
-                             dt.date(settings.plot['x_max'], 01, 01))
+        self.axis_1.set_xlim(dt.date(settings.plot['x_min'], 1, 1),
+                             dt.date(settings.plot['x_max'], 12, 31))
 
         # Add 0 line
         self.axis_1.axhline(y=0, xmin=0, xmax=1, c='k')

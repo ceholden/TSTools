@@ -106,7 +106,7 @@ class TSPlot(base_plot.BasePlot):
         self.axis_1.set_ylabel('Value')  # TODO
 
         self.axis_1.set_xlim(dt.date(settings.plot['x_min'], 1, 1),
-                             dt.date(settings.plot['x_max'], 1, 1))
+                             dt.date(settings.plot['x_max'], 12, 31))
 
         self.axis_1.set_ylim(settings.plot['y_min'][0],
                              settings.plot['y_max'][0])
