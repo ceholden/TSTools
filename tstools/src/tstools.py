@@ -125,6 +125,10 @@ class TSTools(QtCore.QObject):
 
     def initGui(self):
         """ Load toolbar for plugin """
+        # Initialize GUI elements
+        self.init_controls()
+        self.init_plots()
+
         # Init controller
         self.controller = controller.Controller(self.controls, self.plots)
 
@@ -149,10 +153,6 @@ class TSTools(QtCore.QObject):
         self.tool_ts = qgis.gui.QgsMapToolEmitPoint(self.canvas)
         self.tool_ts.setAction(self.action)
         self.tool_ts.canvasClicked.connect(self.controller.plot_request)
-
-        # Initialize rest of GUI
-        self.init_controls()
-        self.init_plots()
 
     def unload(self):
         """ Shutdown and disconnect """
