@@ -58,13 +58,6 @@ class TSTools(QtCore.QObject):
             if QtCore.qVersion() > '4.3.3':
                 QtCore.QCoreApplication.installTranslator(self.translator)
 
-        # Initialize rest of GUI
-        self.init_controls()
-        self.init_plots()
-
-        # Init controller
-        self.controller = controller.Controller(self.controls, self.plots)
-
 # SLOTS
     @QtCore.pyqtSlot()
     def set_tool(self):
@@ -132,6 +125,9 @@ class TSTools(QtCore.QObject):
 
     def initGui(self):
         """ Load toolbar for plugin """
+        # Init controller
+        self.controller = controller.Controller(self.controls, self.plots)
+
         # MapTool button
         self.action = QtGui.QAction(
             QtGui.QIcon(':/plugins/tstools/media/tstools_click.png'),
@@ -153,6 +149,10 @@ class TSTools(QtCore.QObject):
         self.tool_ts = qgis.gui.QgsMapToolEmitPoint(self.canvas)
         self.tool_ts.setAction(self.action)
         self.tool_ts.canvasClicked.connect(self.controller.plot_request)
+
+        # Initialize rest of GUI
+        self.init_controls()
+        self.init_plots()
 
     def unload(self):
         """ Shutdown and disconnect """
