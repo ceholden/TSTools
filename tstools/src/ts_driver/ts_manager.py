@@ -4,17 +4,11 @@ Timeseries drivers must inherit from the Abstract Base Class
 "AbstractTimeSeriesDriver" to be detected.
 """
 import importlib
-import logging
 import os
 import pkgutil
+import sys
 
 from ..logger import logger
-
-
-class LoadException(Exception):
-    """ An extension of Exception
-    http://stackoverflow.com/questions/1272138/baseexception-message-deprecated-in-python-2-6
-    """
 
 
 class TSManager(object):
@@ -56,8 +50,12 @@ class TSManager(object):
                 try:
                     importlib.import_module(
                         '.'.join(__name__.split('.')[:-1]) + '.' + modname)
-                except LoadException as e:
+                except ImportError as e:
                     logger.error('Cannot import %s: %s' % (modname, e.message))
+                except:
+                    logger.error('Cannot import %s: %s' %
+                                 (modname, sys.exc_info()[0]))
+                    raise
 
         self.ts_drivers = timeseries.AbstractTimeSeriesDriver.__subclasses__()
         for tsd in self.ts_drivers:
