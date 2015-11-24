@@ -535,8 +535,9 @@ class ControlPanel(QtGui.QWidget, Ui_Controls):
         self.cbox_xscale_fix.stateChanged.disconnect()
         self.cbox_fmask.stateChanged.disconnect()
         self.edit_maskvalues.editingFinished.disconnect()
-        self.cbox_modelfit.stateChanged.disconnect()
-        self.cbox_breakpoint.stateChanged.disconnect()
+        if tsm.ts.has_results:
+            self.cbox_modelfit.stateChanged.disconnect()
+            self.cbox_breakpoint.stateChanged.disconnect()
         self.cbox_custom.stateChanged.disconnect()
 
         self.but_symbology.clicked.disconnect()

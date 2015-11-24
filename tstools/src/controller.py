@@ -707,10 +707,14 @@ class Controller(QtCore.QObject):
             pe = None
 
         # Controls
-        self.controls.disconnect()
-        self.controls.plot_options_changed.disconnect(self.update_plot)
-        self.controls.image_table_row_clicked.disconnect(
-            self._add_remove_image)
-        self.controls.symbology_applied.disconnect()
+        try:
+            self.controls.disconnect()
+            self.controls.plot_options_changed.disconnect(self.update_plot)
+            self.controls.image_table_row_clicked.disconnect(
+                self._add_remove_image)
+            self.controls.symbology_applied.disconnect()
+        except Exception as e:
+            logger.error('Error disconnecting signals from controls: %s' %
+                         e.message)
 
         self.initialzed = False
