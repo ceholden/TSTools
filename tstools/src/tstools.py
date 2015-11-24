@@ -130,7 +130,8 @@ class TSTools(QtCore.QObject):
         self.init_plots()
 
         # Init controller
-        self.controller = controller.Controller(self.controls, self.plots)
+        self.controller = controller.Controller(self.iface,
+                                                self.controls, self.plots)
 
         # MapTool button
         self.action = QtGui.QAction(

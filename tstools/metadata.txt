@@ -8,7 +8,7 @@
 # Mandatory items:
 [general]
 name=TSTools
-qgisMinimumVersion=2.0
+qgisMinimumVersion=2.4
 description=Plugin for visualization and analysis of remote sensing time series
 version=1.0.0
 author=Chris Holden

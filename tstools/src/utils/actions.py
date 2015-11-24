@@ -95,8 +95,8 @@ def apply_symbology(rlayers=None):
 
         # Apply, refresh, and update symbology if needed
         rlayer.setRenderer(renderer)
-        if hasattr(rlayer, 'setCacheImage'):
-            rlayer.setCacheImage(None)
+        if hasattr(rlayer, 'triggerRepaint'):  # QGIS 2.4+ API change
+            rlayer.triggerRepaint()
         rlayer.triggerRepaint()
         qgis.utils.iface.legendInterface().refreshLayerSymbology(rlayer)
 

@@ -153,8 +153,9 @@ class Controller(QtCore.QObject):
 
     initialized = False
 
-    def __init__(self, controls, plots, parent=None):
+    def __init__(self, iface, controls, plots, parent=None):
         super(Controller, self).__init__()
+        self.iface = iface
         self.controls = controls
         self.plots = plots
         self.plot_events = []  # Matplotlib event handlers
@@ -211,11 +212,11 @@ class Controller(QtCore.QObject):
             qgis_log('Clicked a point: {p} ({t})'.format(p=pos, t=type(pos)),
                      level=logging.INFO)
 
-            crs = qgis.utils.iface.mapCanvas().mapRenderer().destinationCrs()
+            crs = self.iface.mapCanvas().mapSettings().destinationCrs()
             crs_wkt = crs.toWkt()
 
             # Setup QProgressBar
-            self.progress_bar = qgis.utils.iface.messageBar().createMessage(
+            self.progress_bar = self.iface.messageBar().createMessage(
                 'Retrieving data')
 
             self.progress = QtGui.QProgressBar()
@@ -230,8 +231,8 @@ class Controller(QtCore.QObject):
             self.progress_bar.layout().addWidget(self.progress)
             self.progress_bar.layout().addWidget(self.but_cancel)
 
-            qgis.utils.iface.messageBar().pushWidget(
-                self.progress_bar, qgis.utils.iface.messageBar().INFO)
+            self.iface.messageBar().pushWidget(
+                self.progress_bar, self.iface.messageBar().INFO)
 
             # Setup worker and thread
             self.working = True
@@ -296,7 +297,7 @@ class Controller(QtCore.QObject):
 
             # Clear GUI messages
             logger.info('Plot request finished')
-            qgis.utils.iface.messageBar().clearWidgets()
+            self.iface.messageBar().clearWidgets()
 
             # Update plots
             self.update_plot()
@@ -306,7 +307,7 @@ class Controller(QtCore.QObject):
 
     @QtCore.pyqtSlot(str)
     def plot_request_error(self, txt):
-        qgis.utils.iface.messageBar().clearWidgets()
+        self.iface.messageBar().clearWidgets()
         qgis_log(txt, logging.ERROR, duration=5)
 
         self.working = False
@@ -319,7 +320,7 @@ class Controller(QtCore.QObject):
     def plot_request_geometry(self):
         """ Add polygon of geometry from clicked X/Y coordinate """
         # Record currently selected feature so we can restore it
-        last_selected = qgis.utils.iface.activeLayer()
+        last_selected = self.iface.activeLayer()
 
         geom_wkt, proj_wkt = tsm.ts.get_geometry()
         geom_qgis = qgis.core.QgsGeometry.fromWkt(geom_wkt)
@@ -375,7 +376,7 @@ class Controller(QtCore.QObject):
                 logger.warning('Could not get ID of "query" layer')
 
         # Restore active layer
-        qgis.utils.iface.setActiveLayer(last_selected)
+        self.iface.setActiveLayer(last_selected)
 
 # LAYER MANIPULATION
     @QtCore.pyqtSlot(set)

@@ -4,7 +4,7 @@ Timeseries Tools (TSTools)
 [![Join the chat at https://gitter.im/ceholden/TSTools](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/ceholden/TSTools?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 ## About
-TSTools is a plugin for QGIS (version 2.0+) that helps visualize remote sensing time series by linking time series dataset models (objects that describe and characterize the time series) with user interface tools designed to harmonize the spatial and temporal dimensions of these large datasets.
+TSTools is a plugin for QGIS (version 2.4+) that helps visualize remote sensing time series by linking time series dataset models (objects that describe and characterize the time series) with user interface tools designed to harmonize the spatial and temporal dimensions of these large datasets.
 
 [Read the Quickstart to see the plugin in action](docs/quickstart.md)
 
