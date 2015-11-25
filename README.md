@@ -1,12 +1,16 @@
 Timeseries Tools (TSTools)
 --------------------------
 
-[![Join the chat at https://gitter.im/ceholden/TSTools](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/ceholden/TSTools?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Join the chat at https://gitter.im/ceholden/TSTools](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/ceholden/TSTools?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![DOI](https://zenodo.org/badge/6804/ceholden/TSTools.svg)](https://zenodo.org/badge/latestdoi/6804/ceholden/TSTools)
 
 ## About
 TSTools is a plugin for QGIS (version 2.4+) that helps visualize remote sensing time series by linking time series dataset models (objects that describe and characterize the time series) with user interface tools designed to harmonize the spatial and temporal dimensions of these large datasets.
 
 [Read the Quickstart to see the plugin in action](docs/quickstart.md)
+
+If you feel like TSTools has made a contribution to your research, please consider citing it using the plugin using the Digital Object Identifier (DOI) above:
+
+    Christopher E. Holden. (2015). TSTools: Linking time and space visualization for remotely sensed timeseries. Zenodo. 10.5281/zenodo.34182
 
 ## Example data
 An example dataset for this plugin is located here: https://github.com/ceholden/landsat_stack
