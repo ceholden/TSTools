@@ -22,7 +22,7 @@ class BasePlot(FigureCanvas):
 
         # matplotlib
         style = settings.plot.get('style')
-        if style:
+        if style and hasattr(mpl, 'style'):
             if style == 'xkcd':
                 import matplotlib.pyplot
                 mpl.pyplot.xkcd()
