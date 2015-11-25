@@ -86,7 +86,7 @@ As this is a QGIS plugin, QGIS, GDAL, and Python 2.7+ are, of course, required. 
 ### Python dependencies:
 
     matplotlib>=1.4.0
-    numpy>=1.7.0
+    numpy>=1.8.0
     GDAL>=1.10.0
 
 ### Optional dependencies:
