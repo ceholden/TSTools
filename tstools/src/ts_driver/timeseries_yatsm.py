@@ -445,8 +445,8 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
 
         if self._calc_pheno:
             # TODO: parameterize band indices & scale factor
-            ltm = pheno.LongTermMeanPhenology(self.yatsm_model)
-            self.yatsm_model.record = ltm.fit()
+            ltm = pheno.LongTermMeanPhenology()
+            self.yatsm_model.record = ltm.fit(self.yatsm_model)
 
         # Restore log level
         logger.setLevel(log_level)
@@ -533,7 +533,7 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
         if self._calc_pheno:
             try:
                 global pheno
-                import yatsm.phenology as pheno
+                import yatsm.phenology.longtermmean as pheno
             except:
                 msg = ('Could not import YATSM phenology module. '
                        'Make sure you have R and rpy2 installed.')
