@@ -14,6 +14,31 @@ from .utils.custom_form import CustomForm
 logger = logging.getLogger('tstools')
 
 
+def format_docstring(doc):
+    """ Return a formatted docstring for info section
+    """
+    if not doc:
+        return None
+    import textwrap
+
+    # Split heading and body
+    _split = doc.split('\n', 1)
+    if len(_split) > 1:
+        out = _split[0].lstrip()
+        # Parse body separately
+        body = _split[1].lstrip('\n').rstrip('\n')
+        body = '\n\n' + textwrap.dedent(body)
+        out += body
+    else:
+        out = textwrap.dedent(_split[0])
+
+    try:
+        import markdown2
+        return markdown2.markdown(out)
+    except:
+        return out
+
+
 class Config(QtGui.QDialog, Ui_Config):
 
     accepted = QtCore.pyqtSignal()
@@ -43,14 +68,15 @@ class Config(QtGui.QDialog, Ui_Config):
         self.button_location.clicked.connect(self.select_location)
 
         # Setup stacked widget for custom options
-        self.stacked_widget = QtGui.QStackedWidget()
+        self.scroll_cfg = QtGui.QScrollArea()
+        self.stack_cfg = QtGui.QStackedWidget()
+        self.stack_info = QtGui.QStackedWidget()
 
         self.custom_forms = []
         for i, _ts in enumerate(tsm.ts_drivers):
-            # Test for custom configurations
-
+            # Setup custom configuration controls
+            # First test for custom configurations
             has_custom_form = True
-
             if not hasattr(_ts, 'config') or not hasattr(_ts, 'config_names'):
                 has_custom_form = False
             else:
@@ -60,25 +86,35 @@ class Config(QtGui.QDialog, Ui_Config):
                         'described'.format(ts=_ts))
                     has_custom_form = False
 
-            if has_custom_form is True:
+            if has_custom_form:
                 # Create OrderedDict for CustomForm
                 default_config = OrderedDict([
                     [key, [name, getattr(_ts, key)]] for key, name in
                     zip(_ts.config, _ts.config_names)
                 ])
 
-                custom_form = CustomForm(default_config)
+                custom_form = CustomForm(default_config, parent=self.stack_cfg)
                 self.custom_forms.append(custom_form)
             else:
-                custom_form = QtGui.QLabel('No custom config options')
+                custom_form = QtGui.QLabel('No custom config options',
+                                           parent=self.stack_cfg)
                 self.custom_forms.append(None)
+            self.stack_cfg.insertWidget(i, custom_form)
 
-            custom_form.setParent(self.stacked_widget)
-            self.stacked_widget.insertWidget(i, custom_form)
+            # Add in driver info/documentation
+            textedit = QtGui.QTextBrowser(self.stack_info)
+            textedit.setOpenExternalLinks(True)
 
-        self.custom_layout = QtGui.QVBoxLayout()
-        self.custom_layout.addWidget(self.stacked_widget)
-        self.custom_widget.setLayout(self.custom_layout)
+            driver_info = format_docstring(_ts.__doc__)
+            if not driver_info:
+                driver_info = 'No information available :('
+            textedit.setText(driver_info)
+            self.stack_info.insertWidget(i, textedit)
+
+        self.scroll_cfg.setWidget(self.stack_cfg)
+
+        self.custom_widget.layout().addWidget(self.scroll_cfg)
+        self.info_widget.layout().addWidget(self.stack_info)
 
         # Setup dialog buttons
         # Init buttons
@@ -90,9 +126,10 @@ class Config(QtGui.QDialog, Ui_Config):
 
     @QtCore.pyqtSlot(int)
     def ts_model_changed(self, index):
-        """ Fired when combo box is changed so stacked_widget can change """
-        if index != self.stacked_widget.currentIndex():
-            self.stacked_widget.setCurrentIndex(index)
+        """ Fired when combo box is changed so stack_cfg can change """
+        if index != self.stack_cfg.currentIndex():
+            self.stack_cfg.setCurrentIndex(index)
+            self.stack_info.setCurrentIndex(index)
             self.combox_ts_model.setCurrentIndex(index)
 
     @QtCore.pyqtSlot()

@@ -100,7 +100,7 @@ The following are additional, optional dependencies:
     palettable>=2.1.1
     scandir
 
-The `palettable` package provides better colormap support for the plots and `scandir` speeds up the process of the plugin finding timeseries data spread across many files and directories.
+The `palettable` package provides better colormap support for the plots. `scandir` speeds up the process of the plugin finding timeseries data spread across many files and directories. `markdown2` enables stylistic parsing of timeseries driver information formatted in Markdown.
 
 ### Timeseries driver dependencies:
 
