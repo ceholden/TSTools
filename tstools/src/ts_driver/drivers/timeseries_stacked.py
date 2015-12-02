@@ -5,10 +5,10 @@ import os
 
 import numpy as np
 
-from . import ts_utils
-from .series import Series
-from .timeseries import AbstractTimeSeriesDriver
-from ..utils import geo_utils
+from .. import ts_utils
+from ..series import Series
+from ..timeseries import AbstractTimeSeriesDriver
+from ...utils import geo_utils
 
 logger = logging.getLogger('tstools')
 

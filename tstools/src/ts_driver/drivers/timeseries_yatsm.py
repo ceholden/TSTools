@@ -12,9 +12,9 @@ import sklearn
 import sklearn.externals.joblib as jl
 
 from . import timeseries_stacked
-from .timeseries import Series
-from .ts_utils import find_files, parse_landsat_MTL
-from .. import settings
+from ..series import Series
+from ..ts_utils import find_files, parse_landsat_MTL
+from ... import settings
 
 logger = logging.getLogger('tstools')
 

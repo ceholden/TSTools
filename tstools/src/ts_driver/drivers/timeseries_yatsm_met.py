@@ -4,10 +4,10 @@ import datetime as dt
 import logging
 import os
 
-from . import ts_utils
-from .series import Series
 from .timeseries_yatsm import YATSMTimeSeries
-from ..logger import qgis_log
+from .. import ts_utils
+from ..series import Series
+from ...logger import qgis_log
 
 logger = logging.getLogger('tstools')
 

@@ -8,9 +8,8 @@ import numpy as np
 import scipy.io as spio
 
 from . import timeseries_stacked
-from .timeseries import Series
-from .ts_utils import find_files
-from .. import settings
+from ..ts_utils import find_files
+from tstools import settings
 
 logger = logging.getLogger('tstools')
 

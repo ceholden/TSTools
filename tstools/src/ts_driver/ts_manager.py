@@ -28,7 +28,7 @@ class TSManager(object):
         if location and os.path.isdir(location):
             self.plugin_dir.append(location)
 
-        file_location = os.path.dirname(__file__)
+        file_location = os.path.join(os.path.dirname(__file__), 'drivers')
         self.plugin_dir.append('./' if file_location == '' else file_location)
 
         self.find_timeseries()
@@ -45,17 +45,16 @@ class TSManager(object):
 
         # Use pkgutil to search for timeseries
         logger.debug('Module name: {n}'.format(n=__name__))
-        for loader, modname, ispkg in pkgutil.iter_modules(self.plugin_dir):
-            if modname != __name__.split('.')[-1]:
-                try:
-                    importlib.import_module(
-                        '.'.join(__name__.split('.')[:-1]) + '.' + modname)
-                except ImportError as e:
-                    logger.error('Cannot import %s: %s' % (modname, e.message))
-                except:
-                    logger.error('Cannot import %s: %s' %
-                                 (modname, sys.exc_info()[0]))
-                    raise
+        for loader, modname, ispkg in pkgutil.walk_packages(self.plugin_dir):
+            full_path = '%s.drivers.%s' % (__name__.rsplit('.', 1)[0], modname)
+            try:
+                importlib.import_module(full_path)
+            except ImportError as e:
+                logger.error('Cannot import %s: %s' % (modname, e.message))
+            except:
+                logger.error('Cannot import %s: %s' %
+                             (modname, sys.exc_info()[0]))
+                raise
 
         self.ts_drivers = timeseries.AbstractTimeSeriesDriver.__subclasses__()
         for tsd in self.ts_drivers:
