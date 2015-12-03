@@ -5,6 +5,15 @@ All notable changes will appear in this log that begins with the release of
 
 For information on the style of this change log, see [keepachangelog.com](http://keepachangelog.com/).
 
+## [UNRELEASED](https://github.com/ceholden/TSTools/compare/v1.0.1...HEAD)
+
+### Changed
+- API: reorganized timeseries drivers into `tstools.ts_drivers.drivers` submodule [#63](https://github.com/ceholden/TSTools/issues/63)
+
+### Added
+- Add timeseries driver information to driver initialization/configuration menu [#74](https://github.com/ceholden/TSTools/issues/74)
+- Add timeseries driver dependency information to initialization/configuration menu. Also add broken driver modules to list of drivers, but with clear indication of broken status and the Python exception that caused it to break [#53](https://github.com/ceholden/TSTools/issues/53)
+
 ## [v1.0.1](https://github.com/ceholden/TSTools/compare/v1.0.0...v1.0.1) - 2015-11-24
 
 [Milestone v1.0.1](https://github.com/ceholden/TSTools/milestones/1.0.1)
