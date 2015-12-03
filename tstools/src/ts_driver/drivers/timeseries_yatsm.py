@@ -128,10 +128,10 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
         'Commission test alpha']
 
     def __init__(self, location, config=None):
-        super(YATSMTimeSeries, self).__init__(location, config=config)
-
         # Check for YATSM imports
         self._check_yatsm()
+        super(YATSMTimeSeries, self).__init__(location, config=config)
+
         # Find extra metadata
         self._init_metadata()
 

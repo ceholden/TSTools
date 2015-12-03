@@ -61,10 +61,10 @@ class CCDCTimeSeries(timeseries_stacked.StackedTimeSeries):
                     'Results folder']
 
     def __init__(self, location, config=None):
-        super(CCDCTimeSeries, self).__init__(location, config=config)
         if not has_scipy:
             raise ImportError('Cannot import "scipy" module required to read '
                               'CCDC results files')
+        super(CCDCTimeSeries, self).__init__(location, config=config)
 
     def fetch_results(self):
         """ Read results for current pixel
