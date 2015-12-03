@@ -5,11 +5,15 @@ import logging
 import os
 
 import numpy as np
-import scipy.io as spio
+has_scipy = True
+try:
+    import scipy.io as spio
+except:
+    has_scipy = False
 
 from . import timeseries_stacked
 from ..ts_utils import find_files
-from tstools import settings
+from ... import settings
 
 logger = logging.getLogger('tstools')
 
@@ -55,6 +59,12 @@ class CCDCTimeSeries(timeseries_stacked.StackedTimeSeries):
                     'Cache folder',
                     'Mask band',
                     'Results folder']
+
+    def __init__(self, location, config=None):
+        super(CCDCTimeSeries, self).__init__(location, config=config)
+        if not has_scipy:
+            raise ImportError('Cannot import "scipy" module required to read '
+                              'CCDC results files')
 
     def fetch_results(self):
         """ Read results for current pixel
