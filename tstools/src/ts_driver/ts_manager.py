@@ -11,6 +11,21 @@ import sys
 from ..logger import logger
 
 
+class BrokenModule(object):
+    """ Timeseries driver module "%s" is broken.
+
+    Reason:
+    %s
+
+    Please see TSTools Github repository for more information or to report an
+    issue:
+
+    <a href="https://github.com/ceholden/TSTools">TSTools</a>
+    """
+    def __init__(self, module, message):
+        self.__doc__ = self.__doc__ % (module, message)
+
+
 class TSManager(object):
     """ Timeseries Manager
 
@@ -43,6 +58,8 @@ class TSManager(object):
         else:
             logger.debug('Found "timeseries" module')
 
+        broken = []
+
         # Use pkgutil to search for timeseries
         logger.debug('Module name: {n}'.format(n=__name__))
         for loader, modname, ispkg in pkgutil.walk_packages(self.plugin_dir):
@@ -51,6 +68,11 @@ class TSManager(object):
                 importlib.import_module(full_path)
             except ImportError as e:
                 logger.error('Cannot import %s: %s' % (modname, e.message))
+                broken_module = BrokenModule(modname,
+                                             e.args[0] if e.args else
+                                             'Unknown import error')
+                broken_module.description = 'Broken: %s' % modname
+                broken.append(broken_module)
             except:
                 logger.error('Cannot import %s: %s' %
                              (modname, sys.exc_info()[0]))
@@ -63,6 +85,8 @@ class TSManager(object):
         # Find even more descendents
         for subclass in self.ts_drivers:
             self.recursive_find_subclass(subclass)
+
+        self.ts_drivers.extend(broken)
 
     def recursive_find_subclass(self, subclass):
         """ Search subclass for descendents """

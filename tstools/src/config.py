@@ -8,7 +8,7 @@ from PyQt4 import QtCore, QtGui
 from ui_config import Ui_Config
 
 from . import settings
-from .ts_driver.ts_manager import tsm
+from .ts_driver.ts_manager import tsm, BrokenModule
 from .utils.custom_form import CustomForm
 
 logger = logging.getLogger('tstools')
@@ -109,6 +109,15 @@ class Config(QtGui.QDialog, Ui_Config):
             if not driver_info:
                 driver_info = 'No information available :('
             textedit.setText(driver_info)
+
+            # Format broken module color to red
+            if isinstance(_ts, BrokenModule):
+                cursor = textedit.textCursor()
+                textedit.selectAll()
+                textedit.setTextColor(QtGui.QColor(255, 0, 0))
+                textedit.setFontWeight(QtGui.QFont.Bold)
+                textedit.setTextCursor(cursor)
+
             self.stack_info.insertWidget(i, textedit)
 
         self.scroll_cfg.setWidget(self.stack_cfg)
@@ -131,6 +140,11 @@ class Config(QtGui.QDialog, Ui_Config):
             self.stack_cfg.setCurrentIndex(index)
             self.stack_info.setCurrentIndex(index)
             self.combox_ts_model.setCurrentIndex(index)
+            # Disable / enable OK if BrokenModule
+            if isinstance(tsm.ts_drivers[index], BrokenModule):
+                self.ok.setEnabled(False)
+            else:
+                self.ok.setEnabled(True)
 
     @QtCore.pyqtSlot()
     def select_location(self):
