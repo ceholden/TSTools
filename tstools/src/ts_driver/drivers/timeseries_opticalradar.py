@@ -15,8 +15,17 @@ logger = logging.getLogger('tstools')
 
 
 class YATSMLandsatPALSARTS(YATSMTimeSeries):
-
     """ Timeseries driver for Timeseries of Landsat/PALSAR timeseries
+
+    Requires a working installation of YATSM. For more information, visit
+    the [YATSM Github website](https://github.com/ceholden/yatsm).
+
+    This driver requires the following Python packages in addition to basic
+    TSTools package dependencies:
+
+    * [`scikit-learn`](http://scikit-learn.org/stable/)
+    * [`patsy`](https://patsy.readthedocs.org/en/latest/)
+    * [`yatsm`](https://github.com/ceholden/yatsm)
     """
     description = 'YATSM Landsat/PALSAR'
     location = None

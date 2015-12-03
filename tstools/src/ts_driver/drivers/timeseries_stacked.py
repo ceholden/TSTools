@@ -17,9 +17,12 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
     """ Simple 'stacked' timeseries driver
 
     'Layer Stacked' timeseries contain all the same bands and are of uniform
-    geographic extent and size. This timeseries driver has only one Series that
-    does not have extra metadata.
+    geographic extent and size. For an example of a "stacked" dataset, visit
 
+    <a href="https://github.com/ceholden/landsat_stack">here</a>
+
+    This timeseries driver has only one Series that does not have extra
+    metadata.
     """
     description = 'Layer Stacked Timeseries'
     location = None

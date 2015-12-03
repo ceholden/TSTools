@@ -28,6 +28,11 @@ def ml2ordinal(d):
 
 class CCDCTimeSeries(timeseries_stacked.StackedTimeSeries):
     """ Reader for CCDC pre-calculated results for a 'stacked' timeseries
+
+    This driver requires the following Python packages in addition to basic
+    TSTools package dependencies:
+
+    * `scipy`: <a href="http://www.scipy.org/scipylib/index.html">scipy</a>
     """
 
     description = 'CCDC Results Reader'

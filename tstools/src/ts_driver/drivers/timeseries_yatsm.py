@@ -20,7 +20,17 @@ logger = logging.getLogger('tstools')
 
 
 class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
-    """ Timeseries driver for YATSM algorithm
+    """ Timeseries driver for CCDCesque algorithm implemented in YATSM
+
+    Requires a working installation of YATSM. For more information, visit
+    the [YATSM Github website](https://github.com/ceholden/yatsm).
+
+    This driver requires the following Python packages in addition to basic
+    TSTools package dependencies:
+
+    * [`scikit-learn`](http://scikit-learn.org/stable/)
+    * [`patsy`](https://patsy.readthedocs.org/en/latest/)
+    * [`yatsm`](https://github.com/ceholden/yatsm)
     """
     description = 'YATSM CCDCesque Timeseries'
     location = None
