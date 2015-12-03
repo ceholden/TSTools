@@ -9,7 +9,7 @@ import patsy
 
 from .timeseries_yatsm import YATSMTimeSeries
 from ..series import Series
-from ..ts_utils import find_files, parse_landsat_MTL
+from ..ts_utils import find_files
 
 logger = logging.getLogger('tstools')
 

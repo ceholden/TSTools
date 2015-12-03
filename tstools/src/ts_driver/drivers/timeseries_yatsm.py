@@ -505,10 +505,17 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
             self.series[0].metadata.append('cloud_cover')
             self.series[0].metadata_names.append('Cloud cover')
             self.series[0].metadata_table.append(True)
-            self.series[0].cloud_cover = np.zeros(self.series[0].n)
-            for i, mtl_file in enumerate(self.mtl_files):
-                self.series[0].cloud_cover[i] = parse_landsat_MTL(
-                    mtl_file, 'CLOUD_COVER')
+            self.series[0].cloud_cover = np.ones(self.series[0].n) * -9999
+            cloud_cover = {}
+            for mtl_file in self.mtl_files:
+                attrs = parse_landsat_MTL(mtl_file, ['LANDSAT_SCENE_ID',
+                                                     'CLOUD_COVER'])
+                scene_ID = attrs.get('LANDSAT_SCENE_ID')
+                if scene_ID:
+                    cloud_cover[scene_ID] = attrs.get('CLOUD_COVER', -9999.0)
+
+            for idx, _id in enumerate(self.series[0].images['id']):
+                self.series[0].cloud_cover[idx] = cloud_cover.get(_id, -9999.0)
 
         if self._calc_pheno:
             self.series[0].metadata.append('pheno')

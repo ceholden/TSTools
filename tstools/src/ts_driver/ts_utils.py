@@ -230,20 +230,25 @@ def parse_landsat_MTL(mtl_file, key):
     """ Returns the value of specified key for a given Landsat MTL file
 
     Args:
-      mtl_file (str): filename of MTL file
-      key (str): metadata key to search for
+        mtl_file (str): filename of MTL file
+        key (str or list of str): metadata key(s) to search for
 
     Returns:
-      str or int: returns integer representation of value if possible, else
-        as a string
+        dict: integer representation of value if possible, else a string, of
+            the value for each input key
 
     """
+    if isinstance(key, str):
+        key = [key]
+    out = {}
     with open(mtl_file, 'rb') as f:
         for line in f:
-            if key in line:
-                value = line.strip().split('=')[1].strip()
-                try:
-                    value = int(value)
-                    return value
-                except:
-                    return value
+            for _key in key:
+                if _key in line:
+                    value = line.strip().split('=')[1].strip().strip('"')
+                    try:
+                        value = int(value)
+                    except:
+                        pass
+                    out[_key] = value
+    return out

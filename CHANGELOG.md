@@ -14,6 +14,9 @@ For information on the style of this change log, see [keepachangelog.com](http:/
 - Add timeseries driver information to driver initialization/configuration menu [#74](https://github.com/ceholden/TSTools/issues/74)
 - Add timeseries driver dependency information to initialization/configuration menu. Also add broken driver modules to list of drivers, but with clear indication of broken status and the Python exception that caused it to break [#53](https://github.com/ceholden/TSTools/issues/53)
 
+### Fixed
+- YATSM: Fix retrieval of ACCA scores from Landsat MTL files for YATSM timeseries drivers [#75](https://github.com/ceholden/TSTools/issues/75)
+
 ## [v1.0.1](https://github.com/ceholden/TSTools/compare/v1.0.0...v1.0.1) - 2015-11-24
 
 [Milestone v1.0.1](https://github.com/ceholden/TSTools/milestones/1.0.1)
