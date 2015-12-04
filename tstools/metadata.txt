@@ -19,10 +19,21 @@ email=ceholden@gmail.com
 # Optional items:
 
 # Uncomment the following line and add your changelog entries:
-# changelog=
+changelog=See CHANGELOG.md in repository for full changelog
+    1.0.1
+    - QGIS>=2.4 required
+    - BUG: plots include data from within maximum year on date range slider
+    - BUG: fix for matplotlib>=1.5.0
+    - BUG: fix disconnect signal for drivers without results
+    - BUG: don't use matplotlib style if not available
+    - DRIVER:YATSM: support yatsm>=0.5.0
+    1.0.0
+    - Initial official release
+
+about=TSTools is a plugin for QGIS (version 2.4+) that helps visualize remote sensing time series by linking time series dataset models (objects that describe and characterize the time series) with user interface tools designed to harmonize the spatial and temporal dimensions of these large datasets.
 
 # tags are comma separated with spaces allowed
-tags=remote sensing; time series
+tags=remote sensing; time series; visualization; structural change
 
 homepage=https://github.com/ceholden/TSTools
 tracker=https://github.com/ceholden/TSTools/issues
