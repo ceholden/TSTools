@@ -31,8 +31,9 @@ For information on the style of this change log, see [keepachangelog.com](http:/
 - Plots should include data from maximum year in date range slider [67e6960](https://github.com/ceholden/TSTools/commit/67e696083e9e70f090799a3488e9e32c32534f23)
 - Fix for `matplotlib>=1.5.0` [74a12d9](https://github.com/ceholden/TSTools/commit/74a12d91963eb01ae39126e830196ec017d85d9a)
 - Fixed disconnect signal for drivers without results [#67](https://github.com/ceholden/TSTools/issues/67)
-- Ignore matplotlib style if not available ([commit](https://github.com/ceholden/TSTools/commit/be122b4067a030851741ed87c27b53398cfef34a))
+- Ignore `matplotlib.style` if not available ([commit](https://github.com/ceholden/TSTools/commit/be122b4067a030851741ed87c27b53398cfef34a))
 - Update `LongTermMeanPhenology` calculation in `YATSM*` drivers for `yatsm>=0.5.0` [#62](https://github.com/ceholden/TSTools/issues/62)
+- Don't show GUI until plugin is loaded ([commit](https://github.com/ceholden/TSTools/commit/99224870fae815baa6418c8dd312ffe0c07b6caa))
 
 ## v1.0.0 - 2015-11-09
 
