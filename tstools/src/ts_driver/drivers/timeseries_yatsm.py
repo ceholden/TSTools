@@ -1,5 +1,6 @@
 """ A basic timeseries driver for running YATSM on stacked timeseries
 """
+from collections import OrderedDict
 from datetime import datetime as dt
 import itertools
 import logging
@@ -13,7 +14,7 @@ import sklearn.externals.joblib as jl
 
 from . import timeseries_stacked
 from ..series import Series
-from ..ts_utils import find_files, parse_landsat_MTL
+from ..ts_utils import ConfigItem, find_files, parse_landsat_MTL
 from ... import settings
 
 logger = logging.getLogger('tstools')
@@ -37,39 +38,20 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
     mask_values = np.array([2, 3, 4, 255])
 
     # Driver configuration
-    _stack_pattern = 'L*stack'
-    _date_index = [9, 16]
-    _date_format = '%Y%j'
-    _cache_folder = 'cache'
-    _results_folder = 'YATSM'
-    _results_pattern = 'yatsm_r*'
-    _mask_band = [8]
-    _min_values = [0]
-    _max_values = [10000]
-    _metadata_file_pattern = 'L*MTL.txt'
-    _calc_pheno = False
-
-    config = ['_stack_pattern',
-              '_date_index',
-              '_date_format',
-              '_cache_folder',
-              '_results_folder',
-              '_results_pattern',
-              '_mask_band',
-              '_min_values', '_max_values',
-              '_metadata_file_pattern',
-              '_calc_pheno']
-    config_names = [
-        'Stack pattern',
-        'Date index',
-        'Date format',
-        'Cache folder',
-        'Results folder',
-        'Results pattern',
-        'Mask band',
-        'Min data values', 'Max data values',
-        'Metadata file pattern',
-        'LTM phenology']
+    config = OrderedDict((
+        ('stack_pattern', ConfigItem('Stack pattern', 'L*stack')),
+        ('date_index', ConfigItem('Date index', [9, 16])),
+        ('date_format', ConfigItem('Date format', '%Y%j')),
+        ('cache_folder', ConfigItem('Cache folder', 'cache')),
+        ('results_folder', ConfigItem('Results folder', 'YATSM')),
+        ('results_pattern', ConfigItem('Results pattern', 'yatsm_r*')),
+        ('mask_band', ConfigItem('Mask band', [8])),
+        ('min_values', ConfigItem('Min data values', [0])),
+        ('max_values', ConfigItem('Max data values', [10000])),
+        ('metadata_file_pattern', ConfigItem('Metadata file pattern',
+                                             'L*MTL.txt')),
+        ('calc_pheno', ConfigItem('LTM phenology', False)),
+    ))
 
     # Driver controls
     _calculate_live = True
@@ -142,12 +124,16 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
         self.coef_name = 'coef'
 
         # Setup min/max values
-        if len(self._min_values) == 1:
-            self._min_values = self._min_values * (self.series[0].count - 1)
-        if len(self._max_values) == 1:
-            self._max_values = self._max_values * (self.series[0].count - 1)
-        self._min_values = np.asarray(self._min_values)
-        self._max_values = np.asarray(self._max_values)
+        _min_values = self.config['min_values'].value
+        if len(_min_values) == 1:
+            _min_values = _min_values * (self.series[0].count - 1)
+        _max_values = self.config['max_values'].value
+        if len(_max_values) == 1:
+            _max_values = _max_values * (self.series[0].count - 1)
+        self.config['min_values'] = self.config['min_values']._replace(
+            value=np.array(_min_values, dtype=np.int16))
+        self.config['max_values'] = self.config['max_values']._replace(
+            value=np.array(_max_values, dtype=np.int16))
 
     def set_custom_controls(self, values):
         logger.debug('Setting custom values')
@@ -176,7 +162,7 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
             self.series[0].multitemp_screened = \
                 np.in1d(self.X[:, 1], self.yatsm_model.X[:, 1],
                         invert=True).astype(np.uint8)
-            if self._calc_pheno:
+            if self.config['calc_pheno'].value:
                 for rec in self.yatsm_model.record:
                     # Find dates in record
                     idx = np.where(
@@ -281,8 +267,8 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
             for rec in self.yatsm_model.record:
                 if rec['break'] != 0:
                     _bx = dt.fromordinal(int(rec['break']))
-                    index = np.where(self.series[series].images['date']
-                                     == _bx)[0]
+                    index = np.where(self.series[series].images['date'] ==
+                                     _bx)[0]
                     if (index.size > 0 and
                             index[0] < self.series[series].data.shape[1]):
                         bx.append(_bx)
@@ -349,9 +335,9 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
                           fontsize=18,
                           horizontalalignment='center')
         elif desc == 'DOYPlot':
-            names = self.yatsm_model.record.dtype.names
-            if self._calc_pheno and all([r in names for r in
-                                         ('spring_doy', 'autumn_doy')]):
+            has_dates = all([r in self.yatsm_model.record.dtype.names
+                             for r in ('spring_doy', 'autumn_doy')])
+            if self.config['calc_pheno'].value and has_dates:
                 colors = mpl.cm.Set1(np.linspace(0, 1, 9))[:, :-1]
 
                 color_cycle = itertools.cycle(colors)
@@ -385,16 +371,18 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
         self.Y = self.series[0].data.astype(np.int16)
         self.dates = np.asarray(self.series[0].images['ordinal'])
 
-        mask = self.Y[self._mask_band[0] - 1, :]
-        Y_data = np.delete(self.Y, self._mask_band[0] - 1, axis=0)
+        mask = self.Y[self.config['mask_band'].value[0] - 1, :]
+        Y_data = np.delete(self.Y, self.config['mask_band'].value[0] - 1,
+                           axis=0)
 
         # Mask out masked values
         clear = np.in1d(mask, self.mask_values, invert=True)
+        from PyQt4 import QtCore; QtCore.pyqtRemoveInputHook()
+        from IPython.core.debugger import Pdb; Pdb().set_trace()
         valid = get_valid_mask(Y_data,
-                               self._min_values,
-                               self._max_values).astype(np.bool)
+                               self.config['min_values'].value,
+                               self.config['max_values'].value).astype(np.bool)
         clear *= valid
-        # Setup Y
 
         # Setup parameters
         lm = sklearn.linear_model.Lasso(alpha=20)
@@ -412,8 +400,9 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
             else:
                 logger.error('Cannot use unknown regression %s' % reg)
         else:
-            logger.warning('Using failsafe Lasso(lambda=20) from scikit-learn. '
-                           'Upgrade to yatsm>=0.5.1 to access more regressors.')
+            logger.warning(
+                'Using failsafe Lasso(lambda=20) from scikit-learn. '
+                'Upgrade to yatsm>=0.5.1 to access more regressors.')
 
         kwargs = dict(
             test_indices=self._test_indices,
@@ -453,7 +442,7 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
         # else:
         #     self.coef_name = 'coef'
 
-        if self._calc_pheno:
+        if self.config['calc_pheno'].value:
             # TODO: parameterize band indices & scale factor
             ltm = pheno.LongTermMeanPhenology()
             self.yatsm_model.record = ltm.fit(self.yatsm_model)
@@ -466,18 +455,20 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
         """ Setup metadata for series """
         # Find MTL file
         self.mtl_files = None
-        if self._metadata_file_pattern:
-            search = find_files(self.location, self._metadata_file_pattern,
-                                ignore_dirs=[self._results_folder])
+        if self.config['metadata_file_pattern'].value:
+            search = find_files(
+                self.location, self.config['metadata_file_pattern'].value,
+                ignore_dirs=[self.config['results_folder'].value])
             if len(search) == 0:
                 logger.error(
                     'Could not find image metadata with pattern {p}'.format(
-                        p=self._metadata_file_pattern))
+                        p=self.config['metadata_file_pattern'].value))
             if len(search) != len(self.series[0].images['date']):
-                logger.error('Inconsistent number of metadata files found: '
-                             '{0} images vs {1} metadata files)'.format(
-                                len(self.series[0].images['date']),
-                                len(search)))
+                logger.error(
+                    'Inconsistent number of metadata files found: '
+                    '{0} images vs {1} metadata files)'.format(
+                        len(self.series[0].images['date']),
+                        len(search)))
             else:
                 self.mtl_files = search
 
@@ -517,7 +508,7 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
             for idx, _id in enumerate(self.series[0].images['id']):
                 self.series[0].cloud_cover[idx] = cloud_cover.get(_id, -9999.0)
 
-        if self._calc_pheno:
+        if self.config['calc_pheno'].value:
             self.series[0].metadata.append('pheno')
             self.series[0].metadata_names.append('Phenology')
             self.series[0].metadata_table.append(False)
@@ -547,7 +538,7 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
         else:
             self.has_results = True
 
-        if self._calc_pheno:
+        if self.config['calc_pheno'].value:
             try:
                 global pheno
                 import yatsm.phenology.longtermmean as pheno

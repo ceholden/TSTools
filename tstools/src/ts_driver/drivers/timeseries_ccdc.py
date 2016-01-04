@@ -12,7 +12,7 @@ except:
     has_scipy = False
 
 from . import timeseries_stacked
-from ..ts_utils import find_files
+from ..ts_utils import ConfigItem, find_files
 from ... import settings
 
 logger = logging.getLogger('tstools')
@@ -45,20 +45,8 @@ class CCDCTimeSeries(timeseries_stacked.StackedTimeSeries):
     ccdc_results = None
 
     # Driver configuration
-    _results_folder = 'TSFitMap'
-
-    config = ['_stack_pattern',
-              '_date_index',
-              '_date_format',
-              '_cache_folder',
-              '_mask_band',
-              '_results_folder']
-    config_names = ['Stack pattern',
-                    'Index of date in ID',
-                    'Date format',
-                    'Cache folder',
-                    'Mask band',
-                    'Results folder']
+    config = timeseries_stacked.StackedTimeSeries.config.copy()
+    config['results_folder'] = ConfigItem('Results folder', 'TSFitMap')
 
     def __init__(self, location, config=None):
         if not has_scipy:
@@ -69,7 +57,7 @@ class CCDCTimeSeries(timeseries_stacked.StackedTimeSeries):
     def fetch_results(self):
         """ Read results for current pixel
         """
-        path = os.path.join(self.location, self._results_folder)
+        path = os.path.join(self.location, self.config['results_folder'].value)
         row = self.series[0].py + 1
 
         result = find_files(path, 'record_change%s.mat' % row)
@@ -173,8 +161,8 @@ class CCDCTimeSeries(timeseries_stacked.StackedTimeSeries):
             for rec in self.ccdc_results:
                 if rec['t_break'] != 0:
                     _bx = dt.datetime.fromordinal(ml2ordinal(rec['t_break']))
-                    index = np.where(self.series[series].images['date']
-                                     == _bx)[0]
+                    index = np.where(self.series[series].images['date'] ==
+                                     _bx)[0]
                     if (index.size > 0 and index[0] < n_obs):
                         bx.append(_bx)
                         by.append(self.series[series].data[band, index[0]])

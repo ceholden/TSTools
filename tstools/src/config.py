@@ -77,22 +77,17 @@ class Config(QtGui.QDialog, Ui_Config):
             # Setup custom configuration controls
             # First test for custom configurations
             has_custom_form = True
-            if not hasattr(_ts, 'config') or not hasattr(_ts, 'config_names'):
+            if not hasattr(_ts, 'config'):
                 has_custom_form = False
             else:
-                if not isinstance(_ts.config, list) or not _ts.config:
+                if not isinstance(_ts.config, dict) or not _ts.config:
                     logger.error(
                         'Custom options for timeseries {ts} improperly '
                         'described'.format(ts=_ts))
                     has_custom_form = False
 
             if has_custom_form:
-                # Create OrderedDict for CustomForm
-                default_config = OrderedDict([
-                    [key, [name, getattr(_ts, key)]] for key, name in
-                    zip(_ts.config, _ts.config_names)
-                ])
-
+                default_config = OrderedDict(_ts.config)
                 custom_form = CustomForm(default_config, parent=self.stack_cfg)
                 self.custom_forms.append(custom_form)
             else:

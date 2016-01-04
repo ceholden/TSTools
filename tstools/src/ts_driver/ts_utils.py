@@ -1,5 +1,6 @@
 """ Various utilities useful for timeseries drivers
 """
+from collections import namedtuple
 import fnmatch
 import logging
 import os
@@ -14,15 +15,16 @@ except ImportError:
 logger = logging.getLogger('tstools')
 
 
+# READ/WRITE DATA
 def check_cache(cache_folder):
     """ Checks location for ability to read/write from cache
 
     Args:
-      cache_folder (str): location of cache folder
+        cache_folder (str): location of cache folder
 
     Returns:
-      (read_cache, write_cache): tuple of booleans describing ability to read
-        and write from cache
+        tuple: tuple of booleans describing ability to read and write
+            to/from cache
 
     """
     read_cache = False
@@ -50,14 +52,14 @@ def name_cache_pixel(x, y, shape, prefix='', suffix=''):
     """ Return a filename for a pixel cache file
 
     Args:
-      x (int): column of pixel
-      y (int): row of pixel
-      shape (tuple): shape of Y data to save
-      prefix (str, optional): prefix to pixel cache filename
-      suffix (str, optional): suffix to pixel cache filename
+        x (int): column of pixel
+        y (int): row of pixel
+        shape (tuple): shape of Y data to save
+        prefix (str, optional): prefix to pixel cache filename
+        suffix (str, optional): suffix to pixel cache filename
 
     Returns:
-      str: cache filename
+        str: cache filename
 
     """
     f = 'x%s_y%s_n%s_b%s' % (x, y, shape[1], shape[0])
@@ -69,11 +71,11 @@ def write_cache_pixel(filename, series):
     """ Save one series data to NumPy zipped array
 
     Args:
-      filename (str): filename of cache file
-      series (Series): Series within timeseries driver to save
+        filename (str): filename of cache file
+        series (Series): Series within timeseries driver to save
 
     Raises:
-      IOError: raise IOError if it cannot write to cache
+        IOError: raise IOError if it cannot write to cache
 
     """
     logger.debug('Caching pixel to %s' % filename)
@@ -86,16 +88,16 @@ def read_cache_pixel(filename, series):
     """ Returns data read in from cache file if passes validation
 
     Args:
-      filename (str): filename of cache file
-      series (Series): Series within timeseries driver to read
+        filename (str): filename of cache file
+        series (Series): Series within timeseries driver to read
 
     Returns:
-      np.ndarray: 2D np.ndarray of 'Y' data for series
+        np.ndarray: 2D np.ndarray of 'Y' data for series
 
     Raises:
-      IOError: raise IOError if cache file cannot correctly be read from disk
-      IndexError: raise IndexError if cached data does not match dimensions
-        or images used in timeseries series
+        IOError: raise IOError if cache file cannot correctly be read from disk
+        IndexError: raise IndexError if cached data does not match dimensions
+            or images used in timeseries series
 
     """
     z = np.load(filename)
@@ -113,13 +115,13 @@ def name_cache_line(y, shape, prefix='', suffix=''):
     """ Return a filename for a line cache file
 
     Args:
-      y (int): row of pixel
-      shape (tuple): shape of Y data to save
-      prefix (str, optional): prefix to pixel cache filename
-      suffix (str, optional): suffix to pixel cache filename
+        y (int): row of pixel
+        shape (tuple): shape of Y data to save
+        prefix (str, optional): prefix to pixel cache filename
+        suffix (str, optional): suffix to pixel cache filename
 
     Returns:
-      str: cache filename
+        str: cache filename
 
     """
     f = 'r%s_n%s_b%s' % (y, shape[1], shape[0])
@@ -131,16 +133,16 @@ def read_cache_line(filename, series):
     """ Returns data read in from cache file if passes validation
 
     Args:
-      filename (str): filename of cache file
-      series (Series): Series within timeseries driver to read
+        filename (str): filename of cache file
+        series (Series): Series within timeseries driver to read
 
     Returns:
-      np.ndarray: 3D np.ndarray of 'Y' data for series
+        np.ndarray: 3D np.ndarray of 'Y' data for series
 
     Raises:
-      IOError: raise IOError if cache file cannot correctly be read from disk
-      IndexError: raise IndexError if cached data does not match dimensions
-        or images used in timeseries series
+        IOError: raise IOError if cache file cannot correctly be read from disk
+        IndexError: raise IndexError if cached data does not match dimensions
+            or images used in timeseries series
 
     """
     z = np.load(filename)
@@ -158,13 +160,13 @@ def find_files(location, pattern, ignore_dirs=[], maxdepth=float('inf')):
     """ Find paths to images on disk matching an given pattern
 
     Args:
-      location (str): root directory to search
-      pattern (str): glob style pattern to search for
-      ignore_dirs (iterable): list of directories to ignore from search
-      maxdepth (int): maximum depth to recursively search
+        location (str): root directory to search
+        pattern (str): glob style pattern to search for
+        ignore_dirs (iterable): list of directories to ignore from search
+        maxdepth (int): maximum depth to recursively search
 
     Returns:
-      list: list of files within location matching pattern
+        list: list of files within location matching pattern
 
     """
     results = []
@@ -189,35 +191,44 @@ def find_files(location, pattern, ignore_dirs=[], maxdepth=float('inf')):
 
     return results
 
+# CONFIGURATION
+ConfigItem = namedtuple('item', ['desc', 'value'])
 
-def set_custom_config(obj, values):
+
+def set_custom_config(obj, values, config='config'):
     """ Set custom configuration options
 
+    Configuration options are expected as a dictionary as follows::
+
+        {
+            'key': ConfigItem(desc='description', value=value)
+        }
+
     Args:
-      obj (object): object to set values
-      values (iterable): new values to set to variables defined in `obj.config`
+        obj (object): object to set values
+        values (iterable): new values to set to variables defined in
+            ``obj.config``
+        config (str, optional): name of configuration `dict` to set
+            (default: config)
 
     Raises:
-      AttributeError: raise AttributeError if `obj` doesn't have a `config` or
-        if `values` passed are not same type as current values in `obj` for a
-        given attribute in `config`
+        AttributeError: raise AttributeError if ``obj`` doesn't have a
+            ``config`` or if ``values`` passed are not same type as current
+            values in ``obj`` for a given attribute in ``config``
 
     """
-    if not hasattr(obj, 'config'):
+    if not hasattr(obj, config):
         raise AttributeError('Cannot set custom config for object without'
-                             ' config attribute')
+                             ' config attribute named {}'.format(config))
 
-    for val, attr in zip(values, obj.config):
-        current_val = getattr(obj, attr, None)
-
-        _msg = '    {a} : {cv} <-- {v} ({t})'.format(a=attr,
-                                                     v=val,
-                                                     cv=current_val,
-                                                     t=type(val))
-        logger.debug(_msg)
-
+    cfg = getattr(obj, config, {})
+    for val, attr in zip(values, cfg):
+        name, current_val = cfg[attr]
+        logger.debug('    {a}: {cv} ({ct}) <-- {v} ({t})'.format(
+            a=attr, cv=current_val, ct=type(current_val), v=val, t=type(val)
+        ))
         if isinstance(val, type(current_val)):
-            setattr(obj, attr, val)
+            getattr(obj, config)[attr] = ConfigItem(name, val)
         else:
             raise AttributeError(
                 'Cannot set value {v} for {o} (current value {cv}) '
@@ -226,6 +237,7 @@ def set_custom_config(obj, values):
                         t1=type(val), t2=type(current_val)))
 
 
+# METADATA
 def parse_landsat_MTL(mtl_file, key):
     """ Returns the value of specified key for a given Landsat MTL file
 

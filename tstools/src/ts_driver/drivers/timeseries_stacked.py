@@ -1,11 +1,12 @@
 """ Timeseries driver for a simple 'stacked' timeseries dataset
 """
+from collections import OrderedDict
 import logging
 import os
 
 import numpy as np
 
-from .. import ts_utils
+from ..ts_utils import find_files, ConfigItem
 from ..series import Series
 from ..timeseries import AbstractTimeSeriesDriver
 from ...utils import geo_utils
@@ -32,22 +33,13 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
     has_results = False
 
     # Driver configuration
-    _stack_pattern = 'L*stack'
-    _date_index = [9, 16]
-    _date_format = '%Y%j'
-    _cache_folder = 'cache'
-    _mask_band = [8]
-
-    config = ['_stack_pattern',
-              '_date_index',
-              '_date_format',
-              '_cache_folder',
-              '_mask_band']
-    config_names = ['Stack pattern',
-                    'Index of date in ID',
-                    'Date format',
-                    'Cache folder',
-                    'Mask band']
+    config = OrderedDict((
+        ('stack_pattern', ConfigItem('Stack pattern', 'L*stack')),
+        ('date_index', ConfigItem('Index of date in ID', [9, 16])),
+        ('date_format', ConfigItem('Date format', '%Y%j')),
+        ('cache_folder', ConfigItem('Cache folder', 'cache')),
+        ('mask_band', ConfigItem('Mask band', [8])),
+    ))
 
     _read_cache, _write_cache = False, False
 
@@ -56,17 +48,19 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
 
         # Find images and init Series
         ignore_dirs = []
-        if hasattr(self, '_cache_folder'):
-            ignore_dirs.append(self._cache_folder)
-        if hasattr(self, '_results_folder'):
-            ignore_dirs.append(self._results_folder)
-        images = ts_utils.find_files(self.location, self._stack_pattern,
-                                     ignore_dirs=ignore_dirs)
+        if 'cache_folder' in self.config:
+            ignore_dirs.append(self.config['cache_folder'].value)
+        if 'results_folder' in self.config:
+            ignore_dirs.append(self.config['results_folder'].value)
+        images = find_files(self.location,
+                            self.config['stack_pattern'].value,
+                            ignore_dirs=ignore_dirs)
 
         self.series = [
             Series(
                 images,
-                self._date_index, self._date_format,
+                self.config['date_index'].value,
+                self.config['date_format'].value,
                 {
                     'description': 'Stacked TS',
                     'symbology_hint_indices': [4, 3, 2],
@@ -98,7 +92,8 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
             dataset
 
         """
-        cache_folder = os.path.join(self.location, self._cache_folder)
+        cache_folder = os.path.join(self.location,
+                                    self.config['cache_folder'].value)
 
         i = 0
         n = sum([len(series.images) for series in self.series])
@@ -146,7 +141,8 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
         if mask_values is not None:
             self.mask_values = np.asarray(mask_values).copy()
 
-        for mask_band, series in zip(self._mask_band, self.series):
+        for mask_band, series in zip(self.config['mask_band'].value,
+                                     self.series):
             if not mask_band:
                 continue
             series.mask = np.in1d(series.data[mask_band - 1, :],
@@ -223,7 +219,8 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
     def _check_cache(self):
         """ Check for read/write from/to cache folder
         """
-        self.cache_folder = os.path.join(self.location, self._cache_folder)
+        self.cache_folder = os.path.join(self.location,
+                                         self.config['cache_folder'].value)
         if (os.path.exists(self.cache_folder) and
                 os.path.isdir(self.cache_folder)):
             if os.access(self.cache_folder, os.R_OK):

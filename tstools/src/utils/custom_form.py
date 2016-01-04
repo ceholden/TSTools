@@ -64,7 +64,8 @@ class CustomForm(QtGui.QWidget):
             self.form_layout.addRow(QtGui.QLabel('<b>' + self.title + '</b>'))
             self.form_layout.addRow(QtGui.QLabel(''))
 
-        for name, value in self.defaults.itervalues():
+        for key in self.defaults:
+            name, value = self.defaults[key]
             # int
             if isinstance(value, int) and not isinstance(value, bool):
                 field = QtGui.QLineEdit(repr(value), self)
@@ -95,7 +96,6 @@ class CustomForm(QtGui.QWidget):
                 self.widgets.append(None)
                 field = None
             else:
-                print '{f} - UNRECOGNIZED CUSTOM FORM GIVEN'.format(f=__file__)
                 field = None
 
             if field is not None:
