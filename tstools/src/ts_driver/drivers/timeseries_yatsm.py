@@ -377,22 +377,20 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
 
         # Mask out masked values
         clear = np.in1d(mask, self.mask_values, invert=True)
-        from PyQt4 import QtCore; QtCore.pyqtRemoveInputHook()
-        from IPython.core.debugger import Pdb; Pdb().set_trace()
         valid = get_valid_mask(Y_data,
                                self.config['min_values'].value,
                                self.config['max_values'].value).astype(np.bool)
         clear *= valid
 
         # Setup parameters
-        lm = sklearn.linear_model.Lasso(alpha=20)
+        estimator = sklearn.linear_model.Lasso(alpha=20)
         reg = self._regression_type
         print(self._regression_type)
         if hasattr(yatsm.regression, 'packaged'):
             if reg in yatsm.regression.packaged.packaged_regressions:
                 reg_fn = yatsm.regression.packaged.find_packaged_regressor(reg)
                 try:
-                    lm = jl.load(reg_fn)
+                    estimator = jl.load(reg_fn)
                 except:
                     logger.error('Cannot load regressor: %s' % reg)
                 else:
@@ -415,7 +413,7 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
             dynamic_rmse=self._dynamic_rmse,
         )
 
-        self.yatsm_model = CCDCesque(lm=lm, **kwargs)
+        self.yatsm_model = CCDCesque(**version_kwargs(kwargs))
         # Don't want to have DEBUG logging when we run YATSM
         log_level = logger.level
         logger.setLevel(logging.INFO)
@@ -526,6 +524,7 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
             global harm
             global get_valid_mask
             import yatsm
+            from ..mixins.yatsm_ccdcesque import version_kwargs
             from yatsm.algorithms import CCDCesque, postprocess
             from yatsm._cyprep import get_valid_mask
             from yatsm.regression.transforms import harm
