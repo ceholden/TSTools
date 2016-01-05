@@ -54,60 +54,25 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
     ))
 
     # Driver controls
-    _calculate_live = True
-    _consecutive = 5
-    _min_obs = 16
-    _threshold = 4.0
-    _enable_min_rmse = True
-    _min_rmse = 100
-    _design = '1 + x + harm(x, 1)'
-    _test_indices = np.array([2, 3, 4, 5])
-    _dynamic_rmse = True
-    _screen_crit = 400.0
-    _remove_noise = True
-    _reverse = False
-    _robust_results = False
-    _commit_test = False
-    _commit_alpha = 0.01
-
-    # Requires YATSM>=v0.5.0
-    _regression_type = 'sklearn_Lasso20'
-
     controls_title = 'YATSM Algorithm Options'
-    controls = [
-        '_calculate_live',
-        '_consecutive',
-        '_min_obs',
-        '_threshold',
-        '_enable_min_rmse',
-        '_min_rmse',
-        '_design',
-        '_test_indices',
-        '_dynamic_rmse',
-        '_screen_crit',
-        '_remove_noise',
-        '_reverse',
-        '_regression_type',
-        '_robust_results',
-        '_commit_test',
-        '_commit_alpha']
-    controls_names = [
-        'Calculate live',
-        'Consecutive',
-        'Min Observations',
-        'Threshold',
-        'Use min RMSE?',
-        'Min RMSE',
-        'Design',
-        'Test indices',
-        'Dynamic RMSE',
-        'Screening critical value',
-        'Remove noise',
-        'Run in reverse',
-        'Regression type',
-        'Robust results',
-        'Commission test',
-        'Commission test alpha']
+    controls = OrderedDict((
+        ('calculate_live', ConfigItem('Calculate live', True)),
+        ('consecutive', ConfigItem('Consecutive', 5)),
+        ('min_obs', ConfigItem('Min obs.', 16)),
+        ('threshold', ConfigItem('Threshold', 4.0)),
+        ('enable_min_rmse', ConfigItem('Use min RMSE?', True)),
+        ('min_rmse', ConfigItem('Min RMSE', 100.0)),
+        ('design', ConfigItem('Design', '1 + x + harm(x, 1)')),
+        ('test_indices', ConfigItem('Test indices', np.array([2, 3, 4, 5]))),
+        ('dynamic_rmse', ConfigItem('Dynamic RMSE', True)),
+        ('screen_crit', ConfigItem('Screening crit value', 400.0)),
+        ('remove_noise', ConfigItem('Remove noise', True)),
+        ('reverse', ConfigItem('Reverse', False)),
+        ('regression_type', ConfigItem('Regression type', 'sklearn_Lasso20')),
+        ('robust_results', ConfigItem('Robust results', False)),
+        ('commit_test', ConfigItem('Commission test', False)),
+        ('commit_alpha', ConfigItem('Commission test alpha', 0.10)),
+    ))
 
     def __init__(self, location, config=None):
         super(YATSMTimeSeries, self).__init__(location, config=config)
@@ -124,35 +89,34 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
         self.coef_name = 'coef'
 
         # Setup min/max values
-        _min_values = self.config['min_values'].value
+        desc, _min_values = self.config['min_values']
         if len(_min_values) == 1:
-            _min_values = _min_values * (self.series[0].count - 1)
-        _max_values = self.config['max_values'].value
+            _min_values = np.repeat(_min_values, self.series[0].count - 1)
+        self.config['min_values'] = ConfigItem(desc, _min_values)
+
+        desc, _max_values = self.config['max_values']
         if len(_max_values) == 1:
-            _max_values = _max_values * (self.series[0].count - 1)
-        self.config['min_values'] = self.config['min_values']._replace(
-            value=np.array(_min_values, dtype=np.int16))
-        self.config['max_values'] = self.config['max_values']._replace(
-            value=np.array(_max_values, dtype=np.int16))
+            _max_values = np.repeat(_max_values, self.series[0].count - 1)
+        self.config['max_values'] = ConfigItem(desc, _max_values)
 
     def set_custom_controls(self, values):
         logger.debug('Setting custom values')
-        for v, k in zip(values, self.controls):
-            current_value = getattr(self, k)
-            if isinstance(v, type(current_value)):
-                setattr(self, k, v)
+        for val, attr in zip(values, self.controls):
+            desc, current_val = self.controls[attr]
+            if isinstance(val, type(current_val)):
+                self.controls[attr] = ConfigItem(desc, val)
             else:
                 # Make an exception for minimum RMSE since we can pass None
                 if k == 'min_rmse' and isinstance(v, float):
-                    setattr(self, k, v)
+                    self.controls[attr] = ConfigItem(desc, val)
                 else:
                     msg = 'Could not set {k} to {v} (current: {c})'.format(
                         k=k, v=v, c=current_value)
-                    raise Exception(msg)
+                    raise ValueError(msg)
 
     def fetch_results(self):
         """ Read or calculate results for current pixel """
-        if self._calculate_live:
+        if self.controls['calculate_live'].value:
             self._fetch_results_live()
         else:
             self._fetch_results_saved()
@@ -208,7 +172,8 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
         my = []
 
         # Don't predict with any categorical information
-        design = re.sub(r'[\+\-][\ ]+C\(.*\)', '', self._design)
+        design = re.sub(r'[\+\-][\ ]+C\(.*\)', '',
+                        self.controls['design'].value)
         coef_columns = []
         for k, v in self._design_info.column_name_indexes.iteritems():
             if not re.match('C\(.*\)', k):
@@ -361,12 +326,10 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
         """ Run YATSM and get results """
         logger.debug('Calculating YATSM results on the fly')
         # Setup design matrix, Y, and dates
-        self.X = patsy.dmatrix(self._design,
-                               {
-                                   'x': self.series[0].images['ordinal'],
-                                   'sensor': self.series[0].sensor,
-                                   'pr': self.series[0].pathrow
-                               })
+        self.X = patsy.dmatrix(self.controls['design'].value,
+                               {'x': self.series[0].images['ordinal'],
+                                'sensor': self.series[0].sensor,
+                                'pr': self.series[0].pathrow})
         self._design_info = self.X.design_info
         self.Y = self.series[0].data.astype(np.int16)
         self.dates = np.asarray(self.series[0].images['ordinal'])
@@ -384,8 +347,7 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
 
         # Setup parameters
         estimator = sklearn.linear_model.Lasso(alpha=20)
-        reg = self._regression_type
-        print(self._regression_type)
+        reg = self.controls['regression_type'].value
         if hasattr(yatsm.regression, 'packaged'):
             if reg in yatsm.regression.packaged.packaged_regressions:
                 reg_fn = yatsm.regression.packaged.find_packaged_regressor(reg)
@@ -403,14 +365,16 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
                 'Upgrade to yatsm>=0.5.1 to access more regressors.')
 
         kwargs = dict(
-            test_indices=self._test_indices,
-            consecutive=self._consecutive,
-            threshold=self._threshold,
-            min_obs=self._min_obs,
-            min_rmse=None if self._enable_min_rmse else self._min_rmse,
-            screening_crit=self._screen_crit,
-            remove_noise=self._remove_noise,
-            dynamic_rmse=self._dynamic_rmse,
+            estimator=estimator,
+            test_indices=self.controls['test_indices'].value,
+            consecutive=self.controls['consecutive'].value,
+            threshold=self.controls['threshold'].value,
+            min_obs=self.controls['min_obs'].value,
+            min_rmse=(None if self.controls['enable_min_rmse'].value else
+                      self.controls['min_rmse'].value),
+            screening_crit=self.controls['screen_crit'].value,
+            remove_noise=self.controls['remove_noise'].value,
+            dynamic_rmse=self.controls['dynamic_rmse'].value,
         )
 
         self.yatsm_model = CCDCesque(**version_kwargs(kwargs))
@@ -418,7 +382,7 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
         log_level = logger.level
         logger.setLevel(logging.INFO)
 
-        if self._reverse:
+        if self.controls['reverse'].value:
             self.yatsm_model.fit(
                 np.flipud(self.X[clear, :]),
                 np.fliplr(Y_data[:, clear]),
@@ -429,11 +393,11 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
                 Y_data[:, clear],
                 self.dates[clear])
 
-        if self._commit_test:
+        if self.controls['commit_test'].value:
             self.yatsm_model.record = postprocess.commission_test(
-                self.yatsm_model, self._commit_alpha)
+                self.yatsm_model, self.controls['commit_alpha'].value)
 
-        # if self._robust_results:
+        # if self.controls['robust_results'].value:
         #     self.coef_name = 'robust_coef'
         #     self.yatsm_model.record = postprocess.refit_record(
         #         self.yatsm_model, 'robust'

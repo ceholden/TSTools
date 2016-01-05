@@ -502,8 +502,7 @@ class ControlPanel(QtGui.QWidget, Ui_Controls):
 # CUSTOM OPTIONS
     def _init_custom_controls(self):
         if not (getattr(tsm.ts, 'controls', None) and
-                getattr(tsm.ts, 'controls_title', None) and
-                getattr(tsm.ts, 'controls_names', None)):
+                getattr(tsm.ts, 'controls_title', None)):
             logger.debug('No custom controls to initialize')
             return
         if not hasattr(tsm.ts, 'set_custom_controls'):
@@ -511,10 +510,7 @@ class ControlPanel(QtGui.QWidget, Ui_Controls):
             return
 
         logger.debug('Initializing custom controls')
-        config = OrderedDict([
-            [var, [name, getattr(tsm.ts, var)]] for var, name in
-            zip(tsm.ts.controls, tsm.ts.controls_names)
-        ])
+        config = OrderedDict(tsm.ts.controls)
         self.custom_form = CustomForm(config)
         self.tab_options.layout().addWidget(self.custom_form)
 
