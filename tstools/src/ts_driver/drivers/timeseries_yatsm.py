@@ -386,7 +386,7 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
             self.yatsm_model.fit(
                 np.flipud(self.X[clear, :]),
                 np.fliplr(Y_data[:, clear]),
-                np.fliplr(self.dates[clear]))
+                self.dates[clear][::-1])
         else:
             self.yatsm_model.fit(
                 self.X[clear, :],
