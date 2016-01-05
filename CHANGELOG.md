@@ -16,6 +16,9 @@ For information on the style of this change log, see [keepachangelog.com](http:/
 
 ### Fixed
 - YATSM: Fix retrieval of ACCA scores from Landsat MTL files for YATSM timeseries drivers [#75](https://github.com/ceholden/TSTools/issues/75)
+- YATSM: Fix bug with importing of phenology module ([commit](https://github.com/ceholden/TSTools/commit/feb4b433bfad37baf257a35cc02b3a4cbb8dc842))
+- YATSM: Update to YATSM `v0.6.0` and maintain compatibility with `v0.5.0` ([commit](https://github.com/ceholden/TSTools/commit/23b6f2d0f6da099592f9ce064515fe903ae48346))
+- YATSM: Fix bug when running in reverse ([commit](https://github.com/ceholden/TSTools/commit/6a21e09aac71fd6abbdc3e1d3d6da5f6bbf5de37))
 
 ## [v1.0.1](https://github.com/ceholden/TSTools/compare/v1.0.0...v1.0.1) - 2015-11-24
 
