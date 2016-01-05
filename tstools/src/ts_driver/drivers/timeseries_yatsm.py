@@ -110,9 +110,9 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
         'Commission test alpha']
 
     def __init__(self, location, config=None):
+        super(YATSMTimeSeries, self).__init__(location, config=config)
         # Check for YATSM imports
         self._check_yatsm()
-        super(YATSMTimeSeries, self).__init__(location, config=config)
 
         # Find extra metadata
         self._init_metadata()
@@ -519,15 +519,13 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
         """ Check if YATSM is available
         """
         try:
-            global yatsm
-            global CCDCesque, postprocess
-            global harm
-            global get_valid_mask
+            global yatsm, CCDCesque, postprocess, harm, get_valid_mask
             import yatsm
-            from ..mixins.yatsm_ccdcesque import version_kwargs
             from yatsm.algorithms import CCDCesque, postprocess
             from yatsm._cyprep import get_valid_mask
             from yatsm.regression.transforms import harm
+            global version_kwargs
+            from ..mixins.yatsm_ccdcesque import version_kwargs
         except ImportError as e:
             raise ImportError('Could not import YATSM because it could not '
                               'import a dependency (%s)' % e.message)
