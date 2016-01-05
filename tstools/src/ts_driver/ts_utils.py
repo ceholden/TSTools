@@ -192,6 +192,8 @@ def find_files(location, pattern, ignore_dirs=[], maxdepth=float('inf')):
     return results
 
 # CONFIGURATION
+
+# namedtuple storing a description and value for a configuration entry
 ConfigItem = namedtuple('item', ['desc', 'value'])
 
 

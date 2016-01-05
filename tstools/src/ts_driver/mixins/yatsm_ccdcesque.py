@@ -15,9 +15,12 @@ def version_kwargs(d):
         idx = [i for i, arg in enumerate(argspec.args)
                if arg == 'estimator'][0] - 1
         if isinstance(argspec.defaults[idx], dict):
-            return d
+            if not isinstance(d['estimator'], dict):
+                d['estimator'] = {'object': d['estimator'], 'fit': {}}
         else:
-            d['estimator'] = {'object': d['estimator'], 'fit': {}}
+            if isinstance(d['estimator'], dict):
+                d['estimator'] = d['estimator']['object']
+        return d
     elif 'lm' in argspec.args:
         new_key, old_key = 'lm', 'estimator'
         d[new_key] = d.pop(old_key)
