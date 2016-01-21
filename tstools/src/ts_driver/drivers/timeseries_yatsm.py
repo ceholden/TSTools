@@ -65,6 +65,7 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
     description = 'YATSM CCDCesque Timeseries'
     location = None
     mask_values = np.array([2, 3, 4, 255])
+    has_results = True
 
     # Driver configuration
     config = OrderedDict((
