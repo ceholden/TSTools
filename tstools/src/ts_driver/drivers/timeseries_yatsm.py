@@ -21,6 +21,34 @@ from ...logger import qgis_log
 logger = logging.getLogger('tstools')
 
 
+# Try to import yatsm dependency
+has_yatsm = False
+has_yatsm_pheno = False
+try:
+    import yatsm
+    from yatsm.algorithms import CCDCesque, postprocess
+    from yatsm._cyprep import get_valid_mask
+    from yatsm.regression.transforms import harm  # noqa
+    from yatsm.utils import get_output_name
+    from ..mixins.yatsm_ccdcesque import version_kwargs
+except ImportError as e:
+    has_yatsm_msg = ('Could not import YATSM because it could not '
+                     'import a dependency ({})'.format(e))
+except Exception as e:
+    has_yatsm_msg = ('Could not import YATSM for an unknown reason '
+                     '({})'.format(e))
+else:
+    has_yatsm = True
+    try:
+        import yatsm.phenology.longtermmean as pheno
+    except Exception as e:
+        has_yatsm_pheno_msg = ('Could not import YATSM phenology module '
+                               'because it could not import a dependency ({})'
+                               .format(e))
+    else:
+        has_yatsm_pheno = True
+
+
 class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
     """ Timeseries driver for CCDCesque algorithm implemented in YATSM
 
@@ -78,7 +106,10 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
     def __init__(self, location, config=None):
         super(YATSMTimeSeries, self).__init__(location, config=config)
         # Check for YATSM imports
-        self._check_yatsm()
+        if not has_yatsm:
+            raise ImportError(has_yatsm_msg)
+        if self.config['calc_pheno'].value and not has_yatsm_pheno:
+            raise ImportError(has_yatsm_pheno_msg)
 
         # Find extra metadata
         self._init_metadata()
@@ -513,37 +544,6 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
             self.series[0].pheno = np.repeat('SUM', self.series[0].n)
             self.series[0].pheno[0] = 'SPR'
             self.series[0].pheno[1] = 'AUT'
-
-    def _check_yatsm(self):
-        """ Check if YATSM is available
-        """
-        try:
-            global yatsm, CCDCesque, postprocess, harm, get_valid_mask
-            global get_output_name
-            import yatsm
-            from yatsm.algorithms import CCDCesque, postprocess
-            from yatsm._cyprep import get_valid_mask
-            from yatsm.regression.transforms import harm
-            from yatsm.utils import get_output_name
-            global version_kwargs
-            from ..mixins.yatsm_ccdcesque import version_kwargs
-        except ImportError as e:
-            raise ImportError('Could not import YATSM because it could not '
-                              'import a dependency (%s)' % e.message)
-        except:
-            raise ImportError('Could not import YATSM for an unknown reason '
-                              '(%s)' % e.message)
-        else:
-            self.has_results = True
-
-        if self.config['calc_pheno'].value:
-            try:
-                global pheno
-                import yatsm.phenology.longtermmean as pheno
-            except:
-                msg = ('Could not import YATSM phenology module. '
-                       'Make sure you have R and rpy2 installed.')
-                raise ImportError(msg)
 
 
 class MockResult(object):
