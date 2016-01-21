@@ -139,11 +139,11 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
                 self.controls[attr] = ConfigItem(desc, val)
             else:
                 # Make an exception for minimum RMSE since we can pass None
-                if k == 'min_rmse' and isinstance(v, float):
+                if attr == 'min_rmse' and isinstance(val, float):
                     self.controls[attr] = ConfigItem(desc, val)
                 else:
                     msg = 'Could not set {k} to {v} (current: {c})'.format(
-                        k=k, v=v, c=current_value)
+                        k=attr, v=val, c=current_val)
                     raise ValueError(msg)
 
     def fetch_results(self):
