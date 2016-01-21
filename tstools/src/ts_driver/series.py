@@ -22,39 +22,39 @@ class Series(object):
         dictionary when instantiating the class.
 
     Args:
-      filenames (list): filenames for images to be included in the Series
-      date_index (tuple): start and end index of an image filename or ID
-        that contains the image's date
-      date_format (str): format of date in an image's filename or ID
+        filenames (list): filenames for images to be included in the Series
+        date_index (tuple): start and end index of an image filename or ID
+            that contains the image's date
+        date_format (str): format of date in an image's filename or ID
 
     Attributes:
-      description (str): description of timeseries series
-      images (np.ndarray): NumPy structured array containing attributes for all
-        timeseries images. Structured array columns must include
-        "filename" (str), "path" (str), "id" (str), "date" (dt.Date), and
-        "ordinal" (int).
-      band_names (iterable): list of names describing each band
+        description (str): description of timeseries series
+        images (np.ndarray): NumPy structured array containing attributes for
+            all timeseries images. Structured array columns must include
+            "filename" (str), "path" (str), "id" (str), "date" (dt.Date), and
+            "ordinal" (int).
+        band_names (iterable): list of names describing each band
 
-      symbology_hint_indices (tuple): three band indices (RGB) used for default
-        symbology
-      symbology_hint_minmax (iterable): one or more pairs of integers used as
-        the minimum and maximum scaling for default image symbology
+        symbology_hint_indices (tuple): three band indices (RGB) used for
+            default symbology
+        symbology_hint_minmax (iterable): one or more pairs of integers used as
+            the minimum and maximum scaling for default image symbology
 
-      metadata (iterable): list of variables used for plot and image table
-        metadata
-      metadata_table (iterable): list of True/False for each metadata variable
-        indicating suitability of variable within images table on "Controls"
-        tab
-      metadata_names (iterable): list of names of variables used for plot and
-        image table metadata
+        metadata (iterable): list of variables used for plot and image table
+            metadata
+        metadata_table (iterable): list of True/False for each metadata
+            variable indicating suitability of variable within images table on
+            "Controls" tab
+        metadata_names (iterable): list of names of variables used for plot and
+            image table metadata
 
-      cache_prefix (str): cache filename prefix
-      cache_suffix (str): cache filename suffix
+        cache_prefix (str): cache filename prefix
+        cache_suffix (str): cache filename suffix
 
     Methods:
-      fetch_data: read data for a given X/Y, yielding progress as percentage
-      get_geometry: return Well Known Text (Wkt) of geometry and projection
-        of query specified by X/Y coordinate
+        fetch_data: read data for a given X/Y, yielding progress as percentage
+        get_geometry: return Well Known Text (Wkt) of geometry and projection
+            of query specified by X/Y coordinate
 
     """
     description = 'Stacked TimeSeries'
@@ -99,20 +99,20 @@ class Series(object):
         """ Read data for a given x, y coordinate in a given CRS
 
         Args:
-          mx (float): map X location
-          my (float): map Y location
-          crs_wkt (str): Well Known Text (Wkt) Coordinate reference system
-            string describing (x, y)
-          cache_folder (str): path to cache folder
-          read_cache (bool): allow reading from cache
-          write_cache (bool): allow writing to cache
+            mx (float): map X location
+            my (float): map Y location
+            crs_wkt (str): Well Known Text (Wkt) Coordinate reference system
+                string describing (x, y)
+            cache_folder (str): path to cache folder
+            read_cache (bool): allow reading from cache
+            write_cache (bool): allow writing to cache
 
         Yields:
-          float: current retrieval progress (1 to n)
+            float: current retrieval progress (1 to n)
 
         Raises:
-          IndexError: raise IndexError if map coordinates are outside of
-            dataset
+            IndexError: raise IndexError if map coordinates are outside of
+                dataset
 
         """
         mx, my = geo_utils.reproject_point(mx, my, crs_wkt, self.crs)
@@ -189,8 +189,8 @@ class Series(object):
         """ Return geometry and projection for data queried
 
         Returns:
-          tuple: geometry and projection of data queried formatted as
-            Well Known Text (Wkt)
+            tuple: geometry and projection of data queried formatted as
+                Well Known Text (Wkt)
 
         """
         geom = geo_utils.pixel_geometry(self.gt, self.px, self.py)

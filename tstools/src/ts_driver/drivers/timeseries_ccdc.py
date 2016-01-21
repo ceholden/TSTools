@@ -11,9 +11,9 @@ try:
 except:
     has_scipy = False
 
-from . import timeseries_stacked
-from ..ts_utils import ConfigItem, find_files
-from ... import settings
+from . import timeseries_stacked  # noqa
+from ..ts_utils import ConfigItem, find_files  # noqa
+from ... import settings  # noqa
 
 logger = logging.getLogger('tstools')
 
