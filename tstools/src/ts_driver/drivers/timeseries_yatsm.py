@@ -4,6 +4,7 @@ from collections import OrderedDict
 from datetime import datetime as dt
 import itertools
 import logging
+import os
 import re
 
 import matplotlib as mpl
@@ -13,9 +14,9 @@ import sklearn
 import sklearn.externals.joblib as jl
 
 from . import timeseries_stacked
-from ..series import Series
 from ..ts_utils import ConfigItem, find_files, parse_landsat_MTL
 from ... import settings
+from ...logger import qgis_log
 
 logger = logging.getLogger('tstools')
 
@@ -123,9 +124,11 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
 
         # Update multitemporal screening metadata
         if self.yatsm_model:
-            self.series[0].multitemp_screened = \
-                np.in1d(self.X[:, 1], self.yatsm_model.X[:, 1],
-                        invert=True).astype(np.uint8)
+            if (self.controls['calculate_live'] and
+                    hasattr(self.yatsm_model, 'X')):
+                self.series[0].multitemp_screened = \
+                    np.in1d(self.X[:, 1], self.yatsm_model.X[:, 1],
+                            invert=True).astype(np.uint8)
             if self.config['calc_pheno'].value:
                 for rec in self.yatsm_model.record:
                     # Find dates in record
@@ -175,7 +178,7 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
         design = re.sub(r'[\+\-][\ ]+C\(.*\)', '',
                         self.controls['design'].value)
         coef_columns = []
-        for k, v in self._design_info.column_name_indexes.iteritems():
+        for k, v in self._design_info.iteritems():
             if not re.match('C\(.*\)', k):
                 coef_columns.append(v)
         coef_columns = np.asarray(coef_columns)
@@ -320,7 +323,39 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
 # RESULTS HELPER METHODS
     def _fetch_results_saved(self):
         """ Read YATSM results and return """
-        raise NotImplementedError('No saved results reading just yet...')
+        self.yatsm_model = MockResult()
+        row, col = self.series[0].py, self.series[0].px
+
+        data_cfg = {
+            'output': os.path.join(self.location,
+                                   self.config['results_folder'].value),
+            'output_prefix': (self.config['results_pattern'].value
+                              .replace('*', ''))
+        }
+        result_filename = get_output_name(data_cfg, row)
+        logger.info('Attempting to open: {f}'.format(f=result_filename))
+
+        if not os.path.isfile(result_filename):
+            qgis_log('Could not find result for row {r} ({fn})'.format(
+                r=row, fn=result_filename))
+            return
+
+        z = np.load(result_filename)
+        if 'record' not in z.files:
+            raise KeyError('Cannot find "record" within saved result ({})'
+                           .format(result_filename))
+        if 'metadata' not in z.files:
+            raise KeyError('Cannot find "metadata" within saved result ({})'
+                           .format(result_filename))
+        metadata = z['metadata'].item()
+        if 'design' not in metadata['YATSM']:
+            raise KeyError('Cannot find "design" within saved result metadata '
+                           '({})'.format(result_filename))
+        self._design_info = metadata['YATSM']['design']
+
+        rec = z['record']
+        idx = np.where((rec['px'] == col) & (rec['py'] == row))[0]
+        self.yatsm_model.record = rec[idx]
 
     def _fetch_results_live(self):
         """ Run YATSM and get results """
@@ -330,7 +365,7 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
                                {'x': self.series[0].images['ordinal'],
                                 'sensor': self.series[0].sensor,
                                 'pr': self.series[0].pathrow})
-        self._design_info = self.X.design_info
+        self._design_info = self.X.design_info.column_name_indexes
         self.Y = self.series[0].data.astype(np.int16)
         self.dates = np.asarray(self.series[0].images['ordinal'])
 
@@ -484,10 +519,12 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
         """
         try:
             global yatsm, CCDCesque, postprocess, harm, get_valid_mask
+            global get_output_name
             import yatsm
             from yatsm.algorithms import CCDCesque, postprocess
             from yatsm._cyprep import get_valid_mask
             from yatsm.regression.transforms import harm
+            from yatsm.utils import get_output_name
             global version_kwargs
             from ..mixins.yatsm_ccdcesque import version_kwargs
         except ImportError as e:
@@ -507,3 +544,7 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
                 msg = ('Could not import YATSM phenology module. '
                        'Make sure you have R and rpy2 installed.')
                 raise ImportError(msg)
+
+
+class MockResult(object):
+    record = []
