@@ -138,12 +138,12 @@ class SymbologyControl(QtGui.QDialog, Ui_Plot_Symbology):
                 item = OrderedDict()
                 # Setup default (no metadata)
                 idx = ravel_series_band(i, j)
+                idx_default_sym = {
+                    'color': settings.plot_symbol[idx]['colors'][0],
+                    'marker': settings.plot_symbol[idx]['markers'][0]
+                }
                 item['Default'] = {
-                    # None: self.default_sym
-                    None: {
-                        'color': settings.plot_symbol[idx]['colors'][0],
-                        'marker': settings.plot_symbol[idx]['markers'][0]
-                    }
+                    None: copy.deepcopy(idx_default_sym)
                 }
 
                 # If has metadata, add that in too
@@ -153,7 +153,7 @@ class SymbologyControl(QtGui.QDialog, Ui_Plot_Symbology):
                                             series.metadata_names):
                         vals = OrderedDict()
                         for uniq in np.unique(getattr(series, _md)):
-                            vals[uniq] = copy.deepcopy(self.default_sym)
+                            vals[uniq] = copy.deepcopy(idx_default_sym)
                         item[_md_str] = copy.deepcopy(vals)
 
                 self.md[i][j] = copy.deepcopy(item)
