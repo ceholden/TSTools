@@ -5,7 +5,13 @@ All notable changes will appear in this log that begins with the release of
 
 For information on the style of this change log, see [keepachangelog.com](http://keepachangelog.com/).
 
+## [UNRELEASED](https://github.com/ceholden/TSTools/compare/v1.1.0...HEAD)
+
+Nothing yet...
+
 ## [v1.1.0](https://github.com/ceholden/TSTools/compare/v1.0.1...v1.1.0) - 2016-02-16
+
+[Milestone v1.1.0](https://github.com/ceholden/TSTools/milestones/1.1.0)
 
 ### Changed
 - API: reorganized timeseries drivers into `tstools.ts_drivers.drivers` submodule [#63](https://github.com/ceholden/TSTools/issues/63)
