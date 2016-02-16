@@ -5,12 +5,13 @@ All notable changes will appear in this log that begins with the release of
 
 For information on the style of this change log, see [keepachangelog.com](http://keepachangelog.com/).
 
-## [UNRELEASED](https://github.com/ceholden/TSTools/compare/v1.0.1...HEAD)
+## [v1.1.0](https://github.com/ceholden/TSTools/compare/v1.0.1...v1.1.0) - 2016-02-16
 
 ### Changed
 - API: reorganized timeseries drivers into `tstools.ts_drivers.drivers` submodule [#63](https://github.com/ceholden/TSTools/issues/63)
 
 ### Added
+- Add dialog to export timeseries driver data to CSV files. Each "series" within a time series driver will be exported separately to a different file [#65](https://github.com/ceholden/TSTools/issues/65)
 - Add timeseries driver information to driver initialization/configuration menu [#74](https://github.com/ceholden/TSTools/issues/74)
 - Add timeseries driver dependency information to initialization/configuration menu. Also add broken driver modules to list of drivers, but with clear indication of broken status and the Python exception that caused it to break [#53](https://github.com/ceholden/TSTools/issues/53)
 
