@@ -36,7 +36,7 @@ class CCDCTimeSeries(timeseries_stacked.StackedTimeSeries):
     This driver requires the following Python packages in addition to basic
     TSTools package dependencies:
 
-    * `scipy`: <a href="http://www.scipy.org/scipylib/index.html">scipy</a>
+    * `scipy`: http://www.scipy.org/scipylib/index.html
     """
 
     description = 'CCDC Results Reader'
