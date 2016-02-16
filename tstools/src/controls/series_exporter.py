@@ -24,14 +24,17 @@ class SeriesExporterItem(QtGui.QWidget, Ui_SeriesExporterItem):
         self.series = series
         self.path = os.path.join(os.getcwd(), out_name)
 
+        # Series index
+        self.lab_series.setText('<b>Series {}:</b>'.format(idx))
         # Toggle writing
         self.enabled = True
         self.cbox_enable.setChecked(self.enabled)
         self.cbox_enable.stateChanged.connect(self._toggle_enable)
         # Label
-        self.cbox_enable.setText(series.description)
+        self.cbox_enable.setText('"{}"'.format(series.description))
         # Path editor
         self.edit_path.setText(self.path)
+        self.edit_path.editingFinished.connect(self._edited_path)
         # Browse button
         self.but_browse.clicked.connect(self._filebrowser)
 
@@ -43,28 +46,41 @@ class SeriesExporterItem(QtGui.QWidget, Ui_SeriesExporterItem):
                    else os.getcwd())
 
         # Open dialog
-        path = str(QtGui.QFileDialog.getSaveFileName(
+        path = self._format_path(str(QtGui.QFileDialog.getSaveFileName(
             self,
             'Select a destination for output CSV file',
             dirpath,
             'Comma-Separated Value (*.csv)'
-        ))
-
-        # Test
-        path_dirname = os.path.dirname(path)
-        if (os.path.exists(path) and os.access(path, os.W_OK) or
-                not os.path.exists(path) and os.access(path_dirname, os.W_OK)):
+        )))
+        # Assign if passes test
+        if self._test_path(path):
             self.path = path
             self.edit_path.setText(path)
-        else:
-            # TODO: qgis_log this
-            print("Cannot output to: {}".format(path))
+
+    @QtCore.pyqtSlot()
+    def _edited_path(self):
+        path = self._format_path(str(self.edit_path.text()))
+        if self._test_path(path):
+            self.path = path
 
     @QtCore.pyqtSlot(int)
     def _toggle_enable(self, state):
         self.enabled = True if state == QtCore.Qt.Checked else False
         self.edit_path.setEnabled(self.enabled)
         self.but_browse.setEnabled(self.enabled)
+
+    def _test_path(self, path):
+        path_dirname = os.path.dirname(path)
+        if (os.path.exists(path) and os.access(path, os.W_OK) or
+                not os.path.exists(path) and os.access(path_dirname, os.W_OK)):
+            return True
+        else:
+            qgis_log("Cannot write output CSV to: {}".format(path),
+                     level=logging.WARNING)
+            return False
+
+    def _format_path(self, path):
+        return os.path.abspath(os.path.expanduser(path))
 
 
 class SeriesExporter(QtGui.QDialog, Ui_SeriesExporter):
@@ -85,6 +101,12 @@ class SeriesExporter(QtGui.QDialog, Ui_SeriesExporter):
             _item = SeriesExporterItem(idx, series)
             self.scroll_area.widget().layout().addWidget(_item)
             self.series_items.append(_item)
+
+        # Add expander to fill GUI
+        self.spacer = QtGui.QSpacerItem(20, 40,
+                                        QtGui.QSizePolicy.Minimum,
+                                        QtGui.QSizePolicy.Expanding)
+        self.scroll_area.widget().layout().addItem(self.spacer)
 
         # Add and wire "Export" button
         self.export = QtGui.QPushButton('Export')
@@ -117,8 +139,9 @@ class SeriesExporter(QtGui.QDialog, Ui_SeriesExporter):
                 qgis_log(msg, level=logging.WARNING)
                 success = False
             else:
-                msg = ('Exported series "{desc}" to CSV'
-                       .format(desc=series.description))
+                msg = ('Exported series "{desc}" to CSV {fname}'
+                       .format(desc=series.description,
+                               fname=series_item.path))
                 qgis_log(msg, level=logging.INFO)
 
         if success:
