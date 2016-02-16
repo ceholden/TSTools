@@ -104,3 +104,9 @@ canvas = {
     # QgsVectorLayer ID for polygon outline of clicked pixel
     'click_layer_id': None
 }
+
+#: configuration options for saving using ``np.savetxt``
+savetxt = {
+    'fmt': '%10.5f',
+    'delimiter': ','
+}

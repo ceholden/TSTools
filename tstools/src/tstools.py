@@ -13,19 +13,19 @@ from PyQt4 import QtGui
 import matplotlib
 matplotlib.use('Qt4Agg')
 from matplotlib.backends.backend_qt4 import \
-    NavigationToolbar2QT as NavigationToolbar
+    NavigationToolbar2QT as NavigationToolbar  # noqa
 
-import qgis.gui
+import qgis.gui  # noqa
 
 # Initialize Qt resources from file resources.py -- ignore unused warning
-import resources_rc
+import resources_rc  # noqa
 
-from . import controller
-from . import plots
-from . import settings
-from .controls import controls
-from .logger import qgis_log
-from .ts_driver.ts_manager import tsm
+from . import controller  # noqa
+from . import plots  # noqa
+from . import settings  # noqa
+from .controls import controls, series_exporter  # noqa
+from .logger import qgis_log  # noqa
+from .ts_driver.ts_manager import tsm  # noqa
 
 logger = logging.getLogger('tstools')
 
@@ -154,6 +154,23 @@ class TSTools(QtCore.QObject):
         self.tool_ts = qgis.gui.QgsMapToolEmitPoint(self.canvas)
         self.tool_ts.setAction(self.action)
         self.tool_ts.canvasClicked.connect(self.controller.plot_request)
+
+        # CSV exporter
+        self.export_csv = QtGui.QAction(
+            QtGui.QIcon(':/plugins/tstools/media/tstools_csv.png'),
+            'Export to CSV',
+            self.iface.mainWindow())
+        self.export_csv.triggered.connect(self._export_CSV)
+        self.iface.addToolBarIcon(self.export_csv)
+
+    def _export_CSV(self):
+        logger.debug('Opening exporter')
+        if tsm.ts is None:
+            qgis_log('Cannot export data before initializing a driver',
+                     level=logging.CRITICAL)
+            return
+        exporter = series_exporter.SeriesExporter(tsm.ts)
+        exporter.exec_()
 
     def unload(self):
         """ Shutdown and disconnect """
