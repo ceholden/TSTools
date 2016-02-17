@@ -1,5 +1,7 @@
 """ Time series export to CSV dialog
 """
+import csv
+import itertools
 import logging
 import os
 
@@ -10,6 +12,18 @@ from .. import settings
 from ..logger import qgis_log
 from ..ui_series_exporter import Ui_SeriesExporter
 from ..ui_series_exporter_item import Ui_SeriesExporterItem
+
+
+def series_to_csv(fname, series,
+                  date_format='%Y-%m-%d', fmt='%10.5f',
+                  **kwargs):
+    with open(fname, 'w') as fid:
+        writer = csv.writer(fid)
+        header = ['Date'] + series.band_names
+        writer.writerow(header)
+        for d, obs in itertools.izip(series.images['date'], series.data.T):
+            row = [d.strftime(date_format)] + [fmt % o for o in obs]
+            writer.writerow(row)
 
 
 class SeriesExporterItem(QtGui.QWidget, Ui_SeriesExporterItem):
@@ -117,20 +131,12 @@ class SeriesExporter(QtGui.QDialog, Ui_SeriesExporter):
         self.export.clicked.connect(self._export_series)
 
     def _export_series(self):
-        def _make_wide(arr):
-            """ Make arrays 'wide' (shape[0] longer than shape[1])
-            """
-            if arr.ndim >= 2:
-                if arr.shape[0] < arr.shape[1]:
-                    return arr.T
-
         success = True
         for series, series_item in zip(self.driver.series, self.series_items):
             if not series_item.enabled:
                 continue
             try:
-                np.savetxt(series_item.path,
-                           _make_wide(series.data), **settings.savetxt)
+                series_to_csv(series_item.path, series, **settings.savetxt)
             except Exception as e:
                 msg = ('Could not export series "{desc}" to {fname}: {err}'
                        .format(desc=series.description,
