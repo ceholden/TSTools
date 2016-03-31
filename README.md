@@ -35,7 +35,7 @@ For anyone interested in developing the plugin or for those working in *nix envi
 
 ```
 git clone https://github.com/ceholden/TSTools.git
-cd TSTools/
+cd TSTools/tstools/
 make derase
 make clean
 make
