@@ -213,7 +213,7 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
         for k, v in self._design_info.iteritems():
             if not re.match('C\(.*\)', k):
                 coef_columns.append(v)
-        coef_columns = np.asarray(coef_columns)
+        coef_columns = np.sort(np.asarray(coef_columns))
 
         for rec in self.yatsm_model.record:
             # Check for reverse
