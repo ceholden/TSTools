@@ -7,7 +7,10 @@ For information on the style of this change log, see [keepachangelog.com](http:/
 
 ## [UNRELEASED](https://github.com/ceholden/TSTools/compare/v1.1.0...HEAD)
 
-Nothing yet...
+### Fixed
+
+- YATSM CCDCesque: Fixed model prediction when retrieving from pre-calculated results ([commit](https://github.com/ceholden/TSTools/commit/6f0c40cd6d9ab929b100886f739fc253226acd89))
+
 
 ## [v1.1.0](https://github.com/ceholden/TSTools/compare/v1.0.1...v1.1.0) - 2016-02-16
 
