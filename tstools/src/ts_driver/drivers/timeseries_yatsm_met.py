@@ -39,11 +39,11 @@ class YATSMMetTimeSeries(YATSMTimeSeries):
             logger.debug('Finding met data: %s' % met_type)
             images = find_files(
                 os.path.join(self.config['met_location'].value, met_type),
-                self.self.config['met_pattern'].value)
+                self.config['met_pattern'].value)
 
             # Get date index from file
             img = os.path.splitext(os.path.basename(images[0]))[0]
-            d = img.split(self.self.config['met_date_sep'].value)[
+            d = img.split(self.config['met_date_sep'].value)[
                 self.config['met_date_sepno'].value]
             try:
                 dt.datetime.strptime(d, self._met_date_format)
