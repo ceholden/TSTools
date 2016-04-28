@@ -46,7 +46,7 @@ class YATSMMetTimeSeries(YATSMTimeSeries):
             d = img.split(self.config['met_date_sep'].value)[
                 self.config['met_date_sepno'].value]
             try:
-                dt.datetime.strptime(d, self._met_date_format)
+                dt.datetime.strptime(d, self.config['met_date_format'].value)
             except Exception as e:
                 qgis_log('Could not parse date from %ith "%s"-separated field '
                          'of filename %s using date format %s: %s' %
@@ -57,11 +57,11 @@ class YATSMMetTimeSeries(YATSMTimeSeries):
                           e.message))
                 raise
             idx_start = img.find(d)
-            self._met_date_index = (idx_start, idx_start + len(d))
+            self._met_date_index = idx_start, idx_start + len(d)
 
             series = Series(
                 images,
-                self.config['met_date_index'].value,
+                self._met_date_index,
                 self.config['met_date_format'].value,
                 {
                     'description': met_type,
