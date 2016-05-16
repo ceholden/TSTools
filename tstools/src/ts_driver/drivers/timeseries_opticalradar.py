@@ -9,7 +9,7 @@ import patsy
 
 from .timeseries_yatsm import YATSMTimeSeries
 from ..series import Series
-from ..ts_utils import find_files
+from ..ts_utils import ConfigItem, find_files
 
 logger = logging.getLogger('tstools')
 
@@ -32,24 +32,15 @@ class YATSMLandsatPALSARTS(YATSMTimeSeries):
     mask_values = np.array([2, 3, 4, 255])
 
     # Driver configuration
-    _ps_dir = 'RADAR'
-    _ps_stack_pattern = '*ALPSRP*'
-    _ps_date_index = [8, 16]
-    _cache_folder = 'cache_fusion'  # redefined
-    _mask_band = [8, 0, 0]  # redefined
+    config = YATSMTimeSeries.config.copy()
+    config['ps_dir'] = ConfigItem('PALSAR data dir', 'ALOS')
+    config['ps_stack_pattern'] = ConfigItem('PALSAR stack pattern',
+                                            '*ALPSRP*')
+    config['ps_date_index'] = ConfigItem('PALSAR date index', [8, 16])
 
-    config = [c for c in YATSMTimeSeries.config]
-    config.extend([
-        '_ps_dir',
-        '_ps_stack_pattern',
-        '_ps_date_index'
-    ])
-    config_names = [cn for cn in YATSMTimeSeries.config_names]
-    config_names.extend([
-        'PALSAR data directory',
-        'PALSAR stack pattern',
-        'PALSAR date index'
-    ])
+    # redefined
+    config['cache_folder'] = ConfigItem('Cache folder', 'cache_fusion')
+    config['mask_band'] = ConfigItem('Mask band(s)', [8, 0, 0])
 
     def __init__(self, location, config=None):
         super(YATSMLandsatPALSARTS, self).__init__(location, config=config)
@@ -97,22 +88,24 @@ class YATSMLandsatPALSARTS(YATSMTimeSeries):
     def _find_radar(self):
         """ Find RADAR images and initialize series
         """
-        location = os.path.join(self.location, self._ps_dir)
+        location = os.path.join(self.location, self.config['ps_dir'].value)
 
         # Ignore results folder and cache, if we have it
         ignore_dirs = []
-        if hasattr(self, '_cache_folder'):
-            ignore_dirs.append(getattr(self, '_cache_folder'))
-        if hasattr(self, '_results_folder'):
-            ignore_dirs.append(getattr(self, '_results_folder'))
+        if 'cache_folder' in self.config:
+            ignore_dirs.append(self.config['cache_folder'].value)
+        if 'results_folder' in self.config:
+            ignore_dirs.append(self.config['results_folder'].value)
 
         # Find HH images
-        hh_images = find_files(location, self._ps_stack_pattern + '*hh.gtif',
-                               ignore_dirs=ignore_dirs)
+        hh_images = find_files(
+            location,
+            self.config['ps_stack_pattern'].value + '*hh.gtif',
+            ignore_dirs=ignore_dirs)
         if not hh_images:
             raise Exception('Could not find any HH images (*hh.gtif)')
         self.series.append(Series(
-            hh_images, self._ps_date_index, '%Y%m%d',
+            hh_images, self.config['ps_date_index'].value, '%Y%m%d',
             {
                 'description': 'PALSAR HH Timeseries',
                 'symbology_hint_indices': [0],
@@ -122,12 +115,14 @@ class YATSMLandsatPALSARTS(YATSMTimeSeries):
         ))
 
         # Find HH/HV/Ratio VRT images
-        vrt_images = find_files(location, self._ps_stack_pattern + '*.vrt',
-                                ignore_dirs=ignore_dirs)
+        vrt_images = find_files(
+            location,
+            self.config['ps_stack_pattern'].value + '*.vrt',
+            ignore_dirs=ignore_dirs)
         if not vrt_images:
             raise Exception('Could not find any HH/HV/Ratio images (*.vrt)')
         self.series.append(Series(
-            vrt_images, self._ps_date_index, '%Y%m%d',
+            vrt_images, self.config['ps_date_index'].value, '%Y%m%d',
             {
                 'description': 'PALSAR HH/HV/Ratio Timeseries',
                 'symbology_hint_indices': [0, 1, 2],
