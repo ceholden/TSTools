@@ -1,4 +1,4 @@
-Timeseries Tools (TSTools)
+Time Series Tools (TSTools)
 --------------------------
 
 [![Join the chat at https://gitter.im/ceholden/TSTools](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/ceholden/TSTools?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![DOI](https://zenodo.org/badge/6804/ceholden/TSTools.svg)](https://zenodo.org/badge/latestdoi/6804/ceholden/TSTools)
