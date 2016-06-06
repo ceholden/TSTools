@@ -10,7 +10,7 @@
 name=TSTools
 qgisMinimumVersion=2.4
 description=Plugin for visualization and analysis of remote sensing time series
-version=1.1
+version=1.1.1
 author=Chris Holden
 email=ceholden@gmail.com
 
@@ -20,6 +20,11 @@ email=ceholden@gmail.com
 
 # Uncomment the following line and add your changelog entries:
 changelog=See CHANGELOG.md in repository for full changelog
+    1.1.1
+    - Fix initialization issues with PALSAR & meteorological data drivers
+    1.1.0
+    - Added time series to CSV export utility
+    - Add info about time series drivers to configuration dialog
     1.0.1
     - QGIS>=2.4 required
     - BUG: plots include data from within maximum year on date range slider
