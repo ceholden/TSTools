@@ -132,8 +132,8 @@ def calculate_scale(axis):
             logger.warning('Cannot autoscale axis %i: plotted bands contain '
                            'no unmasked data' % axis)
             return
-        _data_min = np.percentile(_data, 2) - 500
-        _data_max = np.percentile(_data, 98) + 500
+        _data_min = np.nanpercentile(_data, 2) - 500
+        _data_max = np.nanpercentile(_data, 98) + 500
 
         if _min > _data_min:
             _min = _data_min
