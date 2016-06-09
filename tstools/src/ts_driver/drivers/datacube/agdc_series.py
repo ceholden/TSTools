@@ -76,7 +76,10 @@ class AGDCSeries(object):
 
         # Read in NetCDF4 files as multiple dataset
         # TODO chunks
-        self.ds = xr.open_mfdataset(filenames, chunks=100, concat_dim='time')
+        self.ds = xr.open_mfdataset(
+            filenames,
+            chunks={'latitude': 500, 'longitude': 500},
+            concat_dim='time')
 
         # Create VRTs
         self._init_vrts()
