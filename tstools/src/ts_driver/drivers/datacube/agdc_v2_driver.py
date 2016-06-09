@@ -28,6 +28,8 @@ class AGDCTimeSeriesDriver(AbstractTimeSeriesDriver):
 
     Requires the following extra set of Python dependencies:
         - dask
+        - toolz
+        - bottleneck
         - xarray
         - NetCDF4
     """
