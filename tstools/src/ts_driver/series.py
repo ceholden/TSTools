@@ -57,7 +57,7 @@ class Series(object):
             of query specified by X/Y coordinate
 
     """
-    description = 'Stacked TimeSeries'
+    description = 'Stacked Time Series'
     images = np.empty(0,
                       dtype=[('filename', object),
                              ('path', object),
