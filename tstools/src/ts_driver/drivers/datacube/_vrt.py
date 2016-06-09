@@ -25,9 +25,19 @@ class VRT(object):
     Only inteded right now to assist in visualizing (i.e., in QGIS) with
     multiple `Band`s from one `BaseProduct` within one `Tile`.
 
+    As an example, if one has a NetCDF4 "datacube" file containing subdatasets
+    of atmospherically corrected Landsat data indexed across time, this class
+    can be used to generate multispectral images for any given time index
+    across multiple variables in the NetCDF4 file. This "shim" acts as a
+    dimensional translation for viewing spectral bands that are stored as
+    separate subdataset variables as a multispectral image more familiar and
+    useful to remote sensing scientists.
+
     Args:
-        datasets (list[gdal.Dataset]): GDAL raster dataset
+        datasets (list[gdal.Dataset]): GDAL raster datasets, typically these
+            datasets are subdatasets of a NetCDF4 file opened with GDAL.
         bidx (list[int]): Band indices of `datasets` to include
+
     """
     def __init__(self, datasets, bidx):
         self._validate(datasets)
