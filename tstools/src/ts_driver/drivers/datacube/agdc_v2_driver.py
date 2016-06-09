@@ -44,8 +44,8 @@ class AGDCTimeSeriesDriver(AbstractTimeSeriesDriver):
 
     def __init__(self, location, config=None):
         if not has_reqs:
-            raise ImportError('Cannot use {0.__name__} without xarray/dask'
-                              .format(self))
+            raise ImportError('Cannot use {0.__class__.__name__} without '
+                              'xarray/dask'.format(self))
         super(AGDCTimeSeriesDriver, self).__init__(location, config=config)
 
         ncdfs = find_files(self.location, self.config['nc_pattern'].value)
