@@ -91,6 +91,8 @@ class VRT(object):
         source = SubElement(band, 'SimpleSource')
         source_path = SubElement(source, 'SourceFilename')
         source_path.text = ds.GetDescription()  # no abspath with NETCDF
+        source_band = SubElement(source, 'SourceBand')
+        source_band.text = str(bidx)
         source_props = SubElement(source, 'SourceProperties')
         source_props.set('RasterXSize', str(ds.RasterXSize))
         source_props.set('RasterYSize', str(ds.RasterYSize))
