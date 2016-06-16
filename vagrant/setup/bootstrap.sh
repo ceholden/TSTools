@@ -30,9 +30,6 @@ sudo apt-get install -y build-essential \
     pyqt4-dev-tools \
     gdal-bin libgdal-dev
 
-# dependencies for matplotlib
-sudo apt-get build-dep -y python-matplotlib
-
 set +e
 
 # install QGIS

@@ -7,8 +7,16 @@ latest_tag=$(git describe --tags $(git rev-list --tags --max-count=1))
 git checkout $latest_tag
 
 # Help out requirements with Ubuntu packages
-sudo apt-get install -y cython r-base
-sudo apt-get build-depends -y python-scipy
+sudo apt-get install -y \
+    cython \
+    python-scipy \
+    python-scikits-learn \
+    python-statsmodels \
+    python-pandas \
+    python-yaml \
+    python-matplotlib \
+    python-rpy2 \
+    r-base
 
 # PIP requirements
 sudo pip install -r requirements.txt

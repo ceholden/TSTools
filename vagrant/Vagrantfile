@@ -11,8 +11,8 @@ Vagrant.configure("2") do |config|
   # options are documented and commented below. For a complete reference,
   # please see the online documentation at vagrantup.com.
 
-  # Build based on Ubuntu Linux trusty64
-  config.vm.box = "ubuntu/trusty64"
+  # Build based on Ubuntu Linux 16.04 - "Xenial Xerus"
+  config.vm.box = "ubuntu/xenial64"
 
   # Setup SSH forwarding
   config.ssh.forward_x11 = true

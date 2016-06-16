@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Remove PyQt5 on 16.04
+sudo apt-get remove -y python-pyqt5
+
 # install TSTools
 git clone https://github.com/ceholden/TSTools.git
 cd TSTools/

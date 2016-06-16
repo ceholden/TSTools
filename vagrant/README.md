@@ -1,6 +1,6 @@
 # Vagrant
 
-A remarkably easy way of quickly installing and using `TSTools` is to utilize the included setup script for the [Vagrant](https://www.vagrantup.com/) technology. [Vagrant](https://www.vagrantup.com/) enables users to quickly and reproducibly configure and create lightweight virtual machines. I have included a `Vagrantfile` inside `vagrant/` that sets up a Ubuntu "Trusty" 14.04 Linux virtual machine with TSTools and all pre-requisites installed.
+A remarkably easy way of quickly installing and using `TSTools` is to utilize the included setup script for the [Vagrant](https://www.vagrantup.com/) technology. [Vagrant](https://www.vagrantup.com/) enables users to quickly and reproducibly configure and create lightweight virtual machines. I have included a `Vagrantfile` inside `vagrant/` that sets up a Ubuntu "Trusty" 16.04 Linux virtual machine with TSTools and all pre-requisites installed.
 
 To run TSTools using Vagrant, install Vagrant for your platform from [their downloads page](http://www.vagrantup.com/downloads):
 
@@ -18,7 +18,7 @@ cd vagrant/
 vagrant up
 ```
 
-Once the virtual machine has been downloaded, configured, and provisioned, you can connect to it and launch QGIS via SSH:
+Once the virtual machine has been downloaded, configured, and provisioned, you can connect to it and launch QGIS via SSH. Note that you only need to perform these last steps once you have provisioned the VM for the first time.
 
 ``` bash
 vagrant ssh
