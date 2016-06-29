@@ -8,9 +8,9 @@ TSTools is a plugin for QGIS (version 2.4+) that helps visualize remote sensing 
 
 [Read the Quickstart to see the plugin in action](docs/quickstart.md)
 
-If you feel like TSTools has made a contribution to your research, please consider citing it using the plugin using the Digital Object Identifier (DOI) above:
+If you feel like TSTools has made a contribution to your research, please consider citing it using the plugin using the Digital Object Identifier (DOI) tracked by [Zenodo](https://zenodo.org/):
 
-    Christopher E. Holden. (2015). TSTools: Linking time and space visualization for remotely sensed timeseries. Zenodo. 10.5281/zenodo.34182
+[![TSTools](https://zenodo.org/badge/6804/ceholden/TSTools.svg)](https://zenodo.org/badge/latestdoi/6804/ceholden/TSTools)
 
 ## Example data
 An example dataset for this plugin is located here: https://github.com/ceholden/landsat_stack
