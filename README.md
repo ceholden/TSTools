@@ -44,6 +44,8 @@ make deploy
 
 To enable the plugin, continue following the [instructions for enabling the plugin](#enable).
 
+## Virtual Machines
+
 ### Vagrant
 
 A remarkably easy way of quickly installing and using `TSTools` is to utilize the included setup script for the [Vagrant](https://www.vagrantup.com/) technology. [Vagrant](https://www.vagrantup.com/) enables users to quickly and reproducibly configure and create lightweight virtual machines. I have included a `Vagrantfile` inside `vagrant/` that sets up a Ubuntu "Xenial Xerus" 16.04 Linux virtual machine with TSTools and all pre-requisites installed.
@@ -74,6 +76,21 @@ qgis
 That's it! You can `suspend`, `halt`, or `destroy` (delete) the virtual machine when you're done using these as the `<command>` in `vagrant <command>`.
 
 For more information about Vagrant and how to use the technology, check out their ["Getting Started"](https://docs.vagrantup.com/v2/getting-started/index.html) section within [their documentation page](https://docs.vagrantup.com/v2/).
+
+### VirtualBox image
+
+You may also wish to avoid any setup and begin using TSTools using a pre-built
+image with everything already installed. The disadvantage to this solution is
+that VM images are likely to be out of date because it is difficult to update
+the VM image as frequently as one would like.
+
+You may download an image of Ubuntu 16.04 "Xenial Xerus" from my university's
+FTP server at the URL below. It has been exported as a
+[VirtualBox appliance](http://www.virtualbox.org/manual/ch01.html#ovf)
+and can import the image according to [Oracle's instructions](https://docs.oracle.com/cd/E26217_01/E26796/html/qs-import-vm.html).
+Instructions are also available in the `readme` file on the FTP server:
+
+[http://ftp-earth.bu.edu/public/ceholden/TSTools/](http://ftp-earth.bu.edu/public/ceholden/TSTools/)
 
 ## Enable
 Once TSTools is installed, follow these steps to enable it:
