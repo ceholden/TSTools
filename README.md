@@ -48,7 +48,7 @@ To enable the plugin, continue following the [instructions for enabling the plug
 
 ### Vagrant
 
-A remarkably easy way of quickly installing and using `TSTools` is to utilize the included setup script for the [Vagrant](https://www.vagrantup.com/) technology. [Vagrant](https://www.vagrantup.com/) enables users to quickly and reproducibly configure and create lightweight virtual machines. I have included a `Vagrantfile` inside `vagrant/` that sets up a Ubuntu "Xenial Xerus" 16.04 Linux virtual machine with TSTools and all pre-requisites installed.
+A quick way of installing and using `TSTools` is to utilize the included setup script for the [Vagrant](https://www.vagrantup.com/) technology. [Vagrant](https://www.vagrantup.com/) enables users to quickly and reproducibly configure and create lightweight virtual machines. I have included a `Vagrantfile` inside `vagrant/` that sets up a Ubuntu "Xenial Xerus" 16.04 Linux virtual machine with TSTools and all pre-requisites installed.
 
 To run TSTools using Vagrant, install Vagrant for your platform from [their downloads page](http://www.vagrantup.com/downloads):
 
