@@ -7,9 +7,15 @@ For information on the style of this change log, see [keepachangelog.com](http:/
 
 ## [UNRELEASED](https://github.com/ceholden/TSTools/compare/v1.1.0...HEAD)
 
+### Changed
+
+- Time series drivers are now located using `setuptools` `entry_points` and `pkg_resources.iter_entry_points` instead of through subclassing ([#82](https://github.com/ceholden/TSTools/issues/82))
+
 ### Fixed
 
 - YATSM CCDCesque: Fixed model prediction when retrieving from pre-calculated results ([commit](https://github.com/ceholden/TSTools/commit/6f0c40cd6d9ab929b100886f739fc253226acd89))
+- YATSM CCDCesque: Fixed model prediction error when retrieving results that used a different design formula than what was specified in control pane ([commit](https://github.com/ceholden/TSTools/commit/e8f5ff2bf02462ba4c1f47a9337244e227ac3d4f))
+- Stacked Time Series, and descendants: Fixed datatype casting bug when retrieving from images and cache ([commit](https://github.com/ceholden/TSTools/commit/ac657d7d9139ecf1bb7516092c0b6cf90c9727e0))
 - PALSAR/Landsat driver: fixed initialization errors
 - YATSM Meteorological driver: fixed initialization errors
 
