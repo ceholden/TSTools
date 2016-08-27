@@ -207,8 +207,10 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
         my = []
 
         # Don't predict with any categorical information
-        design = re.sub(r'[\+\-][\ ]+C\(.*\)', '',
-                        self.controls['design'].value)
+        eqn = (self.controls['design'].value
+               if self.controls['calculate_live'].value
+               else self._design)
+        design = re.sub(r'[\+\-][\ ]+C\(.*\)', '', eqn)
         coef_columns = []
         for k, v in self._design_info.iteritems():
             if not re.match('C\(.*\)', k):
@@ -383,6 +385,7 @@ class YATSMTimeSeries(timeseries_stacked.StackedTimeSeries):
         if 'design' not in metadata['YATSM']:
             raise KeyError('Cannot find "design" within saved result metadata '
                            '({})'.format(result_filename))
+        self._design = metadata['YATSM']['design_matrix']
         self._design_info = metadata['YATSM']['design']
 
         rec = z['record']
