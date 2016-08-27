@@ -147,7 +147,7 @@ class Series(object):
                                (pixel_fn, e.message))
             else:
                 logger.debug('Read pixel from cache')
-                self.data = dat
+                self.data = dat.astype(np.float)
                 got_cache = True
                 i += self.data.shape[1]
                 yield float(i)
@@ -162,7 +162,7 @@ class Series(object):
                                (line_fn, e.message))
             else:
                 logger.debug('Read line from cache')
-                self.data = dat[..., self.px]
+                self.data = dat[..., self.px].astype(np.float)
                 got_cache = True
                 i += self.data.shape[1]
                 yield float(i)
@@ -170,13 +170,14 @@ class Series(object):
         # Last resort -- read from images
         if not got_cache:
             for i_img in range(self.n):
-                self._scratch_data[:, i_img] = read_pixel_GDAL(
+                self._scratch_data[:, i_img] = (read_pixel_GDAL(
                     self.images['path'][i_img], self.px, self.py)
+                    .astype(np.float))
                 i += 1
                 yield float(i)
 
                 # Copy from scratch variable if it completes
-                np.copyto(self.data, self._scratch_data)
+                np.copyto(self.data, self._scratch_data, 'unsafe')
 
         if write_cache and not got_cache:
             try:
