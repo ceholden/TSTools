@@ -18,7 +18,7 @@ For information on the style of this change log, see [keepachangelog.com](http:/
 - Stacked Time Series, and descendants: Fixed datatype casting bug when retrieving from images and cache ([commit](https://github.com/ceholden/TSTools/commit/ac657d7d9139ecf1bb7516092c0b6cf90c9727e0))
 - PALSAR/Landsat driver: fixed initialization errors
 - YATSM Meteorological driver: fixed initialization errors
-
+- Fix plot style application (does not use `hasattr` anymore)
 
 ## [v1.1.0](https://github.com/ceholden/TSTools/compare/v1.0.1...v1.1.0) - 2016-02-16
 

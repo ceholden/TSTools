@@ -5,6 +5,11 @@ import os
 import matplotlib as mpl
 from matplotlib.backends.backend_qt4agg \
     import FigureCanvasQTAgg as FigureCanvas
+HAS_STYLE = TRUE
+try:
+    import matplotlib.style
+except ImportError:
+    HAS_STYLE = FALSE
 
 from .. import settings
 
@@ -22,13 +27,12 @@ class BasePlot(FigureCanvas):
 
         # matplotlib
         style = settings.plot.get('style')
-        if style and hasattr(mpl, 'style'):
+        if HAS_STYLE and style:
             if style == 'xkcd':
                 import matplotlib.pyplot
                 mpl.pyplot.xkcd()
             else:
-                import matplotlib.style
-                mpl.style.use(style)
+                matplotlib.style.use(style)
         self.fig = mpl.figure.Figure()
         self.axes = []
         self.axis_1 = self.fig.add_subplot(111)
