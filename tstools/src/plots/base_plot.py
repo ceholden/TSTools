@@ -32,7 +32,7 @@ class BasePlot(FigureCanvas):
                 import matplotlib.pyplot
                 mpl.pyplot.xkcd()
             else:
-                matplotlib.style.use(style)
+                mpl.style.use(style)
         self.fig = mpl.figure.Figure()
         self.axes = []
         self.axis_1 = self.fig.add_subplot(111)
