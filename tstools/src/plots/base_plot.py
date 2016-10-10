@@ -5,11 +5,11 @@ import os
 import matplotlib as mpl
 from matplotlib.backends.backend_qt4agg \
     import FigureCanvasQTAgg as FigureCanvas
-HAS_STYLE = TRUE
+HAS_STYLE = True
 try:
     import matplotlib.style
 except ImportError:
-    HAS_STYLE = FALSE
+    HAS_STYLE = False
 
 from .. import settings
 
