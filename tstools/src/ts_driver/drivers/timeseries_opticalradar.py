@@ -36,7 +36,8 @@ class YATSMLandsatPALSARTS(YATSMTimeSeries):
     config['ps_dir'] = ConfigItem('PALSAR data dir', 'ALOS')
     config['ps_stack_pattern'] = ConfigItem('PALSAR stack pattern',
                                             '*ALPSRP*')
-    config['ps_date_index'] = ConfigItem('PALSAR date index', [8, 16])
+    config['ps_date_index'] = ConfigItem('PALSAR date index', [9, 17])
+    config['ps_date_format'] = ConfigItem('PALSAR date format', '%Y%m%d')
 
     # redefined
     config['cache_folder'] = ConfigItem('Cache folder', 'cache_fusion')
@@ -100,16 +101,18 @@ class YATSMLandsatPALSARTS(YATSMTimeSeries):
         # Find HH images
         hh_images = find_files(
             location,
-            self.config['ps_stack_pattern'].value + '*hh.gtif',
+            self.config['ps_stack_pattern'].value + '*hh.*tif',
             ignore_dirs=ignore_dirs)
         if not hh_images:
-            raise Exception('Could not find any HH images (*hh.gtif)')
+            raise Exception('Could not find any HH images (*hh.*tif)')
         self.series.append(Series(
-            hh_images, self.config['ps_date_index'].value, '%Y%m%d',
+            hh_images,
+            self.config['ps_date_index'].value,
+            self.config['ps_date_format'].value,
             {
                 'description': 'PALSAR HH Timeseries',
                 'symbology_hint_indices': [0],
-                'symbology_hint_minmax': [0, 255],
+                'symbology_hint_minmax': [-30, -1],
                 'band_names': ['HH']
             }
         ))
@@ -122,11 +125,13 @@ class YATSMLandsatPALSARTS(YATSMTimeSeries):
         if not vrt_images:
             raise Exception('Could not find any HH/HV/Ratio images (*.vrt)')
         self.series.append(Series(
-            vrt_images, self.config['ps_date_index'].value, '%Y%m%d',
+            vrt_images,
+            self.config['ps_date_index'].value,
+            self.config['ps_date_format'].value,
             {
                 'description': 'PALSAR HH/HV/Ratio Timeseries',
                 'symbology_hint_indices': [0, 1, 2],
-                'symbology_hint_minmax': [0, 255],
+                'symbology_hint_minmax': [-30, -1],
                 'band_names': ['HH', 'HV', 'HH/HV']
             }
         ))
