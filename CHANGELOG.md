@@ -10,6 +10,7 @@ For information on the style of this change log, see [keepachangelog.com](http:/
 ### Changed
 
 - Time series drivers are now located using `setuptools` `entry_points` and `pkg_resources.iter_entry_points` instead of through subclassing ([#82](https://github.com/ceholden/TSTools/issues/82))
+- Allow plot symbology to be floating point numbers
 
 ### Fixed
 

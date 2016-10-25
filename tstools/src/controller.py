@@ -582,8 +582,8 @@ class Controller(QtCore.QObject):
 
             n_bands = len(series.band_names)
             # Default min/max
-            symbol['min'] = np.zeros(n_bands, dtype=np.int32)
-            symbol['max'] = np.ones(n_bands, dtype=np.int32) * 10000
+            symbol['min'] = np.zeros(n_bands, dtype=np.float)
+            symbol['max'] = np.ones(n_bands, dtype=np.float) * 10000
 
             # Custom symbology, if exists
             if hasattr(series, 'symbology_hint_indices'):
@@ -619,8 +619,8 @@ class Controller(QtCore.QObject):
                         logger.debug(
                             'Applying min/max symbology hint for all bands')
                         symbol.update({
-                            'min': np.ones(n_bands, dtype=np.int32) * i[0],
-                            'max': np.ones(n_bands, dtype=np.int32) * i[1],
+                            'min': np.ones(n_bands, dtype=np.float) * i[0],
+                            'max': np.ones(n_bands, dtype=np.float) * i[1],
                         })
                     # Min/max for each band
                     elif (isinstance(i[0], (list, np.ndarray)) and

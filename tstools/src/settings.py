@@ -88,8 +88,8 @@ default_symbol = {
     'band_green': 4,
     'band_blue': 3,
     # Min/max values for all bands
-    'min': np.zeros(1, dtype=np.int),
-    'max': np.ones(1, dtype=np.int) * 10000,
+    'min': np.zeros(1, dtype=np.float),
+    'max': np.ones(1, dtype=np.float) * 10000,
     # Contrast enhancement
     #   NoEnhancement                           0
     #   StretchToMinimumMaximum                 1
