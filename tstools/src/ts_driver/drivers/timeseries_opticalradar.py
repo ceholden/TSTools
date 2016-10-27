@@ -99,7 +99,7 @@ class YATSMLandsatPALSARTS(YATSMTimeSeries):
             {
                 'description': 'PALSAR HH Timeseries',
                 'symbology_hint_indices': [0],
-                'symbology_hint_minmax': [-30, -1],
+                'symbology_hint_minmax': [-20, -2],
                 'band_names': ['HH']
             }
         ))
@@ -118,7 +118,10 @@ class YATSMLandsatPALSARTS(YATSMTimeSeries):
             {
                 'description': 'PALSAR HH/HV/Ratio Timeseries',
                 'symbology_hint_indices': [0, 1, 2],
-                'symbology_hint_minmax': [-30, -1],
+                'symbology_hint_minmax': [
+                    (-20.0, -25.0, 3.0),
+                    (-2.0, -10.0, 11.0)
+                ],
                 'band_names': ['HH', 'HV', 'HH/HV']
             }
         ))

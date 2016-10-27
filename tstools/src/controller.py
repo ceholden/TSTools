@@ -27,11 +27,12 @@ from .ts_driver.ts_manager import tsm
 
 logger = logging.getLogger('tstools')
 
+ITERABLE = (list, tuple, np.ndarray)
+
+
 # PyQt -- moveToThread and functools.partial -- why doesn't it work?
 # See:
 # http://stackoverflow.com/questions/23317195/pyqt-movetothread-does-not-work-when-using-partial-for-slot
-
-
 class Worker(QtCore.QObject):
 
     update = QtCore.pyqtSignal(float)
@@ -612,7 +613,7 @@ class Controller(QtCore.QObject):
 
             if hasattr(series, 'symbology_hint_minmax'):
                 i = series.symbology_hint_minmax
-                if isinstance(i, (tuple, list)):
+                if isinstance(i, ITERABLE):
                     # One min/max or a set of them
                     if isinstance(i[1], (int, float)) and \
                             isinstance(i[0], (int, float)):
@@ -623,8 +624,8 @@ class Controller(QtCore.QObject):
                             'max': np.ones(n_bands, dtype=np.float) * i[1],
                         })
                     # Min/max for each band
-                    elif (isinstance(i[0], (list, np.ndarray)) and
-                            isinstance(i[1], (list, np.ndarray)) and
+                    elif (isinstance(i[0], ITERABLE) and
+                            isinstance(i[1], ITERABLE) and
                             len(i[0]) == n_bands and len(i[1]) == n_bands):
                         logger.debug(
                             'Applying specified min/max symbology hint')
@@ -633,11 +634,11 @@ class Controller(QtCore.QObject):
                             'max': np.asarray(i[1])
                         })
                     else:
-                        logger.warning(
-                            'Could not parse symbology min/max hint')
+                        logger.warning('Could not parse symbology min/max '
+                                       'hint')
                 else:
-                    logger.warning(
-                        'Symbology min/max hint improperly described')
+                    logger.warning('Symbology min/max hint improperly '
+                                   'described')
 
             # Add to settings
             settings.symbol.append(symbol)
