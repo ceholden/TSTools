@@ -85,6 +85,8 @@ class Series(object):
 
     def __init__(self, filenames, date_index=(9, 16), date_format='%Y%j',
                  config=None):
+        self.date_index = date_index
+        self.date_format = date_format
         self._init_images(filenames, date_index, date_format)
         self.data = np.zeros((self.count, self.n), dtype=np.float)
         self._scratch_data = np.zeros_like(self.data)
@@ -232,7 +234,7 @@ class Series(object):
             _images[i]['ordinal'] = dt.toordinal(_images[i]['date'])
             _images[i]['doy'] = int(_images[i]['date'].strftime('%j'))
 
-        sort_idx = np.argsort(_images['ordinal'])
+        sort_idx = np.argsort(_images, order='ordinal')
         _images = _images[sort_idx]
 
         self.images = _images.copy()

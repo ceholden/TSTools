@@ -1,6 +1,7 @@
 """ Various utilities useful for timeseries drivers
 """
 from collections import namedtuple
+import datetime as dt
 import fnmatch
 import logging
 import os
@@ -149,8 +150,16 @@ def read_cache_line(filename, series):
     if 'Y' not in z.files or 'image_IDs' not in z.files:
         raise IndexError('Cache file is not in the correct format')
 
-    if np.array_equal(z['image_IDs'], series.images['id']):
-        return z['Y']
+    image_IDs = z['image_IDs']
+    dates = np.array([dt.datetime.strptime(s[slice(*series.date_index)],
+                                           series.date_format)
+                      for s in image_IDs])
+    info = np.array(np.rec.fromarrays([dates, image_IDs],
+					names='dates,image_IDs'))
+    sort_idx = np.argsort(info, order='dates')
+
+    if np.array_equal(z['image_IDs'][sort_idx], series.images['id']):
+        return z['Y'][:, sort_idx, :]
     else:
         raise IndexError('Could not find cache data for series %s. image_IDs '
                          'are not the same' % series.description)
