@@ -110,7 +110,7 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
                                         cache_folder=cache_folder,
                                         read_cache=self._read_cache,
                                         write_cache=self._write_cache):
-                i += _i
+                i += 1
                 yield i / float(n) * 100.0
 
         # Collapse pixel position if same row/column

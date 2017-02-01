@@ -151,8 +151,7 @@ class Series(object):
                 logger.debug('Read pixel from cache')
                 self.data = dat.astype(np.float)
                 got_cache = True
-                i += self.data.shape[1]
-                yield float(i)
+                yield float(self.data.shape[1])
 
         # If pixel cache fails, try line
         if read_cache and os.path.isfile(line_fn) and not got_cache:
@@ -166,8 +165,7 @@ class Series(object):
                 logger.debug('Read line from cache')
                 self.data = dat[..., self.px].astype(np.float)
                 got_cache = True
-                i += self.data.shape[1]
-                yield float(i)
+                yield float(self.data.shape[1])
 
         # Last resort -- read from images
         if not got_cache:
