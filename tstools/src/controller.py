@@ -39,21 +39,37 @@ class Worker(QtCore.QObject):
     finished = QtCore.pyqtSignal()
     errored = QtCore.pyqtSignal(str)
 
-    def __init__(self, parent):
+    def __init__(self, parent, pct_increment=10.0):
         super(Worker, self).__init__()
         parent.fetch_data.connect(self.fetch)
+        self.pct_increment = pct_increment
 
     @QtCore.pyqtSlot(object, object, str)
     def fetch(self, ts, pos, crs_wkt):
+        """ Fetch a point from a time series driver, emitting progress
+
+        Progress emitted incrementally to not overwhelm network communication
+
+        Arg:
+            ts (time series driver): Time series drivers (e.g., specified
+                under "TSTools.drivers" entry point)
+            pos (tuple): Point
+            crs_wkt (str): Coordinate reference system as WKT
+
+        """
         logger.info('Fetching from QThread (id: %s)' %
                     hex(self.thread().currentThreadId()))
         # Fetch data
+        pct = 0
         try:
             for percent in ts.fetch_data(pos[0], pos[1], crs_wkt):
-                self.update.emit(percent)
+                if percent > pct + self.pct_increment:
+                    self.update.emit(percent)
+                    pct = percent
         except Exception as e:
             self.errored.emit(e.message)
         else:
+            self.update.emit(100.0)
             self.finished.emit()
 
 
