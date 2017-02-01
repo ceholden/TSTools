@@ -5,7 +5,7 @@ All notable changes will appear in this log that begins with the release of
 
 For information on the style of this change log, see [keepachangelog.com](http://keepachangelog.com/).
 
-## [UNRELEASED](https://github.com/ceholden/TSTools/compare/v1.1.0...HEAD)
+## [v1.2.0](https://github.com/ceholden/TSTools/compare/v1.1.0...v1.2.0)
 
 ### Changed
 
@@ -17,9 +17,11 @@ For information on the style of this change log, see [keepachangelog.com](http:/
 - YATSM CCDCesque: Fixed model prediction when retrieving from pre-calculated results ([commit](https://github.com/ceholden/TSTools/commit/6f0c40cd6d9ab929b100886f739fc253226acd89))
 - YATSM CCDCesque: Fixed model prediction error when retrieving results that used a different design formula than what was specified in control pane ([commit](https://github.com/ceholden/TSTools/commit/e8f5ff2bf02462ba4c1f47a9337244e227ac3d4f))
 - Stacked Time Series, and descendants: Fixed datatype casting bug when retrieving from images and cache ([commit](https://github.com/ceholden/TSTools/commit/ac657d7d9139ecf1bb7516092c0b6cf90c9727e0))
+- Stacked Time Series, and descendants: Fixed cache reading by comparing against sorted versions of dates ([commit](https://github.com/ceholden/TSTools/commit/5e259b716cb234ed268590307d27c40d3dc35b75)
 - PALSAR/Landsat driver: fixed initialization errors
 - YATSM Meteorological driver: fixed initialization errors
 - Fix plot style application (does not use `hasattr` anymore)
+- Fix progressbar accumulation
 
 ## [v1.1.0](https://github.com/ceholden/TSTools/compare/v1.0.1...v1.1.0) - 2016-02-16
 

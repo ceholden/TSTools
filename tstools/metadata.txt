@@ -10,7 +10,7 @@
 name=TSTools
 qgisMinimumVersion=2.4
 description=Plugin for visualization and analysis of remote sensing time series
-version=1.1.1
+version=1.2.0
 author=Chris Holden
 email=ceholden@gmail.com
 
@@ -20,6 +20,11 @@ email=ceholden@gmail.com
 
 # Uncomment the following line and add your changelog entries:
 changelog=See CHANGELOG.md in repository for full changelog
+    1.2.0
+    - Time series drivers located using `setuptools.iter_entry_points`
+    - Plot symbology limits can be floating point numbers
+    - CCDCesque: Fix model prediction error from precalculated results
+    - matplotlib style fix
     1.1.1
     - Fix initialization issues with PALSAR & meteorological data drivers
     1.1.0
