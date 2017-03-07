@@ -71,6 +71,9 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
         ]
         self._check_cache()
 
+        #: tuple: location for the latest fetch request (mx, my, crs_wkt)
+        self.fetch_georef = (None, None, '')
+
     @property
     def pixel_pos(self):
         return self._pixel_pos
@@ -92,6 +95,8 @@ class StackedTimeSeries(AbstractTimeSeriesDriver):
             dataset
 
         """
+        self.fetch_georef = (mx, my, crs_wkt, )
+
         cache_folder = os.path.join(self.location,
                                     self.config['cache_folder'].value)
 
