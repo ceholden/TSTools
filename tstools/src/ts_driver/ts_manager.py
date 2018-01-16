@@ -50,11 +50,13 @@ class TSManager(object):
                 self.ts_drivers.append(driver)
             except ImportError as exc:
                 logger.error('Cannot import %s: %s' % (name, exc))
+                logger.exception(exc)
                 broken_module = BrokenModule(name, exc)
                 broken.append(broken_module)
-            except:
+            except Exception as exc:
                 logger.error('Cannot import %s: %s' %
                              (name, sys.exc_info()[0]))
+                raise
 
         for plugin in iter_entry_points('TSTools.drivers'):
             try:
@@ -62,9 +64,10 @@ class TSManager(object):
                 self.ts_drivers.append(driver)
             except ImportError as exc:
                 logger.error('Cannot import %s: %s' % (plugin.name, exc))
+                logger.exception(exc)
                 broken_module = BrokenModule(plugin.name, exc)
                 broken.append(broken_module)
-            except:
+            except Exception as exc:
                 logger.error('Cannot import %s: %s' %
                              (plugin.name, sys.exc_info()[0]))
                 raise
