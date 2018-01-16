@@ -8,6 +8,7 @@ DRIVERS = OrderedDict((
     ('YATSMTimeSeries', 'timeseries_yatsm'),
     ('YATSMMetTimeSeries', 'timeseries_yatsm_met'),
     ('YATSMLandsatPALSARTS', 'timeseries_opticalradar'),
+    ('XarrayDriver', 'xarray_driver')
 ))
 
 for name, val in DRIVERS.items():
