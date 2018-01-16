@@ -228,6 +228,11 @@ def set_custom_config(obj, values, config='config'):
             values in ``obj`` for a given attribute in ``config``
 
     """
+    OKAY_SUBSTITUTES = {
+        np.ndarray: (tuple, list, np.ndarray),
+        list: (tuple, list, np.ndarray),
+        tuple: (tuple, list, np.ndarray),
+    }
     if not hasattr(obj, config):
         raise AttributeError('Cannot set custom config for object without'
                              ' config attribute named {}'.format(config))
@@ -238,7 +243,7 @@ def set_custom_config(obj, values, config='config'):
         logger.debug('    {a}: {cv} ({ct}) <-- {v} ({t})'.format(
             a=attr, cv=current_val, ct=type(current_val), v=val, t=type(val)
         ))
-        if isinstance(val, type(current_val)):
+        if isinstance(val, OKAY_SUBSTITUTES.get(type(val), type(val))):
             getattr(obj, config)[attr] = ConfigItem(name, val)
         else:
             raise AttributeError(
