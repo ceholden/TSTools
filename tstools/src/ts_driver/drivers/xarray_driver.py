@@ -193,7 +193,7 @@ class XarrayDriver(AbstractTimeSeriesDriver):
     config = OrderedDict((
         ('nc_pattern', ConfigItem('NetCDF pattern', 'L*.nc')),
         ('vars', ConfigItem('Data Variables', BANDS)),
-        ('mask_var', ConfigItem('Mask variable', 'cfmask')),
+        ('mask_var', ConfigItem('Mask variable', ['cfmask'])),
         ('x_dim', ConfigItem('X dim name', 'x')),
         ('y_dim', ConfigItem('Y dim name', 'y')),
     ))
@@ -220,10 +220,12 @@ class XarrayDriver(AbstractTimeSeriesDriver):
         series_ = XarraySeries(ncdfs, self.config['vars'].value, config=cfg)
 
         self.series = [series_]
-        self.da = None
+        self.da = []
 
     def fetch_data(self, mx, my, crs_wkt):
-        for series in self.series:
+        self.da = []
+        n = len(self.series)
+        for i, series in enumerate(self.series):
             # TODO: I think xarray can handle this...
             _mx, _my = geo_utils.reproject_point(mx, my, crs_wkt, series.crs)
             _px, _py = geo_utils.point2pixel(_mx, _my, series.gt)
@@ -235,25 +237,56 @@ class XarrayDriver(AbstractTimeSeriesDriver):
                 self.x_dim: _mx,
                 self.y_dim: _my
             }
-            self.da = (series.ds[series.band_names]
-                       .sel(method='nearest', **sel)
-                       .to_array()
-                       .compute())
+            da = (series.ds[series.band_names]
+                  .sel(method='nearest', **sel)
+                  .to_array('band')
+                  .compute())
+            self.da.append(da)
             self.px, self.py = _px, _py
-        yield 100.0
+            yield 99. * float(i + 1) / float(n)
+
+        self.update_mask(self.mask_values)
+        yield 100
 
     def get_data(self, series, band, mask=True, indices=None):
-        if self.da is None:
+        if not self.da:
             return (self.series[series].images,
                     np.zeros(self.series[series].images.shape[0]))
-        # TODO: not masking as of yet...
+
         x = self.series[series].images
-        y = self.da.data.take(band, axis=0)
+        y = self.da[series].data.take(band, axis=0)
+
+        if mask is True:
+            mask = np.where(self.series[series].mask)[0]
+
+        if isinstance(indices, np.ndarray):
+            if isinstance(mask, np.ndarray):
+                mask = indices[np.in1d(indices, mask)]
+            else:
+                mask = indices
+
+        if mask is not False:
+            x = x.take(mask, axis=0)
+            y = y.take(mask, axis=0)
 
         return x, y
 
-    def update_mask(sefl, mask_values=None):
-        pass
+    def update_mask(self, mask_values=None):
+        if mask_values is not None:
+            self.mask_values = np.asarray(mask_values).copy()
+
+        for idx, (mask_var, series) in enumerate(
+                zip(self.config['mask_var'].value, self.series)):
+            if mask_values is None:
+                continue
+            mask_var = self.config['mask_var'].value
+            bands = self.da[idx].band.values
+            if mask_var not in bands:
+                logger.warning('Cannot apply mask because it does not exist '
+                               'retrieved dataset (bands {bands})'.format(
+                                   bands=', '.join('"%s"' % b for b in bands)))
+            mask = self.da[idx].sel(band=mask_var).data
+            series.mask = np.in1d(mask, self.mask_values, invert=True)
 
     def get_geometry(self):
         geom = geo_utils.pixel_geometry(self.series[0].gt, self.px, self.py)
