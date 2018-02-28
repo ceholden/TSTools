@@ -10,7 +10,7 @@ import xml.etree.ElementTree as ET
 from xml.etree.ElementTree import ElementTree, Element, SubElement
 from xml.dom import minidom
 
-from osgeo import gdal, gdal_array
+from osgeo import gdal, gdal_array, osr
 
 COLOR_INTERP = defaultdict(str)
 COLOR_INTERP[2] = 'Red'
@@ -120,7 +120,12 @@ class VRT(object):
             if (width, height) != (_ds.RasterXSize, _ds.RasterYSize):
                 raise ValueError('All datasets must be the same size')
         # Check projection
-        crs = datasets[0].GetProjection()
+        crs = osr.SpatialReference()
+        crs.ImportFromWkt(datasets[0].GetProjection())
+        crs.Fixup()
         for _ds in datasets:
-            if crs != _ds.GetProjection():
+            crs_ = osr.SpatialReference()
+            crs_.ImportFromWkt(_ds.GetProjection())
+            crs_.Fixup()
+            if not bool(crs.IsSame(crs_)):
                 raise ValueError('All datasets must have same CRS')
