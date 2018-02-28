@@ -5,12 +5,17 @@ https://github.com/ceholden/tilezilla/blob/master/tilezilla/stores/vrt.py
 
 """
 from collections import defaultdict
+import logging
 import os
 import xml.etree.ElementTree as ET
 from xml.etree.ElementTree import ElementTree, Element, SubElement
 from xml.dom import minidom
 
 from osgeo import gdal, gdal_array, osr
+
+osr.UseExceptions()
+
+logger = logging.getLogger(__name__)
 
 COLOR_INTERP = defaultdict(str)
 COLOR_INTERP[2] = 'Red'
@@ -128,4 +133,4 @@ class VRT(object):
             crs_.ImportFromWkt(_ds.GetProjection())
             crs_.Fixup()
             if not bool(crs.IsSame(crs_)):
-                raise ValueError('All datasets must have same CRS')
+                logger.warning('Input files might not have same CRS')
