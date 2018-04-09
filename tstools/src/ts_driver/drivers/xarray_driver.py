@@ -116,15 +116,17 @@ class XarraySeries(object):
 
         # Read in NetCDF4 files as multiple dataset
         # TODO chunks
+        logger.info('Opening NetCDFs with xarray. Be patient...')
         self.ds = xr.open_mfdataset(
             filenames,
             chunks={
                 self.x_dim: 250,
                 self.y_dim: 250,
-                self.time_dim: 50
+                self.time_dim: 250
             },
             concat_dim=self.time_dim
         )
+        logger.info('Done!')
 
         # Create VRTs
         self._init_vrts()
