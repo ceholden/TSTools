@@ -34,8 +34,10 @@ class YATSMLandsatPALSARTS(YATSMTimeSeries):
     # Driver configuration
     config = YATSMTimeSeries.config.copy()
     config['ps_dir'] = ConfigItem('PALSAR data dir', 'ALOS')
-    config['ps_stack_pattern'] = ConfigItem('PALSAR stack pattern',
-                                            '*ALPSRP*')
+    config['hh_stack_pattern'] = ConfigItem('PALSAR HH image pattern',
+                                            '*HH.tif')
+    config['vrt_stack_pattern'] = ConfigItem('PALSAR stacked VRT image pattern',
+                                              '*stack.vrt')
     config['ps_date_index'] = ConfigItem('PALSAR date index', [9, 17])
     config['ps_date_format'] = ConfigItem('PALSAR date format', '%Y%m%d')
 
@@ -88,7 +90,7 @@ class YATSMLandsatPALSARTS(YATSMTimeSeries):
         # Find HH images
         hh_images = find_files(
             location,
-            self.config['ps_stack_pattern'].value + '*hh.*tif',
+            self.config['hh_stack_pattern'].value,
             ignore_dirs=ignore_dirs)
         if not hh_images:
             raise Exception('Could not find any HH images (*hh.*tif)')
@@ -107,7 +109,7 @@ class YATSMLandsatPALSARTS(YATSMTimeSeries):
         # Find HH/HV/Ratio VRT images
         vrt_images = find_files(
             location,
-            self.config['ps_stack_pattern'].value + '*.vrt',
+            self.config['vrt_stack_pattern'].value,
             ignore_dirs=ignore_dirs)
         if not vrt_images:
             raise Exception('Could not find any HH/HV/Ratio images (*.vrt)')
